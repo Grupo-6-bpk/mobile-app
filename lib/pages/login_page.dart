@@ -123,7 +123,9 @@ class _LoginPageState extends State<LoginPage> {
                             style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,
                             ),
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.pushNamed(context, "/signUpRole");
+                            },
                             child: Text(
                               "Cadastre-se",
                               style: TextStyle(
