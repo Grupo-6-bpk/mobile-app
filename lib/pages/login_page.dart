@@ -18,7 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceDim,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SingleChildScrollView(
         child: Center(
           child: Padding(
@@ -107,16 +107,12 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           FractionallySizedBox(
                             widthFactor: 0.6,
-                            child: SizedBox(
-                              height: 50,
-                              child: CustomButton(
-                                onPressed: () {},
-                                bgColor: Theme.of(context).colorScheme.primary,
-                                textColor:
-                                    Theme.of(context).colorScheme.onPrimary,
-                                text: "Login",
-                                padding: EdgeInsets.symmetric(vertical: 20),
-                              ),
+                            child: CustomButton(
+                              onPressed: () {},
+                              bgColor: Theme.of(context).colorScheme.primary,
+                              textColor:
+                                  Theme.of(context).colorScheme.onPrimary,
+                              text: "Login",
                             ),
                           ),
                           TextButton(
