@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_file_picker.dart';
@@ -12,6 +13,9 @@ class DriverSignUpPage extends StatefulWidget {
 
 class _DriverSignUpPageState extends State<DriverSignUpPage> {
   int _currentStep = 0;
+  bool isFirstStepValid = false;
+  bool isSecondStepValid = false;
+  bool isThirdStepValid = false;
   final double horizontalPadding = 10.0;
 
   final TextEditingController _firstNameController = TextEditingController();
@@ -24,6 +28,10 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   final TextEditingController _driverLicenseController =
       TextEditingController();
 
+  final TextEditingController _renavamController = TextEditingController();
+  final TextEditingController _carModelController = TextEditingController();
+  final TextEditingController _carPlateController = TextEditingController();
+
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
   final FocusNode _emailFocusNode = FocusNode();
@@ -31,16 +39,82 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   final FocusNode _confirmPasswordFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
   final FocusNode _driverLicenseFocusNode = FocusNode();
+  final FocusNode _renavamFocusNode = FocusNode();
+  final FocusNode _carModelFocusNode = FocusNode();
+  final FocusNode _carPlateFocusNode = FocusNode();
+
+  final ValueNotifier<FilePickerResult?> _frontCNHNotifier =
+      ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<FilePickerResult?> _backCNHNotifier =
+      ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<FilePickerResult?> _proofOfLinkNotifier =
+      ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<FilePickerResult?> _carPhotoNotifier =
+      ValueNotifier<FilePickerResult?>(null);
 
   void _nextStep() {
-    if (_currentStep < 1) {
-      setState(() => _currentStep++);
-    }
+    if (_currentStep == 0) {
+      if (!_passwordsMatch()) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Senhas não conferem")));
+      } else if (_validateFirstStep()) {
+        setState(() {
+          isFirstStepValid = true;
+          _currentStep++;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Preencha todos os campos")),
+        );
+      }
+    } else if (_currentStep == 1) {
+      if (_validateSecondStep()) {
+        setState(() {
+          isSecondStepValid = true;
+          _currentStep++;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Preencha todos os campos")),
+        );
+      }
+    } else if (_currentStep == 2) {}
   }
 
   void _previousStep() {
     if (_currentStep > 0) {
       setState(() => _currentStep--);
+    }
+  }
+
+  bool _passwordsMatch() {
+    return _passwordController.text == _confirmPasswordController.text;
+  }
+
+  bool _validateFirstStep() {
+    return _firstNameController.text.isNotEmpty &&
+        _lastNameController.text.isNotEmpty &&
+        _emailController.text.isNotEmpty &&
+        _passwordController.text.isNotEmpty &&
+        _confirmPasswordController.text.isNotEmpty &&
+        _phoneController.text.isNotEmpty;
+  }
+
+  bool _validateSecondStep() {
+    return _driverLicenseController.text.isNotEmpty &&
+        _frontCNHNotifier.value != null &&
+        _backCNHNotifier.value != null &&
+        _proofOfLinkNotifier.value != null;
+  }
+
+  StepState _getStepState(int step) {
+    if (_currentStep > step) {
+      return StepState.complete;
+    } else if (_currentStep == step) {
+      return StepState.editing;
+    } else {
+      return StepState.indexed;
     }
   }
 
@@ -66,7 +140,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                   },
                   steps: [
                     Step(
-                      title: Text("Dados Pessoais"),
+                      title: Text("Dados"),
                       content: Column(
                         children: [
                           const SizedBox(height: 20),
@@ -150,6 +224,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                                   controller: _confirmPasswordController,
                                   label: "Confirmar Senha",
                                   obscureText: true,
+                                  focusNode: _confirmPasswordFocusNode,
                                   onSubmitted: (_) {
                                     FocusScope.of(
                                       context,
@@ -162,18 +237,6 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                                   focusNode: _phoneFocusNode,
                                   label: "Telefone",
                                   obscureText: false,
-                                  onSubmitted: (_) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(_driverLicenseFocusNode);
-                                  },
-                                ),
-                                const SizedBox(height: 20),
-                                CustomTextfield(
-                                  controller: _driverLicenseController,
-                                  focusNode: _driverLicenseFocusNode,
-                                  label: "Número da CNH",
-                                  obscureText: false,
                                 ),
                               ],
                             ),
@@ -182,6 +245,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                         ],
                       ),
                       isActive: _currentStep >= 0,
+                      state: _getStepState(0),
                     ),
                     Step(
                       title: Text("Documentos"),
@@ -190,33 +254,105 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                         children: [
                           SizedBox(height: 20),
                           Text(
-                            "Upload Documentos",
+                            "Documentos Pessoais",
+                            textWidthBasis: TextWidthBasis.longestLine,
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            child: CustomFilePicker(label: "Frente CNH"),
+                          const SizedBox(height: 20),
+                          CustomTextfield(
+                            controller: _driverLicenseController,
+                            focusNode: _driverLicenseFocusNode,
+                            label: "Número da CNH",
+                            obscureText: false,
                           ),
                           SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
-                            child: CustomFilePicker(label: "Verso CNH"),
+                            child: CustomFilePicker(
+                              label: "Frente CNH",
+                              fileNotifier: _frontCNHNotifier,
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: CustomFilePicker(
+                              label: "Verso CNH",
+                              fileNotifier: _backCNHNotifier,
+                            ),
                           ),
                           SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
                             child: CustomFilePicker(
                               label: "Comprovante de Vínculo com BPK",
+                              fileNotifier: _proofOfLinkNotifier,
                             ),
                           ),
                         ],
                       ),
-                      isActive: _currentStep >= 1,
+                      isActive: _currentStep == 1,
+                      state: _getStepState(1),
+                    ),
+                    Step(
+                      title: Text("Carro"),
+                      content: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(height: 20),
+                          Text(
+                            "Documentos do Carro",
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: CustomFilePicker(
+                              label: "Imagem do carro",
+                              fileNotifier: _carPhotoNotifier,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          CustomTextfield(
+                            controller: _renavamController,
+                            focusNode: _renavamFocusNode,
+                            onSubmitted:
+                                (_) => FocusScope.of(
+                                  context,
+                                ).requestFocus(_carModelFocusNode),
+                            label: "Renavam",
+                            obscureText: false,
+                          ),
+                          const SizedBox(height: 20),
+                          CustomTextfield(
+                            controller: _carModelController,
+                            focusNode: _carModelFocusNode,
+                            onSubmitted:
+                                (_) => FocusScope.of(
+                                  context,
+                                ).requestFocus(_carPlateFocusNode),
+                            label: "Modelo do Carro",
+                            obscureText: false,
+                          ),
+                          const SizedBox(height: 20),
+                          CustomTextfield(
+                            controller: _carPlateController,
+                            focusNode: _carPlateFocusNode,
+                            label: "Placa do Carro",
+                            obscureText: false,
+                          ),
+                        ],
+                      ),
+                      isActive: _currentStep == 2,
+                      state: _getStepState(2),
                     ),
                   ],
                 ),
@@ -243,7 +379,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                       bgColor: Theme.of(context).colorScheme.primary,
                       textColor: Theme.of(context).colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      text: _currentStep == 1 ? "Finalizar" : "Próximo",
+                      text: _currentStep == 2 ? "Finalizar" : "Próximo",
                     ),
                   ],
                 ),

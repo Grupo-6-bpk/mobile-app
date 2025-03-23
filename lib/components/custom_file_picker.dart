@@ -3,7 +3,13 @@ import 'package:flutter/material.dart';
 
 class CustomFilePicker extends StatefulWidget {
   final String label;
-  const CustomFilePicker({super.key, required this.label});
+  final ValueNotifier<FilePickerResult?> fileNotifier;
+
+  const CustomFilePicker({
+    super.key,
+    required this.label,
+    required this.fileNotifier,
+  });
 
   @override
   State<CustomFilePicker> createState() => _CustomFilePickerState();
@@ -11,25 +17,27 @@ class CustomFilePicker extends StatefulWidget {
 
 class _CustomFilePickerState extends State<CustomFilePicker> {
   String? _fileName;
-  FilePickerResult? _file;
 
   Future<void> _pickFile() async {
     try {
-      _file = await FilePicker.platform.pickFiles();
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
 
-      if (_file != null) {
+      if (result != null) {
         setState(() {
-          _fileName = _file?.files.single.name;
+          _fileName = result.files.single.name;
         });
+        widget.fileNotifier.value = result;
       } else {
         setState(() {
           _fileName = null;
         });
+        widget.fileNotifier.value = null;
       }
     } catch (e) {
       setState(() {
         _fileName = "Erro ao selecionar arquivo";
       });
+      widget.fileNotifier.value = null;
     }
   }
 
