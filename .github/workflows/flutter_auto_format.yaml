@@ -32,4 +32,4 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "Format code automatically" || echo "No changes to commit"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/Grupo-6-bpk/mobile-app.git HEAD:master
+          git push git@github.com:Grupo-6-bpk/mobile-app.git HEAD:master
