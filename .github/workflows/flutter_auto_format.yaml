@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read  
+  actions: write   
+  pull-requests: write  
+  
 jobs:
   format:
     name: Auto Format Dart Code
@@ -32,4 +37,4 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "Format code automatically" || echo "No changes to commit"
-          git push git@github.com:Grupo-6-bpk/mobile-app.git HEAD:master
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/Grupo-6-bpk/mobile-app.git HEAD:master
