@@ -42,7 +42,9 @@ class SignUpRolePage extends StatelessWidget {
                         FractionallySizedBox(
                           widthFactor: 0.7,
                           child: CustomButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.pushNamed(context, "/passengerSignUp");
+                            },
                             bgColor: Theme.of(context).colorScheme.primary,
                             textColor: Theme.of(context).colorScheme.onPrimary,
                             text: "Passageiro",
