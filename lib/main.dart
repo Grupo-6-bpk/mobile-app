@@ -4,7 +4,6 @@ import 'package:mobile_app/pages/login_page.dart';
 import 'package:mobile_app/pages/sign_up/driver_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/passenger_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/sign_up_role_page.dart';
-import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
 import 'package:mobile_app/theme/theme.dart';
 import 'package:mobile_app/theme/util.dart';
 
