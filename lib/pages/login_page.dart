@@ -108,7 +108,10 @@ class LoginPageState extends State<LoginPage> {
                           FractionallySizedBox(
                             widthFactor: 0.6,
                             child: CustomButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                // Navega para a tela de histórico de viagens após login
+                                Navigator.pushNamed(context, "/rideHistory");
+                              },
                               bgColor: Theme.of(context).colorScheme.primary,
                               textColor:
                                   Theme.of(context).colorScheme.onPrimary,
@@ -120,7 +123,7 @@ class LoginPageState extends State<LoginPage> {
                               padding: EdgeInsets.zero,
                             ),
                             onPressed: () {
-                              Navigator.pushNamed(context, "/signUpRole");
+                              Navigator.pushNamed(context, "/home");
                             },
                             child: Text(
                               "Cadastre-se",
