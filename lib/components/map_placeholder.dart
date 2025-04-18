@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 class MapPlaceholder extends StatelessWidget {
   final double height;
-  
-  const MapPlaceholder({
-    super.key,
-    this.height = 150,
-  });
+
+  const MapPlaceholder({super.key, this.height = 150});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +21,8 @@ class MapPlaceholder extends StatelessWidget {
             painter: MapPainter(
               primaryColor: Theme.of(context).colorScheme.primary,
               secondaryColor: Theme.of(context).colorScheme.secondaryContainer,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerLow,
             ),
           ),
           // Adicionar uma linha de rota
@@ -83,33 +81,27 @@ class MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = secondaryColor.withOpacity(0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+    final paint =
+        Paint()
+          ..color = secondaryColor.withValues(alpha: 0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1;
 
     // Desenhar uma grade para simular um mapa
     for (double i = 0; i < size.width; i += 20) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i, size.height),
-        paint,
-      );
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
     }
 
     for (double i = 0; i < size.height; i += 20) {
-      canvas.drawLine(
-        Offset(0, i),
-        Offset(size.width, i),
-        paint,
-      );
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
     }
 
     // Desenhar algumas "ruas" mais destacadas
-    final streetPaint = Paint()
-      ..color = secondaryColor.withOpacity(0.5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+    final streetPaint =
+        Paint()
+          ..color = secondaryColor.withValues(alpha: 0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2;
 
     canvas.drawLine(
       Offset(size.width * 0.2, 0),
@@ -140,4 +132,4 @@ class MapPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return false;
   }
-} 
+}
