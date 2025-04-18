@@ -123,7 +123,7 @@ class LoginPageState extends State<LoginPage> {
                               padding: EdgeInsets.zero,
                             ),
                             onPressed: () {
-                              Navigator.pushNamed(context, "/signUpRole");
+                              Navigator.pushNamed(context, "/home");
                             },
                             child: Text(
                               "Cadastre-se",

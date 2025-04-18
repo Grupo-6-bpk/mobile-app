@@ -32,7 +32,6 @@ class MyApp extends StatelessWidget {
         "/signUpRole": (context) => SignUpRolePage(),
         "/driverSignUp": (context) => DriverSignUpPage(),
         "/home": (context) => HomePage(),
-        "/rideHistory": (context) => RideHistoryPage(),
         "/passengerSignUp": (context) => PassengerSignUpPage(),
       },
     );
