@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/pages/ride_detail_page.dart';
+import 'package:mobile_app/pages/ride_history/ride_detail_page.dart';
 import 'package:intl/intl.dart';
 
 class RideHistoryPage extends StatefulWidget {
@@ -69,15 +69,19 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
   List<Map<String, dynamic>> get _filteredRides {
     return _mockRides.where((ride) {
       DateTime rideDate = ride['timestamp'] as DateTime;
-      return rideDate.isAfter(_startDate.subtract(const Duration(days: 1))) && 
-             rideDate.isBefore(_endDate.add(const Duration(days: 1)));
+      return rideDate.isAfter(_startDate.subtract(const Duration(days: 1))) &&
+          rideDate.isBefore(_endDate.add(const Duration(days: 1)));
     }).toList();
   }
 
   // Calcular estatísticas
   int get _totalRides => _filteredRides.length;
-  double get _totalSpent => _filteredRides.fold(0.0, (sum, ride) => sum + (ride['price'] as double));
-  double get _totalDistance => _filteredRides.fold(0.0, (sum, ride) => sum + (ride['distance'] as double));
+  double get _totalSpent =>
+      _filteredRides.fold(0.0, (sum, ride) => sum + (ride['price'] as double));
+  double get _totalDistance => _filteredRides.fold(
+    0.0,
+    (sum, ride) => sum + (ride['distance'] as double),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -87,10 +91,6 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         title: const Text('Histórico de viagens'),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
         actions: [
           IconButton(
             icon: Icon(_showStats ? Icons.analytics_outlined : Icons.analytics),
@@ -135,7 +135,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Filtro de datas
                     Row(
                       children: [
@@ -167,7 +167,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Cards de estatísticas
                     Row(
                       children: [
@@ -207,7 +207,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
               ),
             ),
           ),
-          
+
           // Lista de viagens
           Expanded(
             child: ListView.builder(
@@ -223,14 +223,15 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                   time: ride['time'],
                   price: ride['price'],
                   title: ride['title'],
-                  vehicleInfo: ride['vehicleInfo'] ?? 'Veículo: Sonic 3.0 Turbo, Cor: Branco',
+                  vehicleInfo:
+                      ride['vehicleInfo'] ??
+                      'Veículo: Sonic 3.0 Turbo, Cor: Branco',
                 );
               },
             ),
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
@@ -398,13 +399,14 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
             // Navegar para a página de detalhes da viagem
             showDialog(
               context: context,
-              builder: (context) => RideDetailPage(
-                date: date,
-                address: address,
-                time: time,
-                title: title,
-                vehicleInfo: vehicleInfo,
-              ),
+              builder:
+                  (context) => RideDetailPage(
+                    date: date,
+                    address: address,
+                    time: time,
+                    title: title,
+                    vehicleInfo: vehicleInfo,
+                  ),
             );
           },
           child: Padding(
@@ -412,7 +414,9 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.2),
                   radius: 24,
                   child: Icon(
                     Icons.directions_car,
@@ -437,7 +441,10 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                       Text(
                         title == null ? 'Viagem $date' : date,
                         style: TextStyle(
-                          fontWeight: title == null ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              title == null
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
@@ -455,7 +462,10 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                             route,
                             style: TextStyle(
                               fontSize: 12.0,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -463,7 +473,10 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                             time,
                             style: TextStyle(
                               fontSize: 12.0,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -495,87 +508,4 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
       ),
     );
   }
-
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavBarItem(
-                context, 
-                Icons.home_rounded, 
-                'Home', 
-                false,
-                () {},
-              ),
-              _buildNavBarItem(
-                context, 
-                Icons.directions_car_rounded, 
-                'Viagens', 
-                true,
-                () {},
-              ),
-              _buildNavBarItem(
-                context, 
-                Icons.chat_rounded, 
-                'Chat', 
-                false,
-                () {},
-              ),
-              _buildNavBarItem(
-                context, 
-                Icons.settings, 
-                'Configurações', 
-                false,
-                () {},
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavBarItem(
-    BuildContext context, 
-    IconData icon, 
-    String label, 
-    bool isSelected,
-    VoidCallback onTap,
-  ) {
-    final color = isSelected 
-        ? Theme.of(context).colorScheme.primary 
-        : Theme.of(context).colorScheme.onSurfaceVariant;
-    
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-} 
+}
