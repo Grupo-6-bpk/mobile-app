@@ -84,7 +84,7 @@ class MapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = secondaryColor.withOpacity(0.3)
+      ..color = secondaryColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -107,7 +107,7 @@ class MapPainter extends CustomPainter {
 
     // Desenhar algumas "ruas" mais destacadas
     final streetPaint = Paint()
-      ..color = secondaryColor.withOpacity(0.5)
+      ..color = secondaryColor.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
