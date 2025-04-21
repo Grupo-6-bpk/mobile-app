@@ -10,11 +10,9 @@ class CaronasScreen extends StatefulWidget {
 }
 
 class _CaronasScreenState extends State<CaronasScreen> {
-  int _currentPageIndex = 1;
 
   void updatePageIndex(int index) {
     setState(() {
-      _currentPageIndex = index;
     });
   }
 
@@ -60,10 +58,10 @@ void showPassagerDetailHome(BuildContext context, Map<String, dynamic> carona) {
     context: context,
     barrierDismissible: true,
     // ignore: deprecated_member_use
-    barrierColor: theme.colorScheme.surface.withOpacity(0.8), // Fundo opaco com base no tema
+    barrierColor: theme.colorScheme.surface.withOpacity(0.8), 
     builder: (_) => Center(
       child: Material(
-        color: theme.cardColor, // Cor de fundo do modal conforme o tema
+        color: theme.cardColor, 
         elevation: 12,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -104,6 +102,7 @@ void showPassagerDetailHome(BuildContext context, Map<String, dynamic> carona) {
                 'Caronas Disponíveis:',
                 style: TextStyle(
                   fontSize: 16,
+                  // ignore: deprecated_member_use
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),

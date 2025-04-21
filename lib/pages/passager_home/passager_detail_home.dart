@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class PassagerDetailHome extends StatelessWidget {
   final Map<String, dynamic> carona;
 
-  const PassagerDetailHome({Key? key, required this.carona}) : super(key: key);
+  const PassagerDetailHome({super.key, required this.carona});
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +109,7 @@ class PassagerDetailHome extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        color: theme.colorScheme.surfaceVariant,
+        color: theme.colorScheme.surface,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
