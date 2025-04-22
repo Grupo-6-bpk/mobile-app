@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/pages/home/home_page.dart';
 import 'package:mobile_app/pages/login_page.dart';
 import 'package:mobile_app/pages/passenger_ride_history_page.dart';
 import 'package:mobile_app/pages/sign_up/driver_sign_up_page.dart';
@@ -26,11 +27,12 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'BPKCar',
       theme: brightness == Brightness.light ? theme.light() : theme.dark(),
-      initialRoute: "/login",
+      initialRoute: "/home",
       routes: {
         "/login": (context) => LoginPage(),
         "/signUpRole": (context) => SignUpRolePage(),
         "/driverSignUp": (context) => DriverSignUpPage(),
+        "/home": (context) => HomePage(),
         "/passengerSignUp": (context) => PassengerSignUpPage(),
         "/rideHistory": (context) => RideHistoryPage(),
         "/passengerRideHistory": (context) => PassengerRideHistoryPage(),
