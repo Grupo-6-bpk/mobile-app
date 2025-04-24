@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
+import 'package:mobile_app/pages/passager_home/passager_home.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -26,8 +27,9 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body:
           <Widget>[
-            const Placeholder(),
+            const CaronasScreen(),
             const RideHistoryPage(),
+            const Placeholder(),
             const Placeholder(),
             const Placeholder(),
           ][_currentPageIndex],
