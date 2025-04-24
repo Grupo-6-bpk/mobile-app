@@ -38,8 +38,15 @@ class AvailablePassengerCard extends StatelessWidget {
                 radius: 30,
                 backgroundColor: Colors.blue.shade100,
                 // Remover a tentativa de usar backgroundImage quando imageUrl está vazio
-                backgroundImage: imageUrl.isNotEmpty ? _getProfileImage() : null,
-                child: imageUrl.isEmpty ? Text(name[0], style: TextStyle(fontSize: 24, color: Colors.white)) : null,
+                backgroundImage:
+                    imageUrl.isNotEmpty ? _getProfileImage() : null,
+                child:
+                    imageUrl.isEmpty
+                        ? Text(
+                          name[0],
+                          style: TextStyle(fontSize: 24, color: Colors.white),
+                        )
+                        : null,
               ),
               const SizedBox(width: 16.0),
               // Informações do passageiro
@@ -55,9 +62,8 @@ class AvailablePassengerCard extends StatelessWidget {
                       children: [
                         Text(
                           name,
-                          style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium!
+                              .copyWith(fontWeight: FontWeight.bold),
                         ),
                         _buildRatingStars(),
                       ],
@@ -87,7 +93,7 @@ class AvailablePassengerCard extends StatelessWidget {
               width: 80,
               child: CustomButton(
                 text: 'Aceitar',
-                bgColor: const Color(0xFF2DBDF1),
+                bgColor: Theme.of(context).colorScheme.primary,
                 textColor: Colors.white,
                 onPressed: onAccept,
                 height: 40,
@@ -105,7 +111,7 @@ class AvailablePassengerCard extends StatelessWidget {
     if (imageUrl.isEmpty) {
       return null;
     }
-    
+
     try {
       return AssetImage(imageUrl);
     } catch (e) {
@@ -115,7 +121,9 @@ class AvailablePassengerCard extends StatelessWidget {
 
   Widget _buildRatingStars() {
     return Row(
-      mainAxisSize: MainAxisSize.min,  // Garante que a Row não tente ocupar mais espaço que o necessário
+      mainAxisSize:
+          MainAxisSize
+              .min, // Garante que a Row não tente ocupar mais espaço que o necessário
       children: List.generate(5, (index) {
         return Icon(
           index < rating ? Icons.star : Icons.star_border,
