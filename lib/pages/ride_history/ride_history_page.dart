@@ -166,7 +166,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    // const SizedBox(height: 16),
 
                     // Cards de estatísticas
                     Row(
@@ -185,7 +185,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         _buildStatCard(
@@ -267,7 +267,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
