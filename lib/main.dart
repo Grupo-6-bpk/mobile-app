@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'BPKCar',
       theme: brightness == Brightness.light ? theme.light() : theme.dark(),
-      initialRoute: "/home",
+      initialRoute: "/driverHome",
       routes: {
         "/login": (context) => LoginPage(),
         "/signUpRole": (context) => SignUpRolePage(),

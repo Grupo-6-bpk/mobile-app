@@ -10,14 +10,14 @@ class AvailablePassengerCard extends StatelessWidget {
   final VoidCallback onAccept;
 
   const AvailablePassengerCard({
-    Key? key,
+    super.key,
     required this.name,
     required this.location,
     required this.phoneNumber,
     required this.imageUrl,
     required this.rating,
     required this.onAccept,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

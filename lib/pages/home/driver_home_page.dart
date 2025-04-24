@@ -4,7 +4,7 @@ import 'package:mobile_app/components/custom_menu_bar.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
 
 class DriverHomePage extends StatefulWidget {
-  const DriverHomePage({Key? key}) : super(key: key);
+  const DriverHomePage({super.key});
 
   @override
   State<DriverHomePage> createState() => _DriverHomePageState();
@@ -108,7 +108,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: <Widget>[
         _buildDriverHomePage(),
         const RideHistoryPage(),
