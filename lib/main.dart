@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/pages/home/driver_home_page.dart';
 import 'package:mobile_app/pages/home/home_page.dart';
 import 'package:mobile_app/pages/login_page.dart';
 import 'package:mobile_app/pages/passenger_ride_history_page.dart';
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         "/signUpRole": (context) => SignUpRolePage(),
         "/driverSignUp": (context) => DriverSignUpPage(),
         "/home": (context) => HomePage(),
+        "/driverHome": (context) => DriverHomePage(),
         "/passengerSignUp": (context) => PassengerSignUpPage(),
         "/rideHistory": (context) => RideHistoryPage(),
         "/passengerRideHistory": (context) => PassengerRideHistoryPage(),
