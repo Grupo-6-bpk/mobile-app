@@ -57,8 +57,7 @@ void showPassagerDetailHome(BuildContext context, Map<String, dynamic> carona) {
   showDialog(
     context: context,
     barrierDismissible: true,
-    // ignore: deprecated_member_use
-    barrierColor: theme.colorScheme.surface.withOpacity(0.8), 
+    barrierColor: theme.colorScheme.onSurface.withAlpha((255 * 0.8).toInt()),
     builder: (_) => Center(
       child: Material(
         color: theme.cardColor, 
@@ -102,8 +101,7 @@ void showPassagerDetailHome(BuildContext context, Map<String, dynamic> carona) {
                 'Caronas Disponíveis:',
                 style: TextStyle(
                   fontSize: 16,
-                  // ignore: deprecated_member_use
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha((255 * 0.7).toInt()),
                 ),
               ),
               const SizedBox(height: 12),
@@ -235,3 +233,4 @@ class CaronaCard extends StatelessWidget {
     );
   }
 }
+ 
