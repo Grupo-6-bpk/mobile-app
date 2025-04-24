@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/pages/home/home_page.dart';
 import 'package:mobile_app/pages/login_page.dart';
+import 'package:mobile_app/pages/passenger_ride_history_page.dart';
 import 'package:mobile_app/pages/sign_up/driver_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/passenger_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/sign_up_role_page.dart';
+import 'package:mobile_app/pages/ride_history_page.dart';
 import 'package:mobile_app/theme/theme.dart';
 import 'package:mobile_app/theme/util.dart';
 
@@ -32,6 +34,8 @@ class MyApp extends StatelessWidget {
         "/driverSignUp": (context) => DriverSignUpPage(),
         "/home": (context) => HomePage(),
         "/passengerSignUp": (context) => PassengerSignUpPage(),
+        "/rideHistory": (context) => RideHistoryPage(),
+        "/passengerRideHistory": (context) => PassengerRideHistoryPage(),
       },
     );
   }
