@@ -91,6 +91,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         title: const Text('Histórico de viagens'),
         centerTitle: true,
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: Icon(_showStats ? Icons.analytics_outlined : Icons.analytics),
