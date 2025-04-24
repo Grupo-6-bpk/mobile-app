@@ -10,10 +10,8 @@ class CaronasScreen extends StatefulWidget {
 }
 
 class _CaronasScreenState extends State<CaronasScreen> {
-
   void updatePageIndex(int index) {
-    setState(() {
-    });
+    setState(() {});
   }
 
   final List<Map<String, dynamic>> caronas = [
@@ -51,32 +49,35 @@ class _CaronasScreenState extends State<CaronasScreen> {
     },
   ];
 
-void showPassagerDetailHome(BuildContext context, Map<String, dynamic> carona) {
-  final theme = Theme.of(context);
+  void showPassagerDetailHome(
+    BuildContext context,
+    Map<String, dynamic> carona,
+  ) {
+    final theme = Theme.of(context);
 
-  showDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierColor: theme.colorScheme.onSurface.withAlpha((255 * 0.8).toInt()),
-    builder: (_) => Center(
-      child: Material(
-        color: theme.cardColor, 
-        elevation: 12,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.9,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: PassagerDetailHome(carona: carona),
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: theme.colorScheme.onSurface.withAlpha((255 * 0.8).toInt()),
+      builder:
+          (_) => Center(
+            child: Material(
+              color: theme.cardColor,
+              elevation: 12,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.9,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: PassagerDetailHome(carona: carona),
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
-    ),
-  );
-}
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +102,9 @@ void showPassagerDetailHome(BuildContext context, Map<String, dynamic> carona) {
                 'Caronas Disponíveis:',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha((255 * 0.7).toInt()),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withAlpha((255 * 0.7).toInt()),
                 ),
               ),
               const SizedBox(height: 12),
@@ -178,18 +181,27 @@ class CaronaCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         'Saída: ${carona['local']}',
-                        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                       Text(
                         'Horário de saída: ${carona['horario']}',
-                        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                       if (carona.containsKey('preco'))
                         Padding(
                           padding: const EdgeInsets.only(top: 6.0),
                           child: Text(
                             'Valor máximo da viagem: ${carona['preco']}',
-                            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.secondary),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
                           ),
                         ),
                       const SizedBox(height: 8),
@@ -199,7 +211,9 @@ class CaronaCard extends StatelessWidget {
                             children: List.generate(
                               5,
                               (i) => Icon(
-                                i < carona['estrelas'] ? Icons.star : Icons.star_border,
+                                i < carona['estrelas']
+                                    ? Icons.star
+                                    : Icons.star_border,
                                 color: Colors.amber,
                                 size: 16,
                               ),
@@ -213,11 +227,16 @@ class CaronaCard extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                             ),
                             child: Text(
                               'Solicitar',
-                              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
                             ),
                           ),
                         ],
@@ -233,4 +252,3 @@ class CaronaCard extends StatelessWidget {
     );
   }
 }
- 

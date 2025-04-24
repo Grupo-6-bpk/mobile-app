@@ -109,8 +109,7 @@ class LoginPageState extends State<LoginPage> {
                             widthFactor: 0.6,
                             child: CustomButton(
                               onPressed: () {
-                                // Navega para a tela de histórico de viagens após login
-                                Navigator.pushNamed(context, "/rideHistory");
+                                Navigator.pushNamed(context, "/driverHome");
                               },
                               bgColor: Theme.of(context).colorScheme.primary,
                               textColor:
@@ -123,7 +122,7 @@ class LoginPageState extends State<LoginPage> {
                               padding: EdgeInsets.zero,
                             ),
                             onPressed: () {
-                              Navigator.pushNamed(context, "/home");
+                              Navigator.pushNamed(context, "/signUpRole");
                             },
                             child: Text(
                               "Cadastre-se",
