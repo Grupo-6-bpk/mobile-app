@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/pages/passenger_ride_detail_page.dart';
+import 'package:mobile_app/passenger_history/passenger_ride_detail_page.dart';
 
 class PassengerRideHistoryPage extends StatelessWidget {
   const PassengerRideHistoryPage({super.key});
