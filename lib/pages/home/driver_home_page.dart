@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/available_passenger_card.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
+import 'package:mobile_app/pages/chat/chat_page.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
 
 class DriverHomePage extends StatefulWidget {
@@ -100,6 +101,12 @@ class _DriverHomePageState extends State<DriverHomePage> {
   @override
   Widget build(BuildContext context) {
     void updatePageIndex(int index) {
+      if (index == 2) {
+        // Navegar para a página de chat
+        Navigator.pushNamed(context, '/chat');
+        return;
+      }
+      
       if (context.mounted) {
         setState(() {
           _currentPageIndex = index;
@@ -112,7 +119,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
       body: <Widget>[
         _buildDriverHomePage(),
         const RideHistoryPage(),
-        const Center(child: Text('Chat em desenvolvimento', style: TextStyle(fontSize: 20))),
+        const ChatPage(), // Este widget não será usado diretamente, navegação é feita via route
         const Center(child: Text('Configurações em desenvolvimento', style: TextStyle(fontSize: 20))),
       ][_currentPageIndex],
       bottomNavigationBar: CustomMenuBar(

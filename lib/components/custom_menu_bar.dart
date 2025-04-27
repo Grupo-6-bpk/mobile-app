@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 class CustomMenuBar extends StatelessWidget {
   final int currentPageIndex;
-  final Function(int) onPageSelected;
+  final Function(int)? onPageSelected;
 
   const CustomMenuBar({
     super.key,
     this.currentPageIndex = 0,
-    required this.onPageSelected,
+    this.onPageSelected,
   });
 
   @override
@@ -32,7 +32,14 @@ class CustomMenuBar extends StatelessWidget {
       indicatorColor: Theme.of(context).colorScheme.primary,
       selectedIndex: currentPageIndex,
       onDestinationSelected: (int index) {
-        onPageSelected(index);
+        if (onPageSelected != null) {
+          onPageSelected!(index);
+        } else {
+          // Navegação direta pelo menu se não tiver um callback definido
+          if (index == 2 && currentPageIndex != 2) {
+            Navigator.pushNamed(context, '/chat');
+          }
+        }
       },
     );
   }

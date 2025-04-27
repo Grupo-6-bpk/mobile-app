@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/pages/chat/chat_page.dart';
 import 'package:mobile_app/pages/home/driver_home_page.dart';
 import 'package:mobile_app/pages/login_page.dart';
 import 'package:mobile_app/passenger_history/passenger_ride_history_page.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         "/driverHome": (context) => DriverHomePage(),
         "/passengerSignUp": (context) => PassengerSignUpPage(),
         "/passengerRideHistory": (context) => PassengerRideHistoryPage(),
+        "/chat": (context) => const ChatPage(),
       },
     );
   }
