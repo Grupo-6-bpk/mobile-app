@@ -33,8 +33,7 @@ class SignUpRolePage extends StatelessWidget {
                             onPressed: () {
                               Navigator.pushNamed(context, "/driverSignUp");
                             },
-                            bgColor: Theme.of(context).colorScheme.primary,
-                            textColor: Theme.of(context).colorScheme.onPrimary,
+                            variant: ButtonVariant.primary,
                             text: "Motorista",
                           ),
                         ),
@@ -45,8 +44,7 @@ class SignUpRolePage extends StatelessWidget {
                             onPressed: () {
                               Navigator.pushNamed(context, "/passengerSignUp");
                             },
-                            bgColor: Theme.of(context).colorScheme.primary,
-                            textColor: Theme.of(context).colorScheme.onPrimary,
+                            variant: ButtonVariant.primary,
                             text: "Passageiro",
                           ),
                         ),
@@ -64,8 +62,7 @@ class SignUpRolePage extends StatelessWidget {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  bgColor: Theme.of(context).colorScheme.surfaceBright,
-                  textColor: Theme.of(context).colorScheme.onSurface,
+                  variant: ButtonVariant.secondary,
                   text: "Voltar",
                 ),
               ),
