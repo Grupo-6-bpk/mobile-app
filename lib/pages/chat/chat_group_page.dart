@@ -134,9 +134,6 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
       lastMessage: 'Grupo criado',
     );
     
-    // Fechar o modal atual se estiver aberto
-    Navigator.of(context).pop();
-    
     // Mostrar mensagem de sucesso
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -145,8 +142,18 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
       ),
     );
     
-    // Retornar à tela anterior passando o grupo criado
-    Navigator.of(context).pop(groupUser);
+    // Capturar o BuildContext antes da operação assíncrona
+    final currentContext = context;
+    
+    // Retornar à tela anterior passando o grupo criado 
+    // Importante: usar um pequeno atraso para garantir que a UI tenha tempo
+    // de processar o fechamento do modal antes de navegar
+    Future.delayed(const Duration(milliseconds: 100), () {
+      // Verificar se o contexto ainda é válido
+      if (currentContext.mounted) {
+        Navigator.pop(currentContext, groupUser);
+      }
+    });
   }
 
   void _showCreateGroupModal() {
@@ -425,53 +432,5 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
     } else {
       return '${timestamp.day.toString().padLeft(2, '0')}/${timestamp.month.toString().padLeft(2, '0')}/${timestamp.year}';
     }
-  }
-
-  Widget _buildSelectedUserList() {
-    if (_selectedUsers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.people,
-              size: 48,
-              color: Colors.white24,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Nenhum usuário selecionado',
-              style: TextStyle(
-                color: Colors.white60,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: _selectedUsers.length,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemBuilder: (context, index) {
-        final user = _selectedUsers[index];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundImage: AssetImage(user.imageUrl),
-          ),
-          title: Text(
-            user.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          trailing: IconButton(
-            icon: const Icon(Icons.remove_circle, color: Colors.red),
-            onPressed: () => _toggleUserSelection(user),
-          ),
-        );
-      },
-    );
   }
 } 

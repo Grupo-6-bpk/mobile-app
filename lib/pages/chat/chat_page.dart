@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
 import 'package:mobile_app/pages/chat/chat_conversation_page.dart';
 import 'package:mobile_app/pages/chat/chat_group_page.dart';
-import 'package:mobile_app/pages/chat/models/chat_message.dart';
 import 'package:mobile_app/pages/chat/models/chat_user.dart';
 import 'package:mobile_app/pages/chat/user_search_page.dart';
 
@@ -99,6 +98,9 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
   }
 
   void _navigateToGroupManagement() async {
+    // Capturar o contexto atual antes de iniciar operação assíncrona
+    final currentContext = context;
+    
     // Esperar o resultado da navegação para a página de grupos
     final result = await Navigator.push(
       context,
@@ -106,11 +108,27 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
     );
     
     // Se um novo grupo foi criado, adicionar à lista de grupos
-    if (result != null && result is ChatUser) {
+    if (result != null && result is ChatUser && currentContext.mounted) {
+      // Log para depuração - removido na versão de produção
+      // print('Grupo recebido: ${result.name}, ID: ${result.id}');
+      
       setState(() {
         _groups.add(result);
         _filteredGroups = List.from(_groups);
       });
+      
+      // Mostrar feedback ao usuário se o contexto ainda estiver válido
+      if (currentContext.mounted) {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          SnackBar(
+            content: Text('Grupo "${result.name}" adicionado à sua lista'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Forçar a mudança para a tab de grupos
+        _tabController.animateTo(1);
+      }
     }
   }
 
@@ -320,6 +338,9 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
           overflow: TextOverflow.ellipsis,
         ),
         onTap: () async {
+          // Capturar o contexto antes de operação assíncrona
+          final currentContext = context;
+          
           // Navegar para a tela de conversa
           final result = await Navigator.push(
             context,
@@ -332,19 +353,50 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
           );
           
           // Verificar se o grupo foi excluído
-          if (result == 'deleted' && isGroup) {
-            setState(() {
-              _groups.removeWhere((group) => group.id == user.id);
-              _filteredGroups = List.from(_groups);
-            });
-            
-            // Mostrar snackbar confirmando exclusão
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Grupo removido da sua lista'),
-                backgroundColor: Colors.green,
-              ),
-            );
+          if (result == 'deleted') {
+            if (isGroup) {
+              setState(() {
+                // Remover o grupo usando o ID do grupo
+                _groups.removeWhere((group) => group.id == user.id);
+                // Atualizar a lista filtrada
+                _filteredGroups = List.from(_groups);
+                // Forçar uma reconstrução do widget
+                _tabController.animateTo(0); // Trocar para aba "Conversas"
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  if (mounted) {
+                    setState(() {
+                      _tabController.animateTo(1); // Voltar para aba "Grupos"
+                    });
+                  }
+                });
+              });
+              
+              // Usar o contexto capturado para mostrar snackbar
+              if (currentContext.mounted) {
+                ScaffoldMessenger.of(currentContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Grupo removido da sua lista'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } else {
+              // Caso seja uma conversa individual excluída
+              setState(() {
+                _users.removeWhere((u) => u.id == user.id);
+                _filteredUsers = List.from(_users);
+              });
+              
+              // Usar o contexto capturado para mostrar snackbar
+              if (currentContext.mounted) {
+                ScaffoldMessenger.of(currentContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Conversa removida da sua lista'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }
           }
         },
       ),
