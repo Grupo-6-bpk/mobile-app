@@ -326,140 +326,139 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
   void _showCreateGroupModal() {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Criar Novo Grupo',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Criar Novo Grupo',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _groupNameController,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Nome do grupo',
+                      hintStyle: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainer,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _groupNameController,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Nome do grupo',
-                        hintStyle: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                        filled: true,
-                        fillColor:
-                            Theme.of(context).colorScheme.surfaceContainer,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Selecione os participantes:',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 16,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Selecione os participantes:',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 300,
-                      child: ListView.builder(
-                        itemCount: _allUsers.length,
-                        itemBuilder: (context, index) {
-                          final user = _allUsers[index];
-                          final isSelected = _selectedUsers.contains(user);
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height:
+                        300, // Limita a altura da lista para evitar overflow
+                    child: ListView.builder(
+                      itemCount: _allUsers.length,
+                      itemBuilder: (context, index) {
+                        final user = _allUsers[index];
+                        final isSelected = _selectedUsers.contains(user);
 
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: AssetImage(user.imageUrl),
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: AssetImage(user.imageUrl),
+                          ),
+                          title: Text(
+                            user.name,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            title: Text(
-                              user.name,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            trailing:
-                                isSelected
-                                    ? Icon(
-                                      Icons.check_circle,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                    )
-                                    : Icon(
-                                      Icons.circle_outlined,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.7),
-                                    ),
-                            onTap: () {
-                              setModalState(() {
-                                _toggleUserSelection(user);
-                              });
-                            },
-                          );
-                        },
+                          ),
+                          trailing:
+                              isSelected
+                                  ? Icon(
+                                    Icons.check_circle,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  )
+                                  : Icon(
+                                    Icons.circle_outlined,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.7),
+                                  ),
+                          onTap: () {
+                            setState(() {
+                              _toggleUserSelection(user);
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: _createGroup,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                        ),
+                        child: Text(
+                          'Criar Grupo',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _createGroup,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                          ),
-                          child: Text(
-                            'Criar Grupo',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
