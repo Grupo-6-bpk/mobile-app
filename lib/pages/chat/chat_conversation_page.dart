@@ -242,7 +242,9 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 },
               ),
               Divider(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.2),
               ),
               if (_isUserBlocked)
                 ListTile(
@@ -298,7 +300,9 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
           content: Text(
             'Tem certeza que deseja excluir esta conversa? Esta ação não pode ser desfeita.',
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           actions: [
@@ -309,7 +313,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 style: TextStyle(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -347,7 +351,9 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
           content: Text(
             'Tem certeza que deseja bloquear ${widget.user.name}? Vocês não poderão mais trocar mensagens.',
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           actions: [
@@ -358,7 +364,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 style: TextStyle(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -519,7 +525,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                             style: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.7),
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                               fontSize: 12,
                             ),
                           ),
@@ -528,7 +534,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                             Icons.keyboard_arrow_down,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.7),
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                             size: 14,
                           ),
                         ],
@@ -556,7 +562,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
           if (_isUserBlocked && !_isGroupChat)
             Container(
               width: double.infinity,
-              color: Theme.of(context).colorScheme.error.withOpacity(0.2),
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               child: Row(
                 children: [
@@ -637,7 +643,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 horizontal: 8.0,
                 vertical: 8.0,
               ),
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainer,
               child: Row(
                 children: [
                   IconButton(
@@ -659,7 +665,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                         hintStyle: TextStyle(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                         border: InputBorder.none,
                       ),
@@ -681,14 +687,14 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainer,
               child: Center(
                 child: Text(
                   'Você não pode enviar mensagens para este usuário',
                   style: TextStyle(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -906,7 +912,9 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 },
               ),
               Divider(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.2),
               ),
               ListTile(
                 leading: Icon(

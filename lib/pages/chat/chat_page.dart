@@ -187,13 +187,13 @@ class _ChatPageState extends State<ChatPage>
                 hintStyle: TextStyle(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 prefixIcon: Icon(
                   Icons.search,
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -242,7 +242,9 @@ class _ChatPageState extends State<ChatPage>
             Icon(
               Icons.group,
               size: 80,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.24),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.24),
             ),
             const SizedBox(height: 16),
             Text(
@@ -258,7 +260,9 @@ class _ChatPageState extends State<ChatPage>
               'Crie um novo grupo para começar a conversar',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
                 fontSize: 14,
               ),
             ),
