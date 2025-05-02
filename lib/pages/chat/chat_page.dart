@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/components/custom_menu_bar.dart';
 import 'package:mobile_app/pages/chat/chat_conversation_page.dart';
 import 'package:mobile_app/pages/chat/chat_group_page.dart';
 import 'package:mobile_app/pages/chat/models/chat_user.dart';
@@ -12,7 +11,8 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin {
+class _ChatPageState extends State<ChatPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   List<ChatUser> _users = [];
@@ -24,7 +24,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Dados mockados para testes
     _users = [
       ChatUser(
@@ -44,7 +44,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         imageUrl: 'assets/images/profile3.png',
       ),
     ];
-    
+
     // Grupos mockados
     _groups = [
       ChatUser(
@@ -57,7 +57,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
 
     _filteredUsers = List.from(_users);
     _filteredGroups = List.from(_groups);
-    
+
     _searchController.addListener(_filterContacts);
   }
 
@@ -75,17 +75,15 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         _filteredUsers = List.from(_users);
         _filteredGroups = List.from(_groups);
       } else {
-        _filteredUsers = _users
-            .where((user) => user.name
-                .toLowerCase()
-                .contains(query))
-            .toList();
-            
-        _filteredGroups = _groups
-            .where((group) => group.name
-                .toLowerCase()
-                .contains(query))
-            .toList();
+        _filteredUsers =
+            _users
+                .where((user) => user.name.toLowerCase().contains(query))
+                .toList();
+
+        _filteredGroups =
+            _groups
+                .where((group) => group.name.toLowerCase().contains(query))
+                .toList();
       }
     });
   }
@@ -100,23 +98,23 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
   void _navigateToGroupManagement() async {
     // Capturar o contexto atual antes de iniciar operação assíncrona
     final currentContext = context;
-    
+
     // Esperar o resultado da navegação para a página de grupos
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ChatGroupPage()),
     );
-    
+
     // Se um novo grupo foi criado, adicionar à lista de grupos
     if (result != null && result is ChatUser && currentContext.mounted) {
       // Log para depuração - removido na versão de produção
       // print('Grupo recebido: ${result.name}, ID: ${result.id}');
-      
+
       setState(() {
         _groups.add(result);
         _filteredGroups = List.from(_groups);
       });
-      
+
       // Mostrar feedback ao usuário se o contexto ainda estiver válido
       if (currentContext.mounted) {
         ScaffoldMessenger.of(currentContext).showSnackBar(
@@ -125,7 +123,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Forçar a mudança para a tab de grupos
         _tabController.animateTo(1);
       }
@@ -142,10 +140,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         centerTitle: true,
         title: const Text(
           'Mensagens',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -166,10 +161,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
           indicatorColor: const Color(0xFF3B59ED),
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Conversas'),
-            Tab(text: 'Grupos'),
-          ],
+          tabs: const [Tab(text: 'Conversas'), Tab(text: 'Grupos')],
         ),
       ),
       body: Column(
@@ -194,7 +186,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
               ),
             ),
           ),
-          
+
           // Lista de conversas
           Expanded(
             child: TabBarView(
@@ -202,16 +194,13 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
               children: [
                 // Tab Conversas
                 _buildConversationsList(),
-                
+
                 // Tab Grupos
                 _buildGroupsList(),
               ],
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: const CustomMenuBar(
-        currentPageIndex: 2, // Índice da página de chat
       ),
     );
   }
@@ -233,11 +222,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.group,
-              size: 80,
-              color: Colors.white24,
-            ),
+            const Icon(Icons.group, size: 80, color: Colors.white24),
             const SizedBox(height: 16),
             const Text(
               'Sem grupos no momento',
@@ -251,10 +236,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
             const Text(
               'Crie um novo grupo para começar a conversar',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -263,14 +245,17 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
               label: const Text('Criar Grupo'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3B59ED),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
             ),
           ],
         ),
       );
     }
-    
+
     return ListView.builder(
       itemCount: _filteredGroups.length,
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -281,7 +266,11 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildUserListTile(BuildContext context, ChatUser user, {bool isGroup = false}) {
+  Widget _buildUserListTile(
+    BuildContext context,
+    ChatUser user, {
+    bool isGroup = false,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8.0),
       decoration: BoxDecoration(
@@ -289,7 +278,10 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 8.0,
+        ),
         leading: Stack(
           children: [
             CircleAvatar(
@@ -312,11 +304,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
                       width: 2,
                     ),
                   ),
-                  child: const Icon(
-                    Icons.people,
-                    size: 8,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.people, size: 8, color: Colors.white),
                 ),
               ),
           ],
@@ -330,28 +318,26 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
         ),
         subtitle: Text(
           user.lastMessage ?? '',
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         onTap: () async {
           // Capturar o contexto antes de operação assíncrona
           final currentContext = context;
-          
+
           // Navegar para a tela de conversa
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChatConversationPage(
-                user: user,
-                groupId: isGroup ? user.id : null,
-              ),
+              builder:
+                  (context) => ChatConversationPage(
+                    user: user,
+                    groupId: isGroup ? user.id : null,
+                  ),
             ),
           );
-          
+
           // Verificar se o grupo foi excluído
           if (result == 'deleted') {
             if (isGroup) {
@@ -370,7 +356,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
                   }
                 });
               });
-              
+
               // Usar o contexto capturado para mostrar snackbar
               if (currentContext.mounted) {
                 ScaffoldMessenger.of(currentContext).showSnackBar(
@@ -386,7 +372,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
                 _users.removeWhere((u) => u.id == user.id);
                 _filteredUsers = List.from(_users);
               });
-              
+
               // Usar o contexto capturado para mostrar snackbar
               if (currentContext.mounted) {
                 ScaffoldMessenger.of(currentContext).showSnackBar(
@@ -402,4 +388,4 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
       ),
     );
   }
-} 
+}
