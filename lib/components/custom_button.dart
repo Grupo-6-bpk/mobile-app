@@ -7,12 +7,14 @@ class CustomButton extends StatelessWidget {
   final String text;
   final ButtonVariant variant;
   final EdgeInsetsGeometry? padding;
+  final IconData? icon;
   final double height;
 
   const CustomButton({
     super.key,
     required this.onPressed,
     required this.text,
+    this.icon,
     this.variant = ButtonVariant.primary,
     this.padding = const EdgeInsets.all(8),
     this.height = 50,
@@ -23,24 +25,48 @@ class CustomButton extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final defaultColors = _getColorsFromVariant(colorScheme, variant);
 
-    return SizedBox(
-      height: height,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.all(defaultColors['background']),
-          foregroundColor: WidgetStateProperty.all(defaultColors['text']),
-          shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    return icon != null
+        ? SizedBox(
+          height: height,
+          child: ElevatedButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon, color: defaultColors['text']),
+            label: Text(
+              text,
+              style: TextStyle(color: defaultColors['text'], fontSize: 16),
+            ),
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all(
+                defaultColors['background'],
+              ),
+              foregroundColor: WidgetStateProperty.all(defaultColors['text']),
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+              padding: WidgetStateProperty.all(padding),
+            ),
           ),
-          padding: WidgetStateProperty.all(padding),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(color: defaultColors['text'], fontSize: 16),
-        ),
-      ),
-    );
+        )
+        : SizedBox(
+          height: height,
+          child: ElevatedButton(
+            onPressed: onPressed,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all(
+                defaultColors['background'],
+              ),
+              foregroundColor: WidgetStateProperty.all(defaultColors['text']),
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+              padding: WidgetStateProperty.all(padding),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(color: defaultColors['text'], fontSize: 16),
+            ),
+          ),
+        );
   }
 
   Map<String, Color> _getColorsFromVariant(
