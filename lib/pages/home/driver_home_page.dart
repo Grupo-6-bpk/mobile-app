@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/available_passenger_card.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
+import 'package:mobile_app/pages/chat/chat_page.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
 
 class DriverHomePage extends StatefulWidget {
@@ -12,7 +13,7 @@ class DriverHomePage extends StatefulWidget {
 
 class _DriverHomePageState extends State<DriverHomePage> {
   int _currentPageIndex = 0;
-  
+
   // Dados mocados dos passageiros disponíveis
   final List<Map<String, dynamic>> _availablePassengers = [
     {
@@ -20,21 +21,21 @@ class _DriverHomePageState extends State<DriverHomePage> {
       'location': 'Av. Maripa - 5498, Centro, Toledo - PR',
       'phoneNumber': '45 98432-3230',
       'imageUrl': 'assets/images/profile1.png',
-      'rating': 4.0
+      'rating': 4.0,
     },
     {
       'name': 'Ana Silva',
       'location': 'Av. Maripa - 5498, Centro, Toledo - PR',
       'phoneNumber': '45 98432-3230',
       'imageUrl': 'assets/images/profile2.png',
-      'rating': 4.5
+      'rating': 4.5,
     },
     {
       'name': 'Carla Pereira',
       'location': 'Av. Maripa - 5498, Centro, Toledo - PR',
       'phoneNumber': '45 98432-3230',
       'imageUrl': 'assets/images/profile3.png',
-      'rating': 5.0
+      'rating': 5.0,
     },
   ];
 
@@ -52,9 +53,9 @@ class _DriverHomePageState extends State<DriverHomePage> {
               children: [
                 Text(
                   'Boa tarde, Gabriel',
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -64,7 +65,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
               ],
             ),
           ),
-          
+
           // Lista de passageiros disponíveis
           Expanded(
             child: Padding(
@@ -82,8 +83,11 @@ class _DriverHomePageState extends State<DriverHomePage> {
                     onAccept: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Passageiro ${passenger['name']} aceito!'),
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          content: Text(
+                            'Passageiro ${passenger['name']} aceito!',
+                          ),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                         ),
                       );
                     },
@@ -109,12 +113,18 @@ class _DriverHomePageState extends State<DriverHomePage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: <Widget>[
-        _buildDriverHomePage(),
-        const RideHistoryPage(),
-        const Center(child: Text('Chat em desenvolvimento', style: TextStyle(fontSize: 20))),
-        const Center(child: Text('Configurações em desenvolvimento', style: TextStyle(fontSize: 20))),
-      ][_currentPageIndex],
+      body:
+          <Widget>[
+            _buildDriverHomePage(),
+            const RideHistoryPage(),
+            const ChatPage(),
+            const Center(
+              child: Text(
+                'Configurações em desenvolvimento',
+                style: TextStyle(fontSize: 20),
+              ),
+            ),
+          ][_currentPageIndex],
       bottomNavigationBar: CustomMenuBar(
         currentPageIndex: _currentPageIndex,
         onPageSelected: updatePageIndex,

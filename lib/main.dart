@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/pages/home/driver_home_page.dart';
 import 'package:mobile_app/pages/login_page.dart';
-import 'package:mobile_app/pages/passenger_ride_history_page.dart';
+import 'package:mobile_app/passenger_history/passenger_ride_history_page.dart';
 import 'package:mobile_app/pages/sign_up/driver_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/passenger_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/sign_up_role_page.dart';
@@ -17,15 +17,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = View.of(context).platformDispatcher.platformBrightness;
-
     TextTheme textTheme = createTextTheme(context, "Nunito", "Nunito");
 
     MaterialTheme theme = MaterialTheme(textTheme);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'BPKCar',
-      theme: brightness == Brightness.light ? theme.light() : theme.dark(),
+      theme: theme.light(), // Tema claro
+      darkTheme: theme.dark(), // Tema escuro
+      themeMode:
+          ThemeMode.system, // Muda automaticamente com o tema do dispositivo
       initialRoute: "/login",
       routes: {
         "/login": (context) => LoginPage(),
