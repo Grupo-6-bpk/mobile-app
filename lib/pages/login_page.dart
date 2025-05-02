@@ -111,9 +111,7 @@ class LoginPageState extends State<LoginPage> {
                               onPressed: () {
                                 Navigator.pushNamed(context, "/driverHome");
                               },
-                              bgColor: Theme.of(context).colorScheme.primary,
-                              textColor:
-                                  Theme.of(context).colorScheme.onPrimary,
+                              variant: ButtonVariant.primary,
                               text: "Login",
                             ),
                           ),
