@@ -3,6 +3,7 @@ import 'package:mobile_app/components/available_passenger_card.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
 import 'package:mobile_app/pages/chat/chat_page.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
+import 'package:mobile_app/pages/settings/settings_page.dart';
 
 class DriverHomePage extends StatefulWidget {
   const DriverHomePage({super.key});
@@ -118,12 +119,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
             _buildDriverHomePage(),
             const RideHistoryPage(),
             const ChatPage(),
-            const Center(
-              child: Text(
-                'Configurações em desenvolvimento',
-                style: TextStyle(fontSize: 20),
-              ),
-            ),
+            const SettingsPage(),
           ][_currentPageIndex],
       bottomNavigationBar: CustomMenuBar(
         currentPageIndex: _currentPageIndex,
