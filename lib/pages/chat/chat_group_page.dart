@@ -18,10 +18,10 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
   @override
   void initState() {
     super.initState();
-    
+
     // Carregar usuários mockados
     _loadUsers();
-    
+
     // Carregar grupos existentes
     _loadExistingGroups();
   }
@@ -99,7 +99,9 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
     if (_groupNameController.text.trim().isEmpty || _selectedUsers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor, informe um nome para o grupo e selecione pelo menos um usuário.'),
+          content: Text(
+            'Por favor, informe um nome para o grupo e selecione pelo menos um usuário.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -107,9 +109,10 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
     }
 
     // Simular a criação de um grupo
-    final newGroupId = 'g${_existingGroups.length + 3}'; // +3 para garantir que não haja conflito com IDs existentes
+    final newGroupId =
+        'g${_existingGroups.length + 3}'; // +3 para garantir que não haja conflito com IDs existentes
     final newGroupName = _groupNameController.text.trim();
-    
+
     final newGroup = {
       'id': newGroupId,
       'name': newGroupName,
@@ -118,14 +121,14 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
       'lastMessage': 'Grupo criado',
       'timestamp': DateTime.now(),
     };
-    
+
     // Adicionar o novo grupo à lista
     setState(() {
       _existingGroups.add(newGroup);
       _groupNameController.clear();
       _selectedUsers.clear();
     });
-    
+
     // Criar um objeto ChatUser para representar o grupo e retornar para a página anterior
     final groupUser = ChatUser(
       id: newGroupId,
@@ -133,7 +136,7 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
       imageUrl: 'assets/images/profile1.png',
       lastMessage: 'Grupo criado',
     );
-    
+
     // Mostrar mensagem de sucesso
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -141,11 +144,11 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
         backgroundColor: Colors.green,
       ),
     );
-    
+
     // Capturar o BuildContext antes da operação assíncrona
     final currentContext = context;
-    
-    // Retornar à tela anterior passando o grupo criado 
+
+    // Retornar à tela anterior passando o grupo criado
     // Importante: usar um pequeno atraso para garantir que a UI tenha tempo
     // de processar o fechamento do modal antes de navegar
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -156,11 +159,175 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
     });
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 0,
+        title: Text(
+          'Grupos',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 18,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.add,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            onPressed: _showCreateGroupModal,
+          ),
+        ],
+      ),
+      body:
+          _existingGroups.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _existingGroups.length,
+                itemBuilder: (context, index) {
+                  final group = _existingGroups[index];
+                  return _buildGroupItem(context, group);
+                },
+              ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.group,
+            size: 80,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.24),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Sem grupos no momento',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Crie um novo grupo para começar a conversar',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _showCreateGroupModal,
+            icon: const Icon(Icons.add),
+            label: const Text('Criar Grupo'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupItem(BuildContext context, Map<String, dynamic> group) {
+    final List<ChatUser> members = group['members'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: CircleAvatar(
+          radius: 24,
+          backgroundImage: AssetImage(group['imageUrl']),
+        ),
+        title: Text(
+          group['name'],
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              group['lastMessage'],
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${members.length} membros',
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+        trailing: Text(
+          _formatTimestamp(group['timestamp']),
+          style: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+            fontSize: 12,
+          ),
+        ),
+        onTap: () {
+          // Navegar para a tela de conversa do grupo
+          final user = ChatUser(
+            id: group['id'],
+            name: group['name'],
+            imageUrl: group['imageUrl'],
+            lastMessage: group['lastMessage'],
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) =>
+                      ChatConversationPage(user: user, groupId: group['id']),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showCreateGroupModal() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1F2133),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -177,10 +344,10 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Criar Novo Grupo',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -188,12 +355,19 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _groupNameController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Nome do grupo',
-                        hintStyle: const TextStyle(color: Colors.white70),
+                        hintStyle: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                         filled: true,
-                        fillColor: const Color(0xFF272A3F),
+                        fillColor:
+                            Theme.of(context).colorScheme.surfaceContainer,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
@@ -201,10 +375,10 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Selecione os participantes:',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 16,
                       ),
                     ),
@@ -216,18 +390,31 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
                         itemBuilder: (context, index) {
                           final user = _allUsers[index];
                           final isSelected = _selectedUsers.contains(user);
-                          
+
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundImage: AssetImage(user.imageUrl),
                             ),
                             title: Text(
                               user.name,
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
-                            trailing: isSelected
-                                ? const Icon(Icons.check_circle, color: Colors.green)
-                                : const Icon(Icons.circle_outlined, color: Colors.white70),
+                            trailing:
+                                isSelected
+                                    ? Icon(
+                                      Icons.check_circle,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    )
+                                    : Icon(
+                                      Icons.circle_outlined,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.7),
+                                    ),
                             onTap: () {
                               setModalState(() {
                                 _toggleUserSelection(user);
@@ -243,18 +430,28 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text(
+                          child: Text(
                             'Cancelar',
-                            style: TextStyle(color: Colors.white70),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: _createGroup,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3B59ED),
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
                           ),
-                          child: const Text('Criar Grupo'),
+                          child: Text(
+                            'Criar Grupo',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -265,157 +462,6 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
           },
         );
       },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1F2133),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2133),
-        elevation: 0,
-        title: const Text(
-          'Grupos',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: _showCreateGroupModal,
-          ),
-        ],
-      ),
-      body: _existingGroups.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _existingGroups.length,
-              itemBuilder: (context, index) {
-                final group = _existingGroups[index];
-                return _buildGroupItem(context, group);
-              },
-            ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.group,
-            size: 80,
-            color: Colors.white24,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Sem grupos no momento',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Crie um novo grupo para começar a conversar',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _showCreateGroupModal,
-            icon: const Icon(Icons.add),
-            label: const Text('Criar Grupo'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B59ED),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGroupItem(BuildContext context, Map<String, dynamic> group) {
-    final List<ChatUser> members = group['members'];
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF272A3F),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: CircleAvatar(
-          radius: 24,
-          backgroundImage: AssetImage(group['imageUrl']),
-        ),
-        title: Text(
-          group['name'],
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              group['lastMessage'],
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${members.length} membros',
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-        trailing: Text(
-          _formatTimestamp(group['timestamp']),
-          style: const TextStyle(
-            color: Colors.white54,
-            fontSize: 12,
-          ),
-        ),
-        onTap: () {
-          // Navegar para a tela de conversa do grupo
-          final user = ChatUser(
-            id: group['id'],
-            name: group['name'],
-            imageUrl: group['imageUrl'],
-            lastMessage: group['lastMessage'],
-          );
-          
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatConversationPage(
-                user: user,
-                groupId: group['id'],
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 
@@ -433,4 +479,4 @@ class _ChatGroupPageState extends State<ChatGroupPage> {
       return '${timestamp.day.toString().padLeft(2, '0')}/${timestamp.month.toString().padLeft(2, '0')}/${timestamp.year}';
     }
   }
-} 
+}

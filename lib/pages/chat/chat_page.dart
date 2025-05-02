@@ -133,34 +133,42 @@ class _ChatPageState extends State<ChatPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1F2133),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2133),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Mensagens',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 18,
+          ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add, color: Colors.white),
+            icon: Icon(
+              Icons.person_add,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
             onPressed: _navigateToUserSearch,
           ),
           IconButton(
-            icon: const Icon(Icons.group_add, color: Colors.white),
+            icon: Icon(
+              Icons.group_add,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
             onPressed: _navigateToGroupManagement,
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: const Color(0xFF3B59ED),
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          labelColor: Theme.of(context).colorScheme.onSurface,
+          unselectedLabelColor: Theme.of(
+            context,
+          ).colorScheme.onSurface.withValues(alpha: 0.7),
           tabs: const [Tab(text: 'Conversas'), Tab(text: 'Grupos')],
         ),
       ),
@@ -171,13 +179,22 @@ class _ChatPageState extends State<ChatPage>
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFF272A3F),
+                fillColor: Theme.of(context).colorScheme.surface,
                 hintText: 'Procurar',
-                hintStyle: const TextStyle(color: Colors.white70),
-                prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                hintStyle: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -222,21 +239,28 @@ class _ChatPageState extends State<ChatPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.group, size: 80, color: Colors.white24),
+            Icon(
+              Icons.group,
+              size: 80,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.24),
+            ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Sem grupos no momento',
               style: TextStyle(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Crie um novo grupo para começar a conversar',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                fontSize: 14,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -274,7 +298,7 @@ class _ChatPageState extends State<ChatPage>
     return Container(
       margin: const EdgeInsets.only(bottom: 8.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF272A3F),
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: ListTile(
@@ -300,25 +324,40 @@ class _ChatPageState extends State<ChatPage>
                     color: const Color(0xFF3B59ED),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF272A3F),
+                      color: Theme.of(context).colorScheme.surfaceContainer,
                       width: 2,
                     ),
                   ),
-                  child: const Icon(Icons.people, size: 8, color: Colors.white),
+                  child: Icon(
+                    Icons.people,
+                    size: 8,
+                    color:
+                        Theme.of(context)
+                            .colorScheme
+                            .onSurface, // Texto ajustado para contraste
+                  ),
                 ),
               ),
           ],
         ),
         title: Text(
           user.name,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color:
+                Theme.of(
+                  context,
+                ).colorScheme.onSurface, // Texto ajustado para contraste
             fontWeight: FontWeight.bold,
           ),
         ),
         subtitle: Text(
           user.lastMessage ?? '',
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(
+              alpha: 0.7,
+            ), // Texto ajustado para contraste
+            fontSize: 12,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -342,22 +381,18 @@ class _ChatPageState extends State<ChatPage>
           if (result == 'deleted') {
             if (isGroup) {
               setState(() {
-                // Remover o grupo usando o ID do grupo
                 _groups.removeWhere((group) => group.id == user.id);
-                // Atualizar a lista filtrada
                 _filteredGroups = List.from(_groups);
-                // Forçar uma reconstrução do widget
-                _tabController.animateTo(0); // Trocar para aba "Conversas"
+                _tabController.animateTo(0);
                 Future.delayed(const Duration(milliseconds: 100), () {
                   if (mounted) {
                     setState(() {
-                      _tabController.animateTo(1); // Voltar para aba "Grupos"
+                      _tabController.animateTo(1);
                     });
                   }
                 });
               });
 
-              // Usar o contexto capturado para mostrar snackbar
               if (currentContext.mounted) {
                 ScaffoldMessenger.of(currentContext).showSnackBar(
                   const SnackBar(
@@ -367,13 +402,11 @@ class _ChatPageState extends State<ChatPage>
                 );
               }
             } else {
-              // Caso seja uma conversa individual excluída
               setState(() {
                 _users.removeWhere((u) => u.id == user.id);
                 _filteredUsers = List.from(_users);
               });
 
-              // Usar o contexto capturado para mostrar snackbar
               if (currentContext.mounted) {
                 ScaffoldMessenger.of(currentContext).showSnackBar(
                   const SnackBar(

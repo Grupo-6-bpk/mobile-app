@@ -18,10 +18,10 @@ class _UserSearchPageState extends State<UserSearchPage> {
   @override
   void initState() {
     super.initState();
-    
+
     // Carregar usuários mockados
     _loadUsers();
-    
+
     _searchController.addListener(_filterUsers);
   }
 
@@ -94,9 +94,10 @@ class _UserSearchPageState extends State<UserSearchPage> {
       if (query.isEmpty) {
         _filteredUsers = [];
       } else {
-        _filteredUsers = _allUsers
-            .where((user) => user.name.toLowerCase().contains(query))
-            .toList();
+        _filteredUsers =
+            _allUsers
+                .where((user) => user.name.toLowerCase().contains(query))
+                .toList();
       }
     });
   }
@@ -104,28 +105,38 @@ class _UserSearchPageState extends State<UserSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1F2133),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2133),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         title: TextField(
           controller: _searchController,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          decoration: InputDecoration(
             hintText: 'Buscar usuários...',
-            hintStyle: TextStyle(color: Colors.white60),
+            hintStyle: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
             border: InputBorder.none,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           if (_searchController.text.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.clear, color: Colors.white),
+              icon: Icon(
+                Icons.clear,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
               onPressed: () {
                 _searchController.clear();
               },
@@ -136,9 +147,10 @@ class _UserSearchPageState extends State<UserSearchPage> {
         children: [
           // Resultados da busca ou sugestões
           Expanded(
-            child: _isSearching
-                ? _buildSearchResults()
-                : _buildSearchSuggestions(),
+            child:
+                _isSearching
+                    ? _buildSearchResults()
+                    : _buildSearchSuggestions(),
           ),
         ],
       ),
@@ -147,11 +159,13 @@ class _UserSearchPageState extends State<UserSearchPage> {
 
   Widget _buildSearchResults() {
     if (_filteredUsers.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Nenhum usuário encontrado',
           style: TextStyle(
-            color: Colors.white60,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
             fontSize: 16,
           ),
         ),
@@ -172,12 +186,12 @@ class _UserSearchPageState extends State<UserSearchPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Text(
             'Sugestões',
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -201,7 +215,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF272A3F),
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
@@ -216,15 +230,15 @@ class _UserSearchPageState extends State<UserSearchPage> {
         ),
         title: Text(
           user.name,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.chat_bubble_outline,
-          color: Color(0xFF3B59ED),
+          color: Theme.of(context).colorScheme.primary,
         ),
         onTap: () {
           Navigator.push(
@@ -237,4 +251,4 @@ class _UserSearchPageState extends State<UserSearchPage> {
       ),
     );
   }
-} 
+}

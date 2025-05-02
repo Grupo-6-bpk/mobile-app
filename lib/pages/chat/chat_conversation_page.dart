@@ -6,11 +6,7 @@ class ChatConversationPage extends StatefulWidget {
   final ChatUser user;
   final String? groupId;
 
-  const ChatConversationPage({
-    super.key,
-    required this.user,
-    this.groupId,
-  });
+  const ChatConversationPage({super.key, required this.user, this.groupId});
 
   @override
   State<ChatConversationPage> createState() => _ChatConversationPageState();
@@ -20,7 +16,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
-  
+
   // Lista de membros do grupo para exemplo
   final List<ChatUser> _groupMembers = [];
   // Lista de possíveis usuários para adicionar ao grupo
@@ -30,17 +26,17 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
 
   // Verificar se o usuário está bloqueado
   bool get _isUserBlocked => _blockedUsers.contains(widget.user.id);
-  
+
   // Verificar se estamos em uma conversa de grupo
   bool get _isGroupChat => widget.groupId != null;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Carregar mensagens mockadas para teste
     _loadMessages();
-    
+
     // Carregar membros e usuários para grupos
     if (widget.groupId != null) {
       _loadGroupMembers();
@@ -118,15 +114,20 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         senderId: widget.user.id,
         receiverId: 'currentUser',
         content: 'Oi! Tudo bem e com você?',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 1, minutes: 45)),
+        timestamp: DateTime.now().subtract(
+          const Duration(days: 1, hours: 1, minutes: 45),
+        ),
         isRead: true,
       ),
       ChatMessage(
         id: '3',
         senderId: 'currentUser',
         receiverId: widget.user.id,
-        content: 'Tudo ótimo! Queria saber se podemos combinar uma carona para amanhã.',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 1, minutes: 30)),
+        content:
+            'Tudo ótimo! Queria saber se podemos combinar uma carona para amanhã.',
+        timestamp: DateTime.now().subtract(
+          const Duration(days: 1, hours: 1, minutes: 30),
+        ),
         isRead: true,
       ),
       ChatMessage(
@@ -141,7 +142,8 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         id: '5',
         senderId: 'currentUser',
         receiverId: widget.user.id,
-        content: 'Preciso estar no trabalho às 8h, então seria bom sair às 7h30.',
+        content:
+            'Preciso estar no trabalho às 8h, então seria bom sair às 7h30.',
         timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
         isRead: true,
       ),
@@ -197,12 +199,14 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       _scrollToBottom();
     });
   }
-  
+
   void _shareLocation() {
     // Implementação futura: integração com Google Maps
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Funcionalidade de compartilhar localização será implementada em breve.'),
+        content: Text(
+          'Funcionalidade de compartilhar localização será implementada em breve.',
+        ),
         backgroundColor: Colors.blue,
       ),
     );
@@ -211,7 +215,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   void _showUserOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1F2133),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -222,23 +226,35 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text(
+                leading: Icon(
+                  Icons.delete_forever,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
                   'Excluir conversa',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   _showDeleteConversationConfirmation();
                 },
               ),
-              const Divider(color: Colors.white24),
+              Divider(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+              ),
               if (_isUserBlocked)
                 ListTile(
-                  leading: const Icon(Icons.person_add, color: Colors.green),
-                  title: const Text(
+                  leading: Icon(
+                    Icons.person_add,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(
                     'Desbloquear usuário',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -247,10 +263,15 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 )
               else
                 ListTile(
-                  leading: const Icon(Icons.block, color: Colors.red),
-                  title: const Text(
+                  leading: Icon(
+                    Icons.block,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  title: Text(
                     'Bloquear usuário',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -263,27 +284,33 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       },
     );
   }
-  
+
   void _showDeleteConversationConfirmation() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF272A3F),
-          title: const Text(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Text(
             'Excluir conversa',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
-          content: const Text(
+          content: Text(
             'Tem certeza que deseja excluir esta conversa? Esta ação não pode ser desfeita.',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
+              child: Text(
                 'Cancelar',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
               ),
             ),
             ElevatedButton(
@@ -292,36 +319,47 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 _deleteConversation();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
-              child: const Text('Excluir'),
+              child: Text(
+                'Excluir',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
             ),
           ],
         );
       },
     );
   }
-  
+
   void _showBlockUserConfirmation() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF272A3F),
-          title: const Text(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Text(
             'Bloquear usuário',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           content: Text(
             'Tem certeza que deseja bloquear ${widget.user.name}? Vocês não poderão mais trocar mensagens.',
-            style: const TextStyle(color: Colors.white70),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
+              child: Text(
                 'Cancelar',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
               ),
             ),
             ElevatedButton(
@@ -330,16 +368,21 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 _blockUser();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
-              child: const Text('Bloquear'),
+              child: Text(
+                'Bloquear',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
             ),
           ],
         );
       },
     );
   }
-  
+
   void _deleteConversation() {
     // Aqui seria implementada a lógica para excluir a conversa do banco de dados
     ScaffoldMessenger.of(context).showSnackBar(
@@ -350,31 +393,32 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     );
     Navigator.pop(context, 'deleted');
   }
-  
+
   void _blockUser() {
     // Aqui seria implementada a lógica para bloquear o usuário
     setState(() {
       _blockedUsers.add(widget.user.id);
     });
-    
+
     // Adicionar mensagem de sistema sobre o bloqueio
     final systemMessage = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       senderId: 'system',
       receiverId: widget.user.id,
-      content: 'Você bloqueou ${widget.user.name}. Vocês não poderão mais trocar mensagens.',
+      content:
+          'Você bloqueou ${widget.user.name}. Vocês não poderão mais trocar mensagens.',
       timestamp: DateTime.now(),
     );
-    
+
     setState(() {
       _messages.add(systemMessage);
     });
-    
+
     // Rolar para o final da lista
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${widget.user.name} foi bloqueado'),
@@ -389,25 +433,26 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     setState(() {
       _blockedUsers.remove(widget.user.id);
     });
-    
+
     // Adicionar mensagem de sistema sobre o desbloqueio
     final systemMessage = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       senderId: 'system',
       receiverId: widget.user.id,
-      content: 'Você desbloqueou ${widget.user.name}. Vocês podem voltar a trocar mensagens.',
+      content:
+          'Você desbloqueou ${widget.user.name}. Vocês podem voltar a trocar mensagens.',
       timestamp: DateTime.now(),
     );
-    
+
     setState(() {
       _messages.add(systemMessage);
     });
-    
+
     // Rolar para o final da lista
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${widget.user.name} foi desbloqueado'),
@@ -420,12 +465,15 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1F2133),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2133),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -446,8 +494,8 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                       children: [
                         Text(
                           widget.user.name,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 16,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -457,31 +505,34 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                             padding: const EdgeInsets.only(left: 4),
                             child: Icon(
                               Icons.block,
-                              color: Colors.red.shade300,
+                              color: Theme.of(context).colorScheme.error,
                               size: 14,
                             ),
                           ),
                       ],
                     ),
-                    widget.groupId != null
-                      ? Row(
-                          children: [
-                            Text(
-                              '${_groupMembers.length} membros',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
+                    if (widget.groupId != null)
+                      Row(
+                        children: [
+                          Text(
+                            '${_groupMembers.length} membros',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.7),
+                              fontSize: 12,
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.white70,
-                              size: 14,
-                            ),
-                          ],
-                        )
-                      : const SizedBox(),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
+                            size: 14,
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -490,8 +541,12 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: widget.groupId != null ? _showGroupOptions : _showUserOptions,
+            icon: Icon(
+              Icons.more_vert,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            onPressed:
+                widget.groupId != null ? _showGroupOptions : _showUserOptions,
           ),
         ],
       ),
@@ -501,29 +556,38 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
           if (_isUserBlocked && !_isGroupChat)
             Container(
               width: double.infinity,
-              color: Colors.red.withValues(alpha: 0.2),
+              color: Theme.of(context).colorScheme.error.withOpacity(0.2),
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               child: Row(
                 children: [
-                  const Icon(Icons.block, color: Colors.red, size: 20),
+                  Icon(
+                    Icons.block,
+                    color: Theme.of(context).colorScheme.error,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Você bloqueou ${widget.user.name}. Vocês não podem trocar mensagens.',
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                   ),
                   TextButton(
                     onPressed: _unblockUser,
-                    child: const Text(
+                    child: Text(
                       'Desbloquear',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
           // Lista de mensagens
           Expanded(
             child: ListView.builder(
@@ -534,50 +598,69 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 final message = _messages[index];
                 final bool isMe = message.senderId == 'currentUser';
                 final bool isSystem = message.senderId == 'system';
-                
+
                 // Verificar se a mensagem deve mostrar timestamp
-                final bool showTimestamp = index == 0 || 
-                    _shouldShowTimestamp(_messages[index], index > 0 ? _messages[index - 1] : null);
-                
+                final bool showTimestamp =
+                    index == 0 ||
+                    _shouldShowTimestamp(
+                      _messages[index],
+                      index > 0 ? _messages[index - 1] : null,
+                    );
+
                 if (isSystem) {
                   return Column(
                     children: [
-                      if (showTimestamp) _buildTimestampDivider(message.timestamp),
+                      if (showTimestamp)
+                        _buildTimestampDivider(message.timestamp),
                       _buildSystemMessage(message),
                     ],
                   );
                 }
-                
+
                 return Column(
-                  crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                   children: [
-                    if (showTimestamp) _buildTimestampDivider(message.timestamp),
+                    if (showTimestamp)
+                      _buildTimestampDivider(message.timestamp),
                     _buildMessageBubble(message, isMe),
                   ],
                 );
               },
             ),
           ),
-          
+
           // Campo de entrada de mensagem
           if (!_isUserBlocked || _isGroupChat)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-              color: const Color(0xFF272A3F),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 8.0,
+              ),
+              color: Theme.of(context).colorScheme.surfaceVariant,
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.location_on, color: Colors.red),
+                    icon: Icon(
+                      Icons.location_on,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     onPressed: _shareLocation,
                     tooltip: 'Compartilhar localização',
                   ),
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
                         hintText: 'Digite uma mensagem...',
-                        hintStyle: TextStyle(color: Colors.white70),
+                        hintStyle: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
+                        ),
                         border: InputBorder.none,
                       ),
                       textCapitalization: TextCapitalization.sentences,
@@ -585,7 +668,10 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFF3B59ED)),
+                    icon: Icon(
+                      Icons.send,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     onPressed: _sendMessage,
                   ),
                 ],
@@ -595,11 +681,15 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              color: const Color(0xFF272A3F),
-              child: const Center(
+              color: Theme.of(context).colorScheme.surfaceVariant,
+              child: Center(
                 child: Text(
                   'Você não pode enviar mensagens para este usuário',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.7),
+                  ),
                 ),
               ),
             ),
@@ -607,7 +697,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       ),
     );
   }
-  
+
   Widget _buildSystemMessage(ChatMessage message) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -638,7 +728,8 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8.0),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -652,7 +743,10 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.6,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             decoration: BoxDecoration(
               color: isMe ? const Color(0xFF3B59ED) : const Color(0xFF272A3F),
               borderRadius: BorderRadius.circular(20),
@@ -662,18 +756,12 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
               children: [
                 Text(
                   message.content,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _formatTime(message.timestamp),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 10),
                 ),
               ],
             ),
@@ -696,22 +784,15 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       margin: const EdgeInsets.symmetric(vertical: 16.0),
       child: Row(
         children: [
-          const Expanded(
-            child: Divider(color: Colors.white24),
-          ),
+          const Expanded(child: Divider(color: Colors.white24)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Text(
               _formatDate(timestamp),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ),
-          const Expanded(
-            child: Divider(color: Colors.white24),
-          ),
+          const Expanded(child: Divider(color: Colors.white24)),
         ],
       ),
     );
@@ -725,7 +806,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
-    final dateToCheck = DateTime(timestamp.year, timestamp.month, timestamp.day);
+    final dateToCheck = DateTime(
+      timestamp.year,
+      timestamp.month,
+      timestamp.day,
+    );
 
     if (dateToCheck == today) {
       return 'Hoje';
@@ -736,30 +821,33 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     }
   }
 
-  bool _shouldShowTimestamp(ChatMessage currentMessage, ChatMessage? previousMessage) {
+  bool _shouldShowTimestamp(
+    ChatMessage currentMessage,
+    ChatMessage? previousMessage,
+  ) {
     if (previousMessage == null) return true;
-    
+
     final currentDay = DateTime(
       currentMessage.timestamp.year,
       currentMessage.timestamp.month,
       currentMessage.timestamp.day,
     );
-    
+
     final previousDay = DateTime(
       previousMessage.timestamp.year,
       previousMessage.timestamp.month,
       previousMessage.timestamp.day,
     );
-    
+
     return currentDay != previousDay;
   }
 
   void _showGroupOptions() {
     if (widget.groupId == null) return;
-    
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1F2133),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -770,10 +858,15 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.person_add, color: Colors.white),
-                title: const Text(
+                leading: Icon(
+                  Icons.person_add,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(
                   'Adicionar participantes',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -781,10 +874,15 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person_remove, color: Colors.white),
-                title: const Text(
+                leading: Icon(
+                  Icons.person_remove,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
                   'Remover participantes',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -792,22 +890,32 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.info_outline, color: Colors.white),
-                title: const Text(
+                leading: Icon(
+                  Icons.info_outline,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                title: Text(
                   'Informações do grupo',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   _showGroupInfo();
                 },
               ),
-              const Divider(color: Colors.white24),
+              Divider(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+              ),
               ListTile(
-                leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text(
+                leading: Icon(
+                  Icons.delete_forever,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
                   'Excluir grupo',
-                  style: TextStyle(color: Colors.red),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -820,11 +928,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       },
     );
   }
-  
+
   // Adicionar um usuário ou lista de usuários ao grupo
   void _addUsersToGroup(List<ChatUser> users) {
     if (users.isEmpty) return;
-    
+
     setState(() {
       for (final user in users) {
         // Verificar se o usuário já está no grupo
@@ -833,35 +941,36 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         }
       }
     });
-    
+
     // Mostrar mensagem de sistema para cada adição
     final userNames = users.map((user) => user.name).join(', ');
     final systemMessage = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       senderId: 'system',
       groupId: widget.groupId,
-      content: '$userNames ${users.length == 1 ? 'foi adicionado' : 'foram adicionados'} ao grupo',
+      content:
+          '$userNames ${users.length == 1 ? 'foi adicionado' : 'foram adicionados'} ao grupo',
       timestamp: DateTime.now(),
     );
-    
+
     setState(() {
       _messages.add(systemMessage);
     });
-    
+
     // Rolar para o final da lista
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
   }
-  
+
   // Remover um usuário do grupo
   void _removeUserFromGroup(ChatUser user) {
     final userName = user.name;
-    
+
     setState(() {
       _groupMembers.removeWhere((member) => member.id == user.id);
     });
-    
+
     // Adicionar mensagem de sistema sobre a remoção
     final systemMessage = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -870,11 +979,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       content: '$userName foi removido do grupo',
       timestamp: DateTime.now(),
     );
-    
+
     setState(() {
       _messages.add(systemMessage);
     });
-    
+
     // Rolar para o final da lista
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
@@ -888,23 +997,24 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
 
   void _showAddMembersDialog() {
     // Filtrar usuários que não são membros do grupo
-    final availableUsers = _allUsers.where((user) => 
-      !_isUserInGroup(user.id)
-    ).toList();
-    
+    final availableUsers =
+        _allUsers.where((user) => !_isUserInGroup(user.id)).toList();
+
     if (availableUsers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não há mais usuários disponíveis para adicionar ao grupo'),
+          content: Text(
+            'Não há mais usuários disponíveis para adicionar ao grupo',
+          ),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    
+
     // Lista de usuários selecionados para adicionar
     List<ChatUser> selectedUsers = [];
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -924,7 +1034,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                   itemBuilder: (context, index) {
                     final user = availableUsers[index];
                     final isSelected = selectedUsers.contains(user);
-                    
+
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundImage: AssetImage(user.imageUrl),
@@ -933,9 +1043,16 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                         user.name,
                         style: const TextStyle(color: Colors.white),
                       ),
-                      trailing: isSelected
-                        ? const Icon(Icons.check_circle, color: Colors.green)
-                        : const Icon(Icons.circle_outlined, color: Colors.white70),
+                      trailing:
+                          isSelected
+                              ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              )
+                              : const Icon(
+                                Icons.circle_outlined,
+                                color: Colors.white70,
+                              ),
                       onTap: () {
                         setModalState(() {
                           if (isSelected) {
@@ -962,16 +1079,18 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                     if (selectedUsers.isNotEmpty) {
                       // Adicionar os usuários selecionados ao grupo
                       _addUsersToGroup(selectedUsers);
-                      
+
                       // Mostrar mensagem de sucesso
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('${selectedUsers.length} ${selectedUsers.length == 1 ? 'usuário foi adicionado' : 'usuários foram adicionados'} ao grupo'),
+                          content: Text(
+                            '${selectedUsers.length} ${selectedUsers.length == 1 ? 'usuário foi adicionado' : 'usuários foram adicionados'} ao grupo',
+                          ),
                           backgroundColor: Colors.green,
                         ),
                       );
                     }
-                    
+
                     // Fechar o diálogo atual
                     Navigator.pop(context);
                   },
@@ -987,7 +1106,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       },
     );
   }
-  
+
   void _showRemoveMembersDialog() {
     if (_groupMembers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -998,13 +1117,13 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       );
       return;
     }
-    
+
     showDialog(
       context: context,
       builder: (context) {
         // Criamos uma cópia local da lista para o diálogo
         final localMembers = List<ChatUser>.from(_groupMembers);
-        
+
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
@@ -1016,55 +1135,61 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
               content: SizedBox(
                 width: double.maxFinite,
                 height: 300,
-                child: localMembers.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Não há membros no grupo',
-                          style: TextStyle(color: Colors.white70),
+                child:
+                    localMembers.isEmpty
+                        ? const Center(
+                          child: Text(
+                            'Não há membros no grupo',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        )
+                        : ListView.builder(
+                          itemCount: localMembers.length,
+                          itemBuilder: (context, index) {
+                            final member = localMembers[index];
+
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: AssetImage(member.imageUrl),
+                              ),
+                              title: Text(
+                                member.name,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () {
+                                  // Remover o membro na UI local
+                                  setModalState(() {
+                                    localMembers.remove(member);
+                                  });
+
+                                  // Remover o membro do grupo real
+                                  _removeUserFromGroup(member);
+
+                                  // Mostrar mensagem de sucesso
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${member.name} foi removido do grupo',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+
+                                  // Fechar o diálogo se não tiver mais membros
+                                  if (localMembers.isEmpty) {
+                                    Navigator.pop(context);
+                                  }
+                                },
+                              ),
+                            );
+                          },
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: localMembers.length,
-                        itemBuilder: (context, index) {
-                          final member = localMembers[index];
-                          
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: AssetImage(member.imageUrl),
-                            ),
-                            title: Text(
-                              member.name,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                              onPressed: () {
-                                // Remover o membro na UI local
-                                setModalState(() {
-                                  localMembers.remove(member);
-                                });
-                                
-                                // Remover o membro do grupo real
-                                _removeUserFromGroup(member);
-                                
-                                // Mostrar mensagem de sucesso
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('${member.name} foi removido do grupo'),
-                                    backgroundColor: Colors.green,
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                                
-                                // Fechar o diálogo se não tiver mais membros
-                                if (localMembers.isEmpty) {
-                                  Navigator.pop(context);
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
               ),
               actions: [
                 TextButton(
@@ -1081,14 +1206,14 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       },
     );
   }
-  
+
   void _showGroupInfo() {
     showDialog(
       context: context,
       builder: (context) {
         // Criar uma cópia local da lista de membros atual para o diálogo
         final localMembers = List<ChatUser>.from(_groupMembers);
-        
+
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -1132,7 +1257,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.refresh, color: Colors.white70, size: 18),
+                          icon: const Icon(
+                            Icons.refresh,
+                            color: Colors.white70,
+                            size: 18,
+                          ),
                           onPressed: () {
                             // Atualizar a lista local com os membros atuais
                             setDialogState(() {
@@ -1147,29 +1276,34 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 200,
-                      child: localMembers.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'Não há membros no grupo',
-                                style: TextStyle(color: Colors.white70),
+                      child:
+                          localMembers.isEmpty
+                              ? const Center(
+                                child: Text(
+                                  'Não há membros no grupo',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              )
+                              : ListView.builder(
+                                itemCount: localMembers.length,
+                                itemBuilder: (context, index) {
+                                  final member = localMembers[index];
+
+                                  return ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: AssetImage(
+                                        member.imageUrl,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      member.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            )
-                          : ListView.builder(
-                              itemCount: localMembers.length,
-                              itemBuilder: (context, index) {
-                                final member = localMembers[index];
-                                
-                                return ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundImage: AssetImage(member.imageUrl),
-                                  ),
-                                  title: Text(
-                                    member.name,
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                );
-                              },
-                            ),
                     ),
                   ],
                 ),
@@ -1184,7 +1318,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 ),
               ],
             );
-          }
+          },
         );
       },
     );
@@ -1217,9 +1351,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 Navigator.pop(context); // Fechar o diálogo
                 _deleteGroup();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('Excluir'),
             ),
           ],
@@ -1231,10 +1363,10 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   void _deleteGroup() {
     // Aqui seria implementada a lógica para excluir o grupo do banco de dados
     // Como estamos trabalhando com dados mockados, apenas simulamos a exclusão
-    
+
     // Capturar o contexto antes de operação assíncrona
     final currentContext = context;
-    
+
     // Mostrar uma mensagem de sucesso
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -1242,7 +1374,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         backgroundColor: Colors.green,
       ),
     );
-    
+
     // Pequeno atraso para garantir que o snackbar seja exibido antes de navegar
     Future.delayed(const Duration(milliseconds: 200), () {
       // Verificar se o contexto ainda é válido
@@ -1252,4 +1384,4 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       }
     });
   }
-} 
+}

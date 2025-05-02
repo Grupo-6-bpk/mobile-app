@@ -16,7 +16,7 @@ class CustomMenuBar extends StatelessWidget {
       overlayColor: WidgetStatePropertyAll(
         Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.1),
       ),
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
       destinations: const <Widget>[
         NavigationDestination(icon: Icon(Icons.home_rounded), label: "Home"),
         NavigationDestination(
@@ -29,7 +29,7 @@ class CustomMenuBar extends StatelessWidget {
           label: "Configurações",
         ),
       ],
-      indicatorColor: Theme.of(context).colorScheme.primary,
+      indicatorColor: Theme.of(context).colorScheme.primaryContainer,
       selectedIndex: currentPageIndex,
       onDestinationSelected: (int index) {
         if (onPageSelected != null) {
