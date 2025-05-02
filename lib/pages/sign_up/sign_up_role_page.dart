@@ -21,7 +21,17 @@ class SignUpRolePage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Image.asset("assets/images/logo.png"),
+                  ClipOval(
+                    child: Container(
+                      width: 240,
+                      height: 240,
+                      color: Theme.of(context).colorScheme.primary,
+                      child: Image.asset(
+                        "assets/images/logo.png",
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 35),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 30.0),
