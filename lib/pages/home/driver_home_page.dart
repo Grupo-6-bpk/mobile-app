@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/available_passenger_card.dart';
+import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
 import 'package:mobile_app/pages/chat/chat_page.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
@@ -45,22 +46,37 @@ class _DriverHomePageState extends State<DriverHomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabeçalho com saudação
+          // Cabeçalho com saudação e botão criar viagem
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Boa tarde, Gabriel',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Boa tarde, Gabriel',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Passageiros disponíveis:',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Passageiros disponíveis:',
-                  style: Theme.of(context).textTheme.titleSmall,
+                CustomButton(
+                  text: 'Criar viagem',
+                  variant: ButtonVariant.primary,
+                  icon: Icons.add,
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/createRide');
+                  },
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                  height: 40,
                 ),
               ],
             ),
