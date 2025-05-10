@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
 import 'package:mobile_app/components/map_placeholder.dart';
@@ -183,7 +184,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                     Text(
                       formattedDate,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                         fontSize: 14,
                       ),
                     ),
@@ -288,7 +289,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
           Text(
             value,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
@@ -297,7 +298,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
             Text(
               subtitle,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                 fontSize: 14,
               ),
             ),
@@ -342,7 +343,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
                   'distance': '1,88 km'
                 };
                 
-                print('Dados da viagem: $rideData');
+                // Apenas exibir o log em modo debug
+                if (kDebugMode) {
+                  print('Dados da viagem: $rideData');
+                }
                 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
