@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/available_passenger_card.dart';
+import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
 import 'package:mobile_app/pages/chat/chat_page.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
@@ -67,26 +68,15 @@ class _DriverHomePageState extends State<DriverHomePage> {
                     ),
                   ],
                 ),
-                ElevatedButton(
+                CustomButton(
+                  text: 'Criar viagem',
+                  variant: ButtonVariant.primary,
+                  icon: Icons.add,
                   onPressed: () {
                     Navigator.pushNamed(context, '/createRide');
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add, size: 16),
-                      SizedBox(width: 4),
-                      Text('Criar viagem', style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                  height: 40,
                 ),
               ],
             ),

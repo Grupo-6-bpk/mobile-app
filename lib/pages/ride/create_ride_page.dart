@@ -14,20 +14,17 @@ class _CreateRidePageState extends State<CreateRidePage> {
   bool _showGroupSelection = false;
   String? _selectedGroup;
   
-  // Controladores para os campos de texto
   final TextEditingController _originController = TextEditingController(text: "Av. Maripa - 5498, Centro, Toledo - PR");
   final TextEditingController _destinationController = TextEditingController(text: "Biopark Educação");
   final TextEditingController _departureTimeController = TextEditingController(text: "18:30");
   final TextEditingController _estimatedArrivalController = TextEditingController(text: "18:55");
   final TextEditingController _seatsController = TextEditingController(text: "4");
   
-  // Data selecionada
   DateTime _selectedDate = DateTime.now();
   String get formattedDate {
     return "${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}";
   }
   
-  // Dados mockados dos grupos
   final List<String> _mockGroups = [
     'Xander\'s Tur',
     'Maria\'s Tur',
@@ -36,7 +33,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
 
   @override
   void dispose() {
-    // Limpeza dos controladores quando a página for descartada
     _originController.dispose();
     _destinationController.dispose();
     _departureTimeController.dispose();
@@ -64,13 +60,11 @@ class _CreateRidePageState extends State<CreateRidePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mapa (reduzindo o tamanho para acomodar todo o formulário)
             const Expanded(
-              flex: 4, // Reduzido de 2 para 1 para dar mais espaço ao formulário
+              flex: 4,
               child: MapPlaceholder(height: double.infinity),
             ),
             
-            // Área de informações
             Expanded(
               flex: 10, 
               child: Container(
@@ -81,19 +75,16 @@ class _CreateRidePageState extends State<CreateRidePage> {
                 ),
                 child: Stack(
                   children: [
-                    // Conteúdo do formulário com scroll
                     SingleChildScrollView(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Seletor de Data e Dropdown de Grupos
                             _buildDateAndGroupSelector(colorScheme),
                             
                             const SizedBox(height: 18),
                             
-                            // Campo de origem
                             _buildTextField(
                               "Local de saída:",
                               _originController,
@@ -101,7 +92,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             
                             const SizedBox(height: 14),
                             
-                            // Campo de horário de saída
                             _buildTextField(
                               "Horário de saída:",
                               _departureTimeController,
@@ -113,7 +103,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             
                             const SizedBox(height: 14),
                             
-                            // Campo de destino
                             _buildTextField(
                               "Local de chegada:",
                               _destinationController,
@@ -121,7 +110,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             
                             const SizedBox(height: 14),
                             
-                            // Campo de horário estimado de chegada
                             _buildTextField(
                               "Horário estimado de chegada:",
                               _estimatedArrivalController,
@@ -133,7 +121,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             
                             const SizedBox(height: 14),
                             
-                            // Campo de vagas
                             _buildTextField(
                               "Vagas disponíveis:",
                               _seatsController,
@@ -141,7 +128,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             
                             const SizedBox(height: 14),
                             
-                            // Distância (somente leitura)
                             _buildInfoSection(
                               colorScheme,
                               "Distância:", 
@@ -149,7 +135,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
                               null
                             ),
                             
-                            // Botões de ação
                             const SizedBox(height: 18),
                             _buildActionButtons(colorScheme),
                             const SizedBox(height: 18),
@@ -158,7 +143,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
                       ),
                     ),
                     
-                    // Dropdown de grupos (overlay)
                     if (_showGroupSelection) 
                       Positioned(
                         top: 60,
@@ -175,14 +159,12 @@ class _CreateRidePageState extends State<CreateRidePage> {
     );
   }
   
-  // Widget para data e seletor de grupos
   Widget _buildDateAndGroupSelector(ColorScheme colorScheme) {
     return Padding(
       padding: const EdgeInsets.only(top: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Data com seletor
           GestureDetector(
             onTap: () => _selectDate(context),
             child: Column(
@@ -217,7 +199,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
             ),
           ),
           
-          // Seletor de grupo
           SizedBox(
             height: 40,
             child: CustomButton(
@@ -238,7 +219,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
     );
   }
   
-  // Método para selecionar a data
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -253,7 +233,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
     }
   }
   
-  // Método para selecionar o horário
   Future<void> _selectTime(BuildContext context, TextEditingController controller) async {
     TimeOfDay initialTime;
     try {
@@ -278,7 +257,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
     }
   }
   
-  // Widget para campos de texto
   Widget _buildTextField(
     String label,
     TextEditingController controller,
@@ -292,7 +270,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
     );
   }
   
-  // Widget para as seções de informação (somente leitura)
   Widget _buildInfoSection(ColorScheme colorScheme, String title, String value, String? subtitle) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -330,11 +307,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
     );
   }
   
-  // Widget para os botões de ação
   Widget _buildActionButtons(ColorScheme colorScheme) {
     return Row(
       children: [
-        // Botão Cancelar
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -349,7 +324,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
           ),
         ),
         
-        // Botão Criar viagem
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(left: 8.0),
@@ -357,7 +331,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
               text: "Criar viagem",
               variant: ButtonVariant.primary,
               onPressed: () {
-                // Aqui poderíamos validar e enviar os dados para o backend
                 final rideData = {
                   'date': formattedDate,
                   'group': _selectedGroup,
@@ -366,10 +339,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
                   'destination': _destinationController.text,
                   'estimatedArrival': _estimatedArrivalController.text,
                   'seats': _seatsController.text,
-                  'distance': '1,88 km' // Em um caso real, isso seria calculado pelo backend
+                  'distance': '1,88 km'
                 };
                 
-                // Debug: exibir os dados no console
                 print('Dados da viagem: $rideData');
                 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -388,7 +360,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
     );
   }
   
-  // Widget para exibir a lista de grupos quando expandida
   Widget _buildGroupList(ColorScheme colorScheme) {
     return Container(
       width: 160,
