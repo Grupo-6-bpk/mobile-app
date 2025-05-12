@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/pages/home/driver_home_page.dart';
 import 'package:mobile_app/pages/login_page.dart';
-import 'package:mobile_app/passenger_history/passenger_ride_history_page.dart';
+import 'package:mobile_app/pages/login_role_page.dart';
+import 'package:mobile_app/pages/passenger_home/passenger_home.dart';
+import 'package:mobile_app/pages/ride/create_ride_page.dart';
 import 'package:mobile_app/pages/sign_up/driver_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/passenger_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/sign_up_role_page.dart';
@@ -38,12 +40,14 @@ class MyApp extends ConsumerWidget {
 
       initialRoute: "/login",
       routes: {
-        "/login": (context) => const LoginPage(),
-        "/signUpRole": (context) => const SignUpRolePage(),
-        "/driverSignUp": (context) => const DriverSignUpPage(),
-        "/driverHome": (context) => const DriverHomePage(),
-        "/passengerSignUp": (context) => const PassengerSignUpPage(),
-        "/passengerRideHistory": (context) => const PassengerRideHistoryPage(),
+        "/login": (context) => LoginPage(),
+        "/signUpRole": (context) => SignUpRolePage(),
+        "/loginRole": (context) => LoginRolePage(),
+        "/driverSignUp": (context) => DriverSignUpPage(),
+        "/passengerHome": (context) => PassengerHome(),
+        "/driverHome": (context) => DriverHomePage(),
+        "/passengerSignUp": (context) => PassengerSignUpPage(),
+        "/createRide": (context) => CreateRidePage(),
       },
     );
   }
