@@ -224,8 +224,7 @@ class CaronaCard extends StatelessWidget {
                           CustomButton(
                             onPressed: () {},
                             text: 'Solicitar',
-                            bgColor: Theme.of(context).colorScheme.primary,
-                            textColor: Theme.of(context).colorScheme.onPrimary,
+                            variant: ButtonVariant.primary,
                           ),
                         ],
                       ),
