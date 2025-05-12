@@ -109,7 +109,7 @@ class LoginPageState extends State<LoginPage> {
                             widthFactor: 0.6,
                             child: CustomButton(
                               onPressed: () {
-                                Navigator.pushNamed(context, "/driverHome");
+                                Navigator.pushNamed(context, "/loginRole");
                               },
                               variant: ButtonVariant.primary,
                               text: "Login",
