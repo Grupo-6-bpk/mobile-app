@@ -3,7 +3,9 @@ import 'package:mobile_app/pages/home/driver_home_page.dart';
 import 'package:mobile_app/pages/login_page.dart';
 import 'package:mobile_app/pages/login_role_page.dart';
 import 'package:mobile_app/pages/passenger_home/passenger_home.dart';
+import 'package:mobile_app/pages/ride/create_ride_page.dart';
 import 'package:mobile_app/pages/sign_up/driver_sign_up_page.dart';
+import 'package:mobile_app/pages/sign_up/passenger_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/sign_up_role_page.dart';
 import 'package:mobile_app/theme/theme.dart';
 import 'package:mobile_app/theme/util.dart';
@@ -36,6 +38,8 @@ class MyApp extends StatelessWidget {
         "/driverSignUp": (context) => DriverSignUpPage(),
         "/passengerHome": (context) => PassengerHome(),
         "/driverHome": (context) => DriverHomePage(),
+        "/passengerSignUp": (context) => PassengerSignUpPage(),
+        "/createRide": (context) => CreateRidePage(),
       },
     );
   }
