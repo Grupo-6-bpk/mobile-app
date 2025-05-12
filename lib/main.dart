@@ -18,24 +18,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = View.of(context).platformDispatcher.platformBrightness;
-
     TextTheme textTheme = createTextTheme(context, "Nunito", "Nunito");
 
     MaterialTheme theme = MaterialTheme(textTheme);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'BPKCar',
-      theme: brightness == Brightness.light ? theme.light() : theme.dark(),
-      initialRoute: "/passengerHome",
+      theme: theme.light(), // Tema claro
+      darkTheme: theme.dark(), // Tema escuro
+      themeMode:
+          ThemeMode.system, // Muda automaticamente com o tema do dispositivo
+      initialRoute: "/login",
       routes: {
         "/login": (context) => LoginPage(),
         "/signUpRole": (context) => SignUpRolePage(),
         "/driverSignUp": (context) => DriverSignUpPage(),
         "/passengerHome": (context) => PassengerHomeScreen(),
         "/driverHome": (context) => DriverHomePage(),
-        "/passengerSignUp": (context) => PassengerSignUpPage(),
-        "/passengerRideHistory": (context) => PassengerRideHistoryPage(),
       },
     );
   }

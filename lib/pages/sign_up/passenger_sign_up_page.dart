@@ -313,8 +313,7 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
                       ),
                     CustomButton(
                       onPressed: _nextStep,
-                      bgColor: Theme.of(context).colorScheme.primary,
-                      textColor: Theme.of(context).colorScheme.onPrimary,
+                      variant: ButtonVariant.primary,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       text: _currentStep == 1 ? "Finalizar" : "Próximo",
                     ),
