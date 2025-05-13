@@ -7,64 +7,65 @@ class PassengerRideHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1F2133), // Cor de fundo escura conforme o print
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Histórico de viagens',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.normal,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onBackground,
           ),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onBackground),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.white),
+            icon: Icon(Icons.filter_list, color: Theme.of(context).colorScheme.onBackground),
             onPressed: () {
               // Implementar filtro de viagens
             },
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        children: [
-          _buildRideItem(
-            context,
-            driverName: 'Nicolas Neto',
-            address: 'Av. Maripá - 5482, Centro, Toledo - PR',
-            route: 'Biapark Educação',
-            dateTime: '24/03/2025 07:00',
-            price: 13.90,
-          ),
-          const SizedBox(height: 8),
-          _buildRideItem(
-            context,
-            driverName: 'Maria\'s Tur',
-            address: 'Av. Cirne de Lima - 6489, Centro, Toledo - PR',
-            route: 'Biapark Educação',
-            dateTime: '24/03/2025 07:00',
-            price: 15.90,
-          ),
-          const SizedBox(height: 8),
-          _buildRideItem(
-            context,
-            driverName: 'Xander\'s Tur',
-            address: 'Av. Cirne de Lima - 5486, Centro, Toledo - PR',
-            route: 'Biapark Educação',
-            dateTime: '24/03/2025 07:00',
-            price: 20.90,
-          ),
-        ],
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          children: [
+            _buildRideItem(
+              context,
+              driverName: 'Nicolas Neto',
+              address: 'Av. Maripá - 5482, Centro, Toledo - PR',
+              route: 'Biapark Educação',
+              dateTime: '24/03/2025 07:00',
+              price: 13.90,
+            ),
+            const SizedBox(height: 8),
+            _buildRideItem(
+              context,
+              driverName: 'Maria\'s Tur',
+              address: 'Av. Cirne de Lima - 6489, Centro, Toledo - PR',
+              route: 'Biapark Educação',
+              dateTime: '24/03/2025 07:00',
+              price: 15.90,
+            ),
+            const SizedBox(height: 8),
+            _buildRideItem(
+              context,
+              driverName: 'Xander\'s Tur',
+              address: 'Av. Cirne de Lima - 5486, Centro, Toledo - PR',
+              route: 'Biapark Educação',
+              dateTime: '24/03/2025 07:00',
+              price: 20.90,
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
@@ -78,7 +79,7 @@ class PassengerRideHistoryPage extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF272A3F), // Cor de fundo do card conforme o print
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: Material(
@@ -90,7 +91,6 @@ class PassengerRideHistoryPage extends StatelessWidget {
             final date = parts[0];
             final time = parts[1];
             
-            // Navegar para a página de detalhes da viagem
             showDialog(
               context: context,
               builder: (context) => PassengerRideDetailPage(
@@ -106,57 +106,61 @@ class PassengerRideHistoryPage extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                // Ícone de carro em círculo azul
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF3B59ED), // Azul conforme o print
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.directions_car,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     size: 24,
                   ),
                 ),
                 const SizedBox(width: 16.0),
-                // Informações da viagem
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         driverName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 16,
                         ),
                       ),
                       const SizedBox(height: 4.0),
                       Text(
                         address,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.0,
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Row(
                         children: [
-                          Text(
-                            route,
-                            style: const TextStyle(
-                              fontSize: 12.0,
-                              color: Colors.white70,
+                          Expanded(
+                            child: Text(
+                              route,
+                              style: TextStyle(
+                                fontSize: 12.0,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             dateTime,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.0,
-                              color: Colors.white70,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -164,15 +168,14 @@ class PassengerRideHistoryPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Preço
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       'R\$ ${price.toStringAsFixed(2)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -181,53 +184,6 @@ class PassengerRideHistoryPage extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return Container(
-      height: 56,
-      decoration: const BoxDecoration(
-        color: Color(0xFF1F2133),
-        border: Border(
-          top: BorderSide(
-            color: Color(0xFF272A3F),
-            width: 1.0,
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavBarItem(context, Icons.home_rounded, 'Home', false),
-          _buildNavBarItem(context, Icons.directions_car_rounded, 'Caronas', true),
-          _buildNavBarItem(context, Icons.chat_rounded, 'Chat', false),
-          _buildNavBarItem(context, Icons.settings, 'Configurações', false),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavBarItem(BuildContext context, IconData icon, String label, bool isSelected) {
-    final color = isSelected ? Colors.white : Colors.white54;
-    
-    return InkWell(
-      onTap: () {},
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-            ),
-          ),
-        ],
       ),
     );
   }
