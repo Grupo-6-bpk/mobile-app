@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_button.dart';
 
-class SignUpRolePage extends StatelessWidget {
-  const SignUpRolePage({super.key});
+class LoginRolePage extends StatelessWidget {
+  const LoginRolePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +41,7 @@ class SignUpRolePage extends StatelessWidget {
                           widthFactor: 0.7,
                           child: CustomButton(
                             onPressed: () {
-                              Navigator.pushNamed(context, "/driverSignUp");
+                              Navigator.pushNamed(context, "/driverHome");
                             },
                             variant: ButtonVariant.primary,
                             text: "Motorista",
@@ -52,7 +52,7 @@ class SignUpRolePage extends StatelessWidget {
                           widthFactor: 0.7,
                           child: CustomButton(
                             onPressed: () {
-                              Navigator.pushNamed(context, "/passengerSignUp");
+                              Navigator.pushNamed(context, "/passengerHome");
                             },
                             variant: ButtonVariant.primary,
                             text: "Passageiro",

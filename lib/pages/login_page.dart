@@ -25,8 +25,18 @@ class LoginPageState extends State<LoginPage> {
             padding: const EdgeInsets.fromLTRB(0, 125, 0, 0),
             child: Column(
               children: [
-                Image.asset("assets/images/logo.png"),
-                SizedBox(height: 35),
+                ClipOval(
+                  child: Container(
+                    width: 240,
+                    height: 240,
+                    color: Theme.of(context).colorScheme.primary,
+                    child: Image.asset(
+                      "assets/images/logo.png",
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 35),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30.0),
                   child: Column(
@@ -36,7 +46,7 @@ class LoginPageState extends State<LoginPage> {
                         label: "Usuário",
                         obscureText: false,
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       CustomTextfield(
                         controller: _passwordController,
                         label: "Senha",
@@ -54,7 +64,7 @@ class LoginPageState extends State<LoginPage> {
                           },
                         ),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -100,20 +110,16 @@ class LoginPageState extends State<LoginPage> {
                           ),
                         ],
                       ),
-
-                      SizedBox(height: 40),
-
+                      const SizedBox(height: 40),
                       Column(
                         children: [
                           FractionallySizedBox(
                             widthFactor: 0.6,
                             child: CustomButton(
                               onPressed: () {
-                                Navigator.pushNamed(context, "/driverHome");
+                                Navigator.pushNamed(context, "/loginRole");
                               },
-                              bgColor: Theme.of(context).colorScheme.primary,
-                              textColor:
-                                  Theme.of(context).colorScheme.onPrimary,
+                              variant: ButtonVariant.primary,
                               text: "Login",
                             ),
                           ),

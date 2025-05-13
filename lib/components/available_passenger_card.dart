@@ -93,8 +93,7 @@ class AvailablePassengerCard extends StatelessWidget {
               width: 80,
               child: CustomButton(
                 text: 'Aceitar',
-                bgColor: Theme.of(context).colorScheme.primary,
-                textColor: Colors.white,
+                variant: ButtonVariant.primary,
                 onPressed: onAccept,
                 height: 40,
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
