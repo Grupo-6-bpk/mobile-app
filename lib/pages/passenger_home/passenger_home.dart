@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
 import 'package:mobile_app/pages/chat/chat_page.dart';
 import 'package:mobile_app/pages/passenger_home/passenger_home_screen.dart';
+import 'package:mobile_app/pages/settings/settings_page.dart';
 import 'package:mobile_app/passenger_history/passenger_ride_history_page.dart';
 
 class PassengerHome extends StatefulWidget {
@@ -29,7 +30,7 @@ class _PassengerHomeState extends State<PassengerHome> {
             const PassengerHomeScreen(),
             const PassengerRideHistoryPage(),
             const ChatPage(),
-            const Placeholder(),
+            const SettingsPage(),
           ][_currentPageIndex],
       bottomNavigationBar: CustomMenuBar(
         currentPageIndex: _currentPageIndex,
