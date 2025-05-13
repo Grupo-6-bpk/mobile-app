@@ -11,6 +11,8 @@ class SettingsPage extends ConsumerWidget {
   final String email = "Email do Usuário";
   final String cpf = "CPF do Usuário";
 
+  Future<void> _saveTheme(String theme) async {}
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentTheme = ref.watch(themeProvider);
@@ -74,18 +76,17 @@ class SettingsPage extends ConsumerWidget {
                                           ),
                                         )
                                         .toList(),
-                                onChanged: (String? newValue) {
+                                onChanged: (String? newValue) async {
                                   if (newValue != null) {
                                     ref.read(themeProvider.notifier).state =
                                         newValue;
+                                    await _saveTheme(newValue);
                                   }
                                 },
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 5),
-
                           Divider(
                             color:
                                 Theme.of(
@@ -93,9 +94,7 @@ class SettingsPage extends ConsumerWidget {
                                 ).colorScheme.secondaryContainer,
                             thickness: 1,
                           ),
-
                           const SizedBox(height: 5),
-
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -136,59 +135,6 @@ class SettingsPage extends ConsumerWidget {
                               ),
                             ],
                           ),
-
-                          const SizedBox(height: 10),
-
-                          Divider(
-                            color:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.secondaryContainer,
-                            thickness: 1,
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Telefone: ",
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    phone,
-                                    style: TextStyle(
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Icon(
-                                    Icons.arrow_forward_ios_sharp,
-                                    size: 15,
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
@@ -208,9 +154,7 @@ class SettingsPage extends ConsumerWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 15),
-
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainer,
@@ -263,16 +207,12 @@ class SettingsPage extends ConsumerWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       Divider(
                         color: Theme.of(context).colorScheme.secondaryContainer,
                         thickness: 1,
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -317,9 +257,7 @@ class SettingsPage extends ConsumerWidget {
                   ),
                 ),
               ),
-
               const Spacer(),
-
               FractionallySizedBox(
                 widthFactor: 0.9,
                 child: CustomButton(
@@ -328,7 +266,6 @@ class SettingsPage extends ConsumerWidget {
                   variant: ButtonVariant.danger,
                 ),
               ),
-
               const SizedBox(height: 20),
             ],
           ),
