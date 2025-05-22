@@ -21,6 +21,9 @@ jobs:
       - name: Instalar dependências
         run: flutter pub get
 
+      - name: Criar .env
+        run: cp .env.example .env
+
       - name: Analisar o código
         run: flutter analyze  
 
