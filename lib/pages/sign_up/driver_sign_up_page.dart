@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_file_picker.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
+import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/services/user_service.dart';
 
 class DriverSignUpPage extends StatefulWidget {
   const DriverSignUpPage({super.key});
@@ -25,6 +27,11 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _cpfController = TextEditingController();
+  final TextEditingController _streetController = TextEditingController();
+  final TextEditingController _numberController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _zipcodeController = TextEditingController();
   final TextEditingController _driverLicenseController =
       TextEditingController();
 
@@ -38,6 +45,11 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   final FocusNode _passwordFocusNode = FocusNode();
   final FocusNode _confirmPasswordFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
+  final FocusNode _cpfFocusNode = FocusNode();
+  final FocusNode _streetFocusNode = FocusNode();
+  final FocusNode _numberFocusNode = FocusNode();
+  final FocusNode _cityFocusNode = FocusNode();
+  final FocusNode _zipcodeFocusNode = FocusNode();
   final FocusNode _driverLicenseFocusNode = FocusNode();
   final FocusNode _renavamFocusNode = FocusNode();
   final FocusNode _carModelFocusNode = FocusNode();
@@ -52,7 +64,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   final ValueNotifier<FilePickerResult?> _carPhotoNotifier =
       ValueNotifier<FilePickerResult?>(null);
 
-  void _nextStep() {
+  void _nextStep() async {
     if (_currentStep == 0) {
       if (!_passwordsMatch()) {
         ScaffoldMessenger.of(
@@ -79,7 +91,17 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
           const SnackBar(content: Text("Preencha todos os campos")),
         );
       }
-    } else if (_currentStep == 2) {}
+    } else if (_currentStep == 2) {
+      if (_validateSecondStep()) {
+        await _createDriver();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Preencha todos os campos")),
+        );
+      }
+    } else {
+      setState(() => _currentStep++);
+    }
   }
 
   void _previousStep() {
@@ -93,6 +115,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   }
 
   bool _validateFirstStep() {
+    return true;
     return _firstNameController.text.isNotEmpty &&
         _lastNameController.text.isNotEmpty &&
         _emailController.text.isNotEmpty &&
@@ -102,6 +125,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   }
 
   bool _validateSecondStep() {
+    return true;
     return _driverLicenseController.text.isNotEmpty &&
         _frontCNHNotifier.value != null &&
         _backCNHNotifier.value != null &&
@@ -115,6 +139,37 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
       return StepState.editing;
     } else {
       return StepState.indexed;
+    }
+  }
+
+  Future<void> _createDriver() async {
+    User driver = User(
+      name: _firstNameController.text,
+      lastName: _lastNameController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+      phone: _phoneController.text,
+      cpf: _cpfController.text,
+      street: _streetController.text,
+      number: int.parse(_numberController.text),
+      city: _cityController.text,
+      zipcode: _zipcodeController.text,
+      createdAt: DateTime.now(),
+      isDriver: true,
+      isPassenger: false,
+      verified: false,
+    );
+
+    bool success = await UserService.registerUser(driver);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Motorista cadastrado com sucesso")),
+      );
+      Navigator.pop(context);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erro ao cadastrar motorista")),
+      );
     }
   }
 
@@ -237,6 +292,84 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                                   focusNode: _phoneFocusNode,
                                   label: "Telefone",
                                   obscureText: false,
+                                  onSubmitted: (_) {
+                                    FocusScope.of(
+                                      context,
+                                    ).requestFocus(_cpfFocusNode);
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                CustomTextfield(
+                                  controller: _cpfController,
+                                  focusNode: _cpfFocusNode,
+                                  label: "Cpf",
+                                  obscureText: false,
+                                  onSubmitted: (_) {
+                                    FocusScope.of(
+                                      context,
+                                    ).requestFocus(_streetFocusNode);
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _streetController,
+                                        focusNode: _streetFocusNode,
+                                        label: "Rua",
+                                        obscureText: false,
+                                        onSubmitted: (_) {
+                                          FocusScope.of(
+                                            context,
+                                          ).requestFocus(_numberFocusNode);
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 15),
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _numberController,
+                                        focusNode: _numberFocusNode,
+                                        label: "Número",
+                                        obscureText: false,
+                                        isNumeric: true,
+                                        onSubmitted: (_) {
+                                          FocusScope.of(
+                                            context,
+                                          ).requestFocus(_cityFocusNode);
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _cityController,
+                                        focusNode: _cityFocusNode,
+                                        label: "Cidade",
+                                        obscureText: false,
+                                        onSubmitted: (_) {
+                                          FocusScope.of(
+                                            context,
+                                          ).requestFocus(_zipcodeFocusNode);
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 15),
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _zipcodeController,
+                                        focusNode: _zipcodeFocusNode,
+                                        isNumeric: true,
+                                        label: "CEP",
+                                        obscureText: false,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
