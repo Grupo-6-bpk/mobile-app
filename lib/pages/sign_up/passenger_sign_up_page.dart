@@ -28,11 +28,17 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
 
   final ValueNotifier<FilePickerResult?> _frontDocument =
       ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _frontDocumentUrl = ValueNotifier<String?>(null);
+
   final ValueNotifier<FilePickerResult?> _backDocument =
       ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _backDocumentUrl = ValueNotifier<String?>(null);
 
   final ValueNotifier<FilePickerResult?> _linkComprovation =
       ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _linkComprovationUrl = ValueNotifier<String?>(
+    null,
+  );
 
   final FocusNode _nameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
@@ -264,6 +270,7 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
                             child: CustomFilePicker(
                               label: "Frente RG",
                               fileNotifier: _frontDocument,
+                              fileUrl: _frontDocumentUrl,
                             ),
                           ),
 
@@ -274,6 +281,7 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
                             child: CustomFilePicker(
                               label: "Verso RG",
                               fileNotifier: _backDocument,
+                              fileUrl: _backDocumentUrl,
                             ),
                           ),
 
@@ -284,6 +292,7 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
                             child: CustomFilePicker(
                               label: "Comprovante vínculo Biopark",
                               fileNotifier: _linkComprovation,
+                              fileUrl: _linkComprovationUrl,
                             ),
                           ),
                         ],

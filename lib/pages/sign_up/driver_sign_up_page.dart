@@ -57,12 +57,27 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
 
   final ValueNotifier<FilePickerResult?> _frontCNHNotifier =
       ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _frontCNHUrlNotifier = ValueNotifier<String?>(
+    null,
+  );
+
   final ValueNotifier<FilePickerResult?> _backCNHNotifier =
       ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _backCNHUrlNotifier = ValueNotifier<String?>(
+    null,
+  );
+
   final ValueNotifier<FilePickerResult?> _proofOfLinkNotifier =
       ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _proofOfLinkUrlNotifier = ValueNotifier<String?>(
+    null,
+  );
+
   final ValueNotifier<FilePickerResult?> _carPhotoNotifier =
       ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _carPhotoUrlNotifier = ValueNotifier<String?>(
+    null,
+  );
 
   void _nextStep() async {
     if (_currentStep == 0) {
@@ -115,7 +130,6 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   }
 
   bool _validateFirstStep() {
-    return true;
     return _firstNameController.text.isNotEmpty &&
         _lastNameController.text.isNotEmpty &&
         _emailController.text.isNotEmpty &&
@@ -125,7 +139,6 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   }
 
   bool _validateSecondStep() {
-    return true;
     return _driverLicenseController.text.isNotEmpty &&
         _frontCNHNotifier.value != null &&
         _backCNHNotifier.value != null &&
@@ -150,6 +163,10 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
       password: _passwordController.text,
       phone: _phoneController.text,
       cpf: _cpfController.text,
+      cnh: _driverLicenseController.text,
+      cnhFrontUrl: _frontCNHUrlNotifier.value,
+      cnhBackUrl: _backCNHUrlNotifier.value,
+      bpkLinkUrl: _proofOfLinkUrlNotifier.value,
       street: _streetController.text,
       number: int.parse(_numberController.text),
       city: _cityController.text,
@@ -408,6 +425,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                             child: CustomFilePicker(
                               label: "Frente CNH",
                               fileNotifier: _frontCNHNotifier,
+                              fileUrl: _frontCNHUrlNotifier,
                             ),
                           ),
                           SizedBox(height: 20),
@@ -416,6 +434,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                             child: CustomFilePicker(
                               label: "Verso CNH",
                               fileNotifier: _backCNHNotifier,
+                              fileUrl: _backCNHUrlNotifier,
                             ),
                           ),
                           SizedBox(height: 20),
@@ -424,6 +443,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                             child: CustomFilePicker(
                               label: "Comprovante de Vínculo com BPK",
                               fileNotifier: _proofOfLinkNotifier,
+                              fileUrl: _proofOfLinkUrlNotifier,
                             ),
                           ),
                         ],
@@ -451,6 +471,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                             child: CustomFilePicker(
                               label: "Imagem do carro",
                               fileNotifier: _carPhotoNotifier,
+                              fileUrl: _carPhotoUrlNotifier,
                             ),
                           ),
                           const SizedBox(height: 20),

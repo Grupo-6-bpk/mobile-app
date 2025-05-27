@@ -1,13 +1,17 @@
+import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CustomFilePicker extends StatefulWidget {
   final String label;
+  final ValueNotifier<String?> fileUrl;
   final ValueNotifier<FilePickerResult?> fileNotifier;
 
   const CustomFilePicker({
     super.key,
     required this.label,
+    required this.fileUrl,
     required this.fileNotifier,
   });
 
@@ -17,15 +21,40 @@ class CustomFilePicker extends StatefulWidget {
 
 class _CustomFilePickerState extends State<CustomFilePicker> {
   String? _fileName;
+  String? _filePath;
+  static final String cloudinaryCloudName =
+      dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? '';
+  static final String cloudinaryUploadPreset =
+      dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? '';
 
   Future<void> _pickFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+      );
 
       if (result != null) {
         setState(() {
+          _filePath = result.files.single.path;
           _fileName = result.files.single.name;
         });
+        final cloudinary = CloudinaryPublic(
+          cloudinaryCloudName,
+          cloudinaryUploadPreset,
+          cache: false,
+        );
+
+        CloudinaryResponse response = await cloudinary.uploadFile(
+          CloudinaryFile.fromFile(
+            _filePath!,
+            resourceType: CloudinaryResourceType.Auto,
+          ),
+        );
+
+        debugPrint('File uploaded: ${response.secureUrl}');
+
+        widget.fileUrl.value = response.secureUrl;
         widget.fileNotifier.value = result;
       } else {
         setState(() {
@@ -34,6 +63,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         widget.fileNotifier.value = null;
       }
     } catch (e) {
+      debugPrint('Error picking file: $e');
       setState(() {
         _fileName = "Erro ao selecionar arquivo";
       });

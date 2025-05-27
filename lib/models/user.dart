@@ -7,6 +7,10 @@ class User {
   String cpf;
   String phone;
   String street;
+  String cnh;
+  String? cnhBackUrl;
+  String? cnhFrontUrl;
+  String? bpkLinkUrl;
   int number;
   String city;
   String zipcode;
@@ -25,6 +29,10 @@ class User {
     required this.cpf,
     required this.phone,
     required this.street,
+    required this.cnh,
+    this.cnhBackUrl,
+    this.cnhFrontUrl,
+    this.bpkLinkUrl,
     required this.number,
     required this.city,
     required this.zipcode,
@@ -44,6 +52,10 @@ class User {
       cpf = json['cpf'],
       phone = json['phone'],
       street = json['street'],
+      cnh = json['cnh'],
+      cnhBackUrl = json['cnh_back'],
+      cnhFrontUrl = json['cnh_front'],
+      bpkLinkUrl = json['bpk_link'],
       number = json['number'],
       city = json['city'],
       zipcode = json['zipcode'],
@@ -64,6 +76,10 @@ class User {
       'cpf': cpf,
       'phone': phone,
       'street': street,
+      'cnh': cnh,
+      'cnh_back': cnhBackUrl,
+      'cnh_front': cnhFrontUrl,
+      'bpk_link': bpkLinkUrl,
       'number': number,
       'city': city,
       'zipcode': zipcode,

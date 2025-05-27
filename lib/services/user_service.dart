@@ -12,7 +12,7 @@ class UserService {
     try {
       debugPrint(apiUrl);
       final response = await post(
-        Uri.parse("${apiUrl}register/"),
+        Uri.parse("$apiUrl/register/"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(user.toJson()),
       );
@@ -27,7 +27,7 @@ class UserService {
         return false;
       }
     } catch (e) {
-      debugPrint('Error registering user: $e');
+      debugPrint('Error registering driver: $e');
       return false;
     }
   }
