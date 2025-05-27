@@ -7,6 +7,7 @@ class CustomTextfield extends StatelessWidget {
   final String label;
   final IconButton? icon;
   final bool obscureText;
+  final bool isNumeric;
 
   const CustomTextfield({
     super.key,
@@ -16,6 +17,7 @@ class CustomTextfield extends StatelessWidget {
     required this.label,
     this.icon,
     required this.obscureText,
+    this.isNumeric = false,
   });
 
   @override
@@ -25,6 +27,7 @@ class CustomTextfield extends StatelessWidget {
       obscureText: obscureText,
       focusNode: focusNode,
       onSubmitted: onSubmitted,
+      keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(
         suffixIcon: icon,
         label: Text(label),
