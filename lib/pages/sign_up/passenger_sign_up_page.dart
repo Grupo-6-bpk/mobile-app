@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_file_picker.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
+import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/services/user_service.dart';
 
 class PassengerSignUpPage extends StatefulWidget {
   const PassengerSignUpPage({super.key});
@@ -25,6 +27,10 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _streetController = TextEditingController();
+  final TextEditingController _numberController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _zipCodeController = TextEditingController();
 
   final ValueNotifier<FilePickerResult?> _frontDocument =
       ValueNotifier<FilePickerResult?>(null);
@@ -47,25 +53,26 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
   final FocusNode _cpfFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   final FocusNode _confirmPasswordFocusNode = FocusNode();
+  final FocusNode _streetFocusNode = FocusNode();
+  final FocusNode _numberFocusNode = FocusNode();
+  final FocusNode _cityFocusNode = FocusNode();
+  final FocusNode _zipCodeFocusNode = FocusNode();
 
-  void _nextStep() {
+  void _nextStep() async {
     if (_currentStep == 0) {
       if (!_passwordsMatch()) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("As senhas não coincidem")),
         );
-      } else if (_nameController.text.isEmpty ||
-          _lastNameController.text.isEmpty ||
-          _emailController.text.isEmpty ||
-          _phoneController.text.isEmpty ||
-          _cpfController.text.isEmpty ||
-          _passwordController.text.isEmpty) {
+      } else if (!_validateFirstStep()) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Preencha todos os campos")),
         );
       } else {
         setState(() => _currentStep++);
       }
+    } else if (_currentStep == 1) {
+      await _createPassenger();
     }
   }
 
@@ -79,6 +86,21 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
     return _passwordController.text == _confirmPasswordController.text;
   }
 
+  bool _validateFirstStep() {
+    return _nameController.text.isNotEmpty &&
+        _lastNameController.text.isNotEmpty &&
+        _emailController.text.isNotEmpty &&
+        _phoneController.text.isNotEmpty &&
+        _cpfController.text.isNotEmpty &&
+        _passwordController.text.isNotEmpty &&
+        _confirmPasswordController.text.isNotEmpty &&
+        _streetController.text.isNotEmpty &&
+        _numberController.text.isNotEmpty &&
+        _cityController.text.isNotEmpty &&
+        _zipCodeController.text.isNotEmpty &&
+        _passwordsMatch();
+  }
+
   StepState getStepState(int step) {
     if (_currentStep > step) {
       return StepState.complete;
@@ -86,6 +108,43 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
       return StepState.editing;
     } else {
       return StepState.indexed;
+    }
+  }
+
+  Future<void> _createPassenger() async {
+    User passenger = User(
+      name: _nameController.text,
+      lastName: _lastNameController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+      cpf: _cpfController.text,
+      phone: _phoneController.text,
+      street: _streetController.text,
+      cnh: "",
+      cnhBackUrl: null,
+      cnhFrontUrl: null,
+      rgFrontUrl: _frontDocumentUrl.value,
+      rgBackUrl: _backDocumentUrl.value,
+      bpkLinkUrl: _linkComprovationUrl.value,
+      number: int.parse(_numberController.text),
+      city: _cityController.text,
+      zipcode: _zipCodeController.text,
+      createdAt: DateTime.now(),
+      isDriver: false,
+      isPassenger: true,
+      verified: false,
+    );
+
+    bool success = await UserService.registerUser(passenger);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Passageiro realizado com sucesso!")),
+      );
+      Navigator.pop(context);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erro ao realizar cadastro")),
+      );
     }
   }
 
@@ -229,10 +288,73 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
                                   obscureText: true,
                                   focusNode: _confirmPasswordFocusNode,
                                   onSubmitted: (value) {
-                                    FocusScope.of(context).unfocus();
+                                    FocusScope.of(
+                                      context,
+                                    ).requestFocus(_streetFocusNode);
                                   },
                                 ),
                                 const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _streetController,
+                                        label: "Rua",
+                                        obscureText: false,
+                                        focusNode: _streetFocusNode,
+                                        onSubmitted: (value) {
+                                          FocusScope.of(
+                                            context,
+                                          ).requestFocus(_numberFocusNode);
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _numberController,
+                                        label: "Número",
+                                        obscureText: false,
+                                        focusNode: _numberFocusNode,
+                                        onSubmitted: (value) {
+                                          FocusScope.of(
+                                            context,
+                                          ).requestFocus(_cityFocusNode);
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _cityController,
+                                        label: "Cidade",
+                                        obscureText: false,
+                                        focusNode: _cityFocusNode,
+                                        onSubmitted: (value) {
+                                          FocusScope.of(
+                                            context,
+                                          ).requestFocus(_zipCodeFocusNode);
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: CustomTextfield(
+                                        controller: _zipCodeController,
+                                        label: "CEP",
+                                        obscureText: false,
+                                        focusNode: _zipCodeFocusNode,
+                                        onSubmitted: (value) {
+                                          FocusScope.of(context).unfocus();
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
