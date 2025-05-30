@@ -11,6 +11,8 @@ class User {
   String? cnhBackUrl;
   String? cnhFrontUrl;
   String? bpkLinkUrl;
+  String? rgFrontUrl;
+  String? rgBackUrl;
   int number;
   String city;
   String zipcode;
@@ -32,6 +34,8 @@ class User {
     required this.cnh,
     this.cnhBackUrl,
     this.cnhFrontUrl,
+    this.rgFrontUrl,
+    this.rgBackUrl,
     this.bpkLinkUrl,
     required this.number,
     required this.city,
@@ -80,6 +84,8 @@ class User {
       'cnh_back': cnhBackUrl,
       'cnh_front': cnhFrontUrl,
       'bpk_link': bpkLinkUrl,
+      'rg_front': rgFrontUrl,
+      'rg_back': rgBackUrl,
       'number': number,
       'city': city,
       'zipcode': zipcode,
