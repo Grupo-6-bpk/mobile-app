@@ -592,8 +592,8 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
     );
   }
 
-  String _getInitials(String name) {
-    if (name.isEmpty) return '?';
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return '?';
     
     final words = name.trim().split(' ');
     if (words.length >= 2 && words[0].isNotEmpty && words[1].isNotEmpty) {
@@ -694,14 +694,14 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
                     
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundImage: user.avatarUrl != null
+                        backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                             ? NetworkImage(user.avatarUrl!)
                             : null,
-                        child: user.avatarUrl == null
-                            ? Text(_getInitials(user.name))
+                        child: user.avatarUrl == null || user.avatarUrl!.isEmpty
+                            ? Text(_getInitials(user.name ?? ''))
                             : null,
                       ),
-                      title: Text(user.name),
+                      title: Text(user.name ?? 'Usuário'),
                       subtitle: Text(user.phone ?? ''),
                       trailing: isExistingParticipant
                           ? const Chip(
@@ -741,14 +741,14 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
               const SizedBox(height: 8),
               ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: _selectedUser!.avatarUrl != null
+                  backgroundImage: _selectedUser!.avatarUrl != null && _selectedUser!.avatarUrl!.isNotEmpty
                       ? NetworkImage(_selectedUser!.avatarUrl!)
                       : null,
-                  child: _selectedUser!.avatarUrl == null
-                      ? Text(_getInitials(_selectedUser!.name))
+                  child: _selectedUser!.avatarUrl == null || _selectedUser!.avatarUrl!.isEmpty
+                      ? Text(_getInitials(_selectedUser!.name ?? ''))
                       : null,
                 ),
-                title: Text(_selectedUser!.name),
+                title: Text(_selectedUser!.name ?? 'Usuário'),
                 subtitle: Text(_selectedUser!.phone ?? ''),
                 trailing: const Icon(Icons.check_circle, color: Colors.green),
               ),
@@ -834,7 +834,7 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${_selectedUser!.name} foi adicionado ao grupo'),
+            content: Text('${_selectedUser!.name ?? 'Usuário'} foi adicionado ao grupo'),
             backgroundColor: Colors.green,
           ),
         );
@@ -852,8 +852,8 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
     }
   }
 
-  String _getInitials(String name) {
-    if (name.isEmpty) return '?';
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return '?';
     
     final words = name.trim().split(' ');
     if (words.length >= 2 && words[0].isNotEmpty && words[1].isNotEmpty) {

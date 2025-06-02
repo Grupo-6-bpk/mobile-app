@@ -5,7 +5,7 @@ class User {
   String email;
   String? password;
   String? cpf;
-  String phone;
+  String? phone;
   String? street;
   String? cnh;
   String? cnhBackUrl;
@@ -28,7 +28,7 @@ class User {
     required this.email,
     this.password,
     this.cpf,
-    required this.phone,
+    this.phone,
     this.street,
     this.cnh,
     this.cnhBackUrl,
@@ -46,28 +46,27 @@ class User {
   });
 
   User.fromJson(Map<String, dynamic> json)
-    : userId = json['userId'],
-      name = json['name'],
-      lastName = json['last_name'],
-      email = json['email'],
-      password = json['password'],
-      cpf = json['cpf'],
-      phone = json['phone'],
-      street = json['street'],
-      cnh = json['cnh'],
-      cnhBackUrl = json['cnh_back'],
-      cnhFrontUrl = json['cnh_front'],
-      bpkLinkUrl = json['bpk_link'],
-      number = json['number'],
-      city = json['city'],
-      zipcode = json['zipcode'],
-      createdAt = DateTime.parse(json['createAt']),
-      updatedAt =
-          json['updated_at'] != null ? DateTime.parse(json['updatedAt']) : null,
-      isDriver = json['isDriver'] == 1,
-      isPassenger = json['isPassenger'] == 1,
-      verified = json['verified'] == 1,
-      avatarUrl = json['avatarUrl'] ?? '';
+    : userId = json['userId'] as int?,
+      name = json['name']?.toString() ?? '',
+      lastName = json['last_name']?.toString(),
+      email = json['email']?.toString() ?? '',
+      password = json['password']?.toString(),
+      cpf = json['cpf']?.toString(),
+      phone = json['phone']?.toString(),
+      street = json['street']?.toString(),
+      cnh = json['cnh']?.toString(),
+      cnhBackUrl = json['cnh_back']?.toString(),
+      cnhFrontUrl = json['cnh_front']?.toString(),
+      bpkLinkUrl = json['bpk_link']?.toString(),
+      number = json['number'] as int?,
+      city = json['city']?.toString(),
+      zipcode = json['zipcode']?.toString(),
+      createdAt = json['createAt'] != null ? DateTime.tryParse(json['createAt'].toString()) : null,
+      updatedAt = json['updated_at'] != null ? DateTime.tryParse(json['updated_at'].toString()) : null,
+      isDriver = json['isDriver'] == 1 || json['isDriver'] == true,
+      isPassenger = json['isPassenger'] == 1 || json['isPassenger'] == true,
+      verified = json['verified'] == 1 || json['verified'] == true,
+      avatarUrl = json['avatarUrl']?.toString();
 
   Map<String, dynamic> toJson() {
     return {
@@ -86,10 +85,10 @@ class User {
       'number': number,
       'city': city,
       'zipcode': zipcode,
-      'createAt': createdAt,
+      'createAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'isDriver': isDriver,
-      'isPassenger': isPassenger ,
+      'isPassenger': isPassenger,
       'verified': verified,
       'avatarUrl': avatarUrl,
     };

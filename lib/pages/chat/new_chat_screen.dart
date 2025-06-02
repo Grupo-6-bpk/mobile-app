@@ -270,10 +270,10 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
                         child: Chip(
                           avatar: CircleAvatar(
                             radius: 12,
-                            backgroundImage: user.avatarUrl != null
+                            backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                                 ? NetworkImage(user.avatarUrl!)
                                 : null,
-                            child: user.avatarUrl == null
+                            child: user.avatarUrl == null || user.avatarUrl!.isEmpty
                                 ? Text(
                                     _getInitials(user.name),
                                     style: const TextStyle(fontSize: 10),
@@ -281,7 +281,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
                                 : null,
                           ),
                           label: Text(
-                            user.name,
+                            user.name ?? 'Usuário',
                             style: const TextStyle(fontSize: 12),
                           ),
                           deleteIcon: const Icon(Icons.close, size: 16),
@@ -460,14 +460,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
                   setState(() {
                     _selectedUsers.add(user);
                   });
-                  _showUserAddedSnackBar(user.name);
+                  _showUserAddedSnackBar(user.name ?? 'Usuário');
                 },
               ),
               onTap: () {
                 setState(() {
                   _selectedUsers.add(user);
                 });
-                _showUserAddedSnackBar(user.name);
+                _showUserAddedSnackBar(user.name ?? 'Usuário');
               },
             );
           },
@@ -591,7 +591,8 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
     );
   }
 
-  String _getInitials(String name) {
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return '?';
     final words = name.split(' ');
     if (words.length >= 2) {
       return '${words[0][0]}${words[1][0]}'.toUpperCase();
@@ -619,18 +620,18 @@ class _UserListItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundImage: user.avatarUrl != null
+          backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
               ? NetworkImage(user.avatarUrl!)
               : null,
-          child: user.avatarUrl == null
+          child: user.avatarUrl == null || user.avatarUrl!.isEmpty
               ? Text(_getInitials(user.name))
               : null,
         ),
         title: Text(
-          user.name,
+          user.name ?? 'Usuário',
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
-        subtitle: user.phone != null
+        subtitle: user.phone != null && user.phone!.isNotEmpty
             ? Text(user.phone!)
             : null,
         trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 16),
@@ -639,7 +640,8 @@ class _UserListItem extends StatelessWidget {
     );
   }
 
-  String _getInitials(String name) {
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return '?';
     final words = name.split(' ');
     if (words.length >= 2) {
       return '${words[0][0]}${words[1][0]}'.toUpperCase();

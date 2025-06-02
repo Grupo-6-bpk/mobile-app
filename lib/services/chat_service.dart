@@ -298,8 +298,24 @@ class ChatService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> usersJson = jsonDecode(response.body);
-        return usersJson.map((json) => User.fromJson(json)).toList();
+        if (response.body.isEmpty) {
+          return [];
+        }
+
+        final responseData = jsonDecode(response.body);
+        
+        if (responseData is List) {
+          final List<dynamic> usersJson = responseData;
+          return usersJson.map((json) {
+            try {
+              return User.fromJson(json as Map<String, dynamic>);
+            } catch (e) {
+              return null;
+            }
+          }).whereType<User>().toList();
+        } else {
+          return [];
+        }
       } else {
         throw Exception('Erro ao buscar usuários: ${response.statusCode}');
       }
