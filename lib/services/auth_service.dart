@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
@@ -70,17 +71,17 @@ class AuthService {
   }
 
   Future<bool> login(String email, String password) async {
-    final url = '${AppConfig.baseUrl}${AppConfig.loginEndpoint}';
+    final url = '${AppConfig.baseUrl}/${AppConfig.loginEndpoint}';
     try {
-      final requestBody = jsonEncode({
-        'email': email,
-        'password': password,
-      });
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: requestBody,
-      ).timeout(const Duration(seconds: 15));
+      debugPrint(url);
+      final requestBody = jsonEncode({'email': email, 'password': password});
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: requestBody,
+          )
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         try {
           final data = jsonDecode(response.body);
@@ -127,15 +128,11 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConfig.tokenKey, token);
     final db = await database;
-    await db.insert(
-      'auth_tokens',
-      {
-        'token': token,
-        'user_data': _currentUser?.toJson().toString() ?? '',
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('auth_tokens', {
+      'token': token,
+      'user_data': _currentUser?.toJson().toString() ?? '',
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> _saveUserToStorage(User user) async {
@@ -152,6 +149,7 @@ class AuthService {
         _currentUser = User.fromJson(jsonDecode(userData));
       }
     } catch (e) {
+      debugPrint('Erro ao carregar dados de autenticação: $e');
     }
   }
 
@@ -165,7 +163,7 @@ class AuthService {
       final db = await database;
       await db.delete('auth_tokens');
     } catch (e) {
-      throw e;
+      debugPrint('Erro ao limpar dados de autenticação: $e');
     }
   }
 
