@@ -1,50 +1,52 @@
 class User {
-  int? id;
+  int? userId;
   String name;
-  String lastName;
+  String? lastName;
   String email;
-  String password;
-  String cpf;
+  String? password;
+  String? cpf;
   String phone;
-  String street;
-  String cnh;
+  String? street;
+  String? cnh;
   String? cnhBackUrl;
   String? cnhFrontUrl;
   String? bpkLinkUrl;
-  int number;
-  String city;
-  String zipcode;
-  DateTime createdAt;
+  int? number;
+  String? city;
+  String? zipcode;
+  DateTime? createdAt;
   DateTime? updatedAt;
-  bool isDriver;
-  bool isPassenger;
-  bool verified;
+  bool? isDriver;
+  bool? isPassenger;
+  bool? verified;
+  String? avatarUrl;
 
   User({
-    this.id,
+    this.userId,
     required this.name,
-    required this.lastName,
+    this.lastName,
     required this.email,
-    required this.password,
-    required this.cpf,
+    this.password,
+    this.cpf,
     required this.phone,
-    required this.street,
-    required this.cnh,
+    this.street,
+    this.cnh,
     this.cnhBackUrl,
     this.cnhFrontUrl,
     this.bpkLinkUrl,
-    required this.number,
-    required this.city,
-    required this.zipcode,
-    required this.createdAt,
+    this.number,
+    this.city,
+    this.zipcode,
+    this.createdAt,
     this.updatedAt,
-    required this.isDriver,
-    required this.isPassenger,
-    required this.verified,
+    this.isDriver,
+    this.isPassenger,
+    this.verified,
+    this.avatarUrl,
   });
 
   User.fromJson(Map<String, dynamic> json)
-    : id = json['id'],
+    : userId = json['userId'],
       name = json['name'],
       lastName = json['last_name'],
       email = json['email'],
@@ -64,11 +66,12 @@ class User {
           json['updated_at'] != null ? DateTime.parse(json['updatedAt']) : null,
       isDriver = json['isDriver'] == 1,
       isPassenger = json['isPassenger'] == 1,
-      verified = json['verified'] == 1;
+      verified = json['verified'] == 1,
+      avatarUrl = json['avatarUrl'] ?? '';
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'userId': userId,
       'name': name,
       'last_name': lastName,
       'email': email,
@@ -83,11 +86,12 @@ class User {
       'number': number,
       'city': city,
       'zipcode': zipcode,
-      'createAt': createdAt.toIso8601String(),
+      'createAt': createdAt,
       'updatedAt': updatedAt?.toIso8601String(),
-      'isDriver': isDriver ? 1 : 0,
-      'isPassenger': isPassenger ? 1 : 0,
-      'verified': verified ? 1 : 0,
+      'isDriver': isDriver,
+      'isPassenger': isPassenger ,
+      'verified': verified,
+      'avatarUrl': avatarUrl,
     };
   }
 }
