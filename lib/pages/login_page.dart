@@ -59,13 +59,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             final targetRoute = authNotifier.getHomeRouteForUser();
             final userType = authNotifier.getUserTypeDescription();
             
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Redirecionando para área de $userType'),
-                duration: const Duration(seconds: 1),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Redirecionando para área de $userType'),
+                  duration: const Duration(seconds: 1),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
             
             Future.delayed(const Duration(milliseconds: 800), () {
               if (mounted) {
@@ -404,6 +406,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
 
-    ref.read(authProvider.notifier).login(email, password);
+    final authNotifier = ref.read(authProvider.notifier);
+    final success = await authNotifier.login(email, password);
+    
+    if (!mounted) return;
+    
+    if (success) {
+      if (!mounted) return;
+      final homeRoute = authNotifier.getHomeRouteForUser();
+      Navigator.pushReplacementNamed(context, homeRoute);
+    }
   }
 }

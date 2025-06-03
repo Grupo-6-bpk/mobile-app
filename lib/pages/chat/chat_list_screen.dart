@@ -203,8 +203,18 @@ class ChatListScreen extends ConsumerWidget {
             ),
           );
         },
-        child: const Icon(Icons.add),
         tooltip: 'Nova conversa',
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }

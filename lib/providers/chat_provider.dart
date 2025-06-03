@@ -4,6 +4,7 @@ import '../models/chat.dart';
 import '../models/message.dart';
 import '../models/user.dart';
 import '../services/chat_service.dart';
+import 'package:flutter/foundation.dart';
 
 enum ChatState {
   initial,
@@ -14,7 +15,7 @@ enum ChatState {
 
 class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   final ChatService _chatService = ChatService();
-  List<StreamSubscription> _subscriptions = [];
+  final List<StreamSubscription> _subscriptions = [];
 
   ChatListNotifier() : super(const AsyncValue.loading()) {
     _initializeChats();
@@ -170,7 +171,7 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
 class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
   final int chatId;
   final ChatService _chatService = ChatService();
-  List<StreamSubscription> _subscriptions = [];
+  final List<StreamSubscription> _subscriptions = [];
   String? _nextCursor;
   Timer? _reloadTimer;
 
@@ -198,17 +199,22 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
       _chatService.onMessageReceived.listen((message) {
         if (message.chatId == chatId) {
           state.whenData((messages) {
-            final messageExists = messages.any((m) => 
-              m.messageId == message.messageId || 
-              (m.content == message.content && 
-               m.senderId == message.senderId &&
-               m.sentAt.difference(message.sentAt).abs().inSeconds < 5)
-            );
-            if (messageExists) {
-              return;
+            try {
+              final messageExists = messages.any((m) => 
+                m.messageId == message.messageId || 
+                (m.content == message.content && 
+                 m.senderId == message.senderId &&
+                 m.sentAt.difference(message.sentAt).abs().inSeconds < 5)
+              );
+              if (messageExists) {
+                return;
+              }
+              final newMessages = [...messages, message];
+              state = AsyncValue.data(newMessages);
+            } catch (e) {
+              // Ignore WebSocket errors for duplicates detection
+              debugPrint('WebSocket duplicate detection error: $e');
             }
-            final newMessages = [...messages, message];
-            state = AsyncValue.data(newMessages);
           });
         }
       }),
@@ -260,6 +266,7 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
         state = AsyncValue.data(allMessages);
       });
     } catch (e) {
+      debugPrint('Error loading more messages: $e');
     }
   }
 
@@ -285,6 +292,8 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
           }
         });
       } catch (e) {
+        // Error in reloading messages after timeout
+        debugPrint('Error reloading messages after timeout: $e');
       }
     });
   }

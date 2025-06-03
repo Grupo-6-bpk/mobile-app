@@ -39,7 +39,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(messageListProvider(widget.chat.chatId));
     final currentUser = ref.watch(currentUserProvider);
     final displayName = widget.chat.getDisplayName(currentUser?.userId ?? 0);
     final displayAvatar = widget.chat.getDisplayAvatar(currentUser?.userId ?? 0);

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import '../models/user.dart';
@@ -188,22 +189,10 @@ class ChatService {
 
         final messages =
             messagesJson.map((json) {
-              final senderId = json['senderId'] ?? 0;
-              final senderName = json['senderName'] ?? '';
-              final content = json['content'] ?? '';
-
-              print(
-                '   Message - SenderID: $senderId, SenderName: $senderName, Content: "$content"',
-              );
-
-              final message = Message.fromJson(
+              return Message.fromJson(
                 json,
                 currentUserId: _authService.currentUser?.userId,
               );
-
-              print('   ✅ isFromCurrentUser: ${message.isFromCurrentUser}');
-
-              return message;
             }).toList();
 
         return messages;
@@ -233,7 +222,9 @@ class ChatService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
           await _webSocketService.inviteUser(chatId, userId);
-        } catch (e) {}
+        } catch (e) {
+          debugPrint('WebSocket invite error: $e');
+        }
       } else {
         throw Exception(
           'Erro ao adicionar membro: ${response.statusCode} - ${response.body}',
@@ -257,7 +248,9 @@ class ChatService {
           response.statusCode == 204) {
         try {
           await _webSocketService.removeUser(chatId, userId);
-        } catch (e) {}
+        } catch (e) {
+          debugPrint('WebSocket remove user error: $e');
+        }
       } else {
         throw Exception(
           'Erro ao remover membro: ${response.statusCode} - ${response.body}',
@@ -278,7 +271,9 @@ class ChatService {
       if (response.statusCode == 200 || response.statusCode == 204) {
         try {
           await _webSocketService.deleteChat(chatId);
-        } catch (e) {}
+        } catch (e) {
+          debugPrint('WebSocket delete chat error: $e');
+        }
       } else {
         throw Exception(
           'Erro ao excluir chat: ${response.statusCode} - ${response.body}',

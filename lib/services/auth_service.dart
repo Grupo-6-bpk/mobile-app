@@ -92,9 +92,6 @@ class AuthService {
             if (jwtPayload != null && jwtPayload['id'] != null) {
               final userId = jwtPayload['id'];
               
-              print('🔍 DEBUG AuthService.login:');
-              print('   JWT User ID: $userId (type: ${userId.runtimeType})');
-              
               try {
                 final userResponse = await http.get(
                   Uri.parse('${AppConfig.baseUrl}/api/users/$userId'),
@@ -107,8 +104,6 @@ class AuthService {
                 if (userResponse.statusCode == 200) {
                   final userData = jsonDecode(userResponse.body);
                   _currentUser = User.fromJson(userData);
-                  
-                  print('   ✅ Full user loaded - ID: ${_currentUser?.userId}, Name: ${_currentUser?.name}');
                 } else {
                   _currentUser = User(
                     userId: userId ?? 0,
@@ -117,11 +112,8 @@ class AuthService {
                     phone: '',
                     avatarUrl: null,
                   );
-                  
-                  print('   ⚠️ Fallback user created - ID: ${_currentUser?.userId}, Name: ${_currentUser?.name}');
                 }
               } catch (userError) {
-                debugPrint('Erro ao buscar dados do usuário: $userError');
                 _currentUser = User(
                   userId: userId ?? 0,
                   name: email.split('@')[0],
@@ -129,8 +121,6 @@ class AuthService {
                   phone: '',
                   avatarUrl: null,
                 );
-                
-                print('   ❌ Error fallback user - ID: ${_currentUser?.userId}, Name: ${_currentUser?.name}');
               }
             } else {
               _currentUser = User(
@@ -140,8 +130,6 @@ class AuthService {
                 phone: '',
                 avatarUrl: null,
               );
-              
-              print('   ⚠️ No JWT ID - Default user created - ID: ${_currentUser?.userId}');
             }
             
             await _saveTokenToStorage(_token!);

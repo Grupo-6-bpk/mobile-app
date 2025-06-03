@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:flutter/foundation.dart';
 import '../models/message.dart';
 import '../models/chat.dart';
 import '../config/app_config.dart';
@@ -63,17 +64,18 @@ class WebSocketService {
           currentUserId: _authService.currentUser?.userId,
         );
         
-        print('   WebSocket Message created - isFromCurrentUser: ${message.isFromCurrentUser}');
+        debugPrint('   WebSocket Message created - isFromCurrentUser: ${message.isFromCurrentUser}');
         
         _messageController.add(message);
       } catch (e) {
-        print('❌ DEBUG WebSocket error: $e');
+        debugPrint('❌ DEBUG WebSocket error: $e');
       }
     });
     _socket!.on('message_ack', (data) {
       try {
         _messageAckController.add(data as Map<String, dynamic>);
       } catch (e) {
+        debugPrint('WebSocket message_ack error: $e');
       }
     });
     _socket!.on('chat_created', (data) {
@@ -81,6 +83,7 @@ class WebSocketService {
         final chat = Chat.fromJson(data as Map<String, dynamic>);
         _newChatController.add(chat);
       } catch (e) {
+        debugPrint('WebSocket chat_created error: $e');
       }
     });
     _socket!.on('error', (data) {
@@ -202,6 +205,7 @@ class WebSocketService {
     try {
       _socket!.emit('start_typing', {'chatId': chatId});
     } catch (e) {
+      debugPrint('WebSocket start typing error: $e');
     }
   }
   Future<void> stopTyping(int chatId) async {
@@ -209,6 +213,7 @@ class WebSocketService {
     try {
       _socket!.emit('stop_typing', {'chatId': chatId});
     } catch (e) {
+      debugPrint('WebSocket stop typing error: $e');
     }
   }
   Future<void> inviteUser(int chatId, int userId) async {

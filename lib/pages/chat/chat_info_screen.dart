@@ -452,26 +452,36 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
   }
 
   Future<void> _blockUser(int targetUserId) async {
-    Navigator.pop(context);
+    Navigator.pop(context); 
     setState(() => _isLoading = true);
 
     try {
       final success = await ref.read(chatListProvider.notifier)
           .blockUser(widget.chat.chatId, targetUserId);
       
+      if (!mounted) return;
+      
       if (success) {
+        if (!mounted) return;
+        Navigator.pop(context); 
+        
+        if (!mounted) return;
         Navigator.of(context)..pop()..pop();
         
         await ref.read(chatListProvider.notifier).refresh();
         
+        if (!mounted) return;
         _showSuccessSnackBar('Usuário bloqueado com sucesso');
       } else {
         _showErrorSnackBar('Erro ao bloquear usuário');
       }
     } catch (e) {
+      if (!mounted) return;
       _showErrorSnackBar('Erro ao bloquear usuário: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -483,19 +493,29 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
       final success = await ref.read(chatListProvider.notifier)
           .unblockUser(widget.chat.chatId, targetUserId);
       
+      if (!mounted) return;
+      
       if (success) {
+        if (!mounted) return;
+        Navigator.pop(context); 
+        
+        if (!mounted) return;
         Navigator.of(context)..pop()..pop();
         
         await ref.read(chatListProvider.notifier).refresh();
         
+        if (!mounted) return;
         _showSuccessSnackBar('Usuário desbloqueado com sucesso');
       } else {
         _showErrorSnackBar('Erro ao desbloquear usuário');
       }
     } catch (e) {
+      if (!mounted) return;
       _showErrorSnackBar('Erro ao desbloquear usuário: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -507,19 +527,29 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
       final success = await ref.read(chatListProvider.notifier)
           .removeMemberFromGroup(widget.chat.chatId, userId);
       
+      if (!mounted) return;
+      
       if (success) {
+        if (!mounted) return;
+        Navigator.pop(context); 
+        
+        if (!mounted) return;
         Navigator.of(context)..pop()..pop();
         
         await ref.read(chatListProvider.notifier).refresh();
         
+        if (!mounted) return;
         _showSuccessSnackBar('Usuário removido do grupo');
       } else {
         _showErrorSnackBar('Erro ao remover usuário');
       }
     } catch (e) {
+      if (!mounted) return;
       _showErrorSnackBar('Erro ao remover usuário: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -531,19 +561,29 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
       final success = await ref.read(chatListProvider.notifier)
           .deleteChat(widget.chat.chatId);
       
+      if (!mounted) return;
+      
       if (success) {
+        if (!mounted) return;
+        Navigator.pop(context); 
+        
+        if (!mounted) return;
         Navigator.of(context)..pop()..pop();
         
         await ref.read(chatListProvider.notifier).refresh();
         
+        if (!mounted) return;
         _showSuccessSnackBar('Grupo excluído com sucesso');
       } else {
         _showErrorSnackBar('Erro ao excluir grupo');
       }
     } catch (e) {
+      if (!mounted) return;
       _showErrorSnackBar('Erro ao excluir grupo: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -558,19 +598,29 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
       final success = await ref.read(chatListProvider.notifier)
           .removeMemberFromGroup(widget.chat.chatId, currentUserId);
       
+      if (!mounted) return;
+      
       if (success) {
+        if (!mounted) return;
+        Navigator.pop(context); 
+        
+        if (!mounted) return;
         Navigator.of(context)..pop()..pop();
         
         await ref.read(chatListProvider.notifier).refresh();
         
+        if (!mounted) return;
         _showSuccessSnackBar('Você saiu do grupo');
       } else {
         _showErrorSnackBar('Erro ao sair do grupo');
       }
     } catch (e) {
+      if (!mounted) return;
       _showErrorSnackBar('Erro ao sair do grupo: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -718,7 +768,7 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
                                 _selectedUser = isSelected ? null : user;
                               }),
                       tileColor: isSelected
-                          ? Theme.of(context).primaryColor.withOpacity(0.1)
+                          ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
                           : null,
                     );
                   },
@@ -828,10 +878,12 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
       if (success) {
         Navigator.pop(context); 
         
+        if (!mounted) return;
         Navigator.of(context)..pop()..pop();
         
         await ref.read(chatListProvider.notifier).refresh();
         
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${_selectedUser!.name ?? 'Usuário'} foi adicionado ao grupo'),

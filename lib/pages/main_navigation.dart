@@ -39,7 +39,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
-    final authState = ref.watch(authProvider);
     
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next == AuthState.unauthenticated) {
@@ -118,7 +117,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
               title: const Text('Configurações'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implementar tela de configurações
+                Navigator.pushNamed(context, '/settings');
               },
             ),
             ListTile(
@@ -131,10 +130,20 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Sair'),
-              onTap: () {
-                _handleLogout(context);
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text(
+                'Sair',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                await ref.read(authProvider.notifier).logout();
+                if (!mounted) return;
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
               },
             ),
           ],
@@ -151,31 +160,5 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       return words[0][0].toUpperCase();
     }
     return 'U';
-  }
-
-  void _handleLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sair'),
-        content: const Text('Tem certeza que deseja sair da aplicação?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sair'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed == true) {
-      Navigator.pop(context);
-      
-      await ref.read(authProvider.notifier).logout();
-    }
   }
 } 
