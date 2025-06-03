@@ -38,8 +38,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final errorMessage = ref.watch(authErrorProvider);
 
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next == AuthState.authenticated) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (next == AuthState.authenticated && mounted) {
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        final navigator = Navigator.of(context);
+        
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: const Row(
               children: [
@@ -60,26 +63,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             final userType = authNotifier.getUserTypeDescription();
             
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text('Redirecionando para área de $userType'),
                   duration: const Duration(seconds: 1),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
+              
+              Future.delayed(const Duration(milliseconds: 800), () {
+                if (mounted) {
+                  navigator.pushReplacementNamed(targetRoute);
+                }
+              });
             }
-            
-            Future.delayed(const Duration(milliseconds: 800), () {
-              if (mounted) {
-                Navigator.pushReplacementNamed(context, targetRoute);
-              }
-            });
           }
         });
       } else if (next == AuthState.error && previous == AuthState.loading) {
         final errorMsg = ref.read(authErrorProvider);
         if (errorMsg != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Row(
                 children: [
@@ -100,7 +104,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 label: 'OK',
                 textColor: Colors.white,
                 onPressed: () {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  if (mounted) {
+                    scaffoldMessenger.hideCurrentSnackBar();
+                  }
                 },
               ),
             ),

@@ -748,10 +748,10 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
                             ? NetworkImage(user.avatarUrl!)
                             : null,
                         child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                            ? Text(_getInitials(user.name ?? ''))
+                            ? Text(_getInitials(user.name))
                             : null,
                       ),
-                      title: Text(user.name ?? 'Usuário'),
+                      title: Text(user.name),
                       subtitle: Text(user.phone ?? ''),
                       trailing: isExistingParticipant
                           ? const Chip(
@@ -795,10 +795,10 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
                       ? NetworkImage(_selectedUser!.avatarUrl!)
                       : null,
                   child: _selectedUser!.avatarUrl == null || _selectedUser!.avatarUrl!.isEmpty
-                      ? Text(_getInitials(_selectedUser!.name ?? ''))
+                      ? Text(_getInitials(_selectedUser!.name))
                       : null,
                 ),
-                title: Text(_selectedUser!.name ?? 'Usuário'),
+                title: Text(_selectedUser!.name),
                 subtitle: Text(_selectedUser!.phone ?? ''),
                 trailing: const Icon(Icons.check_circle, color: Colors.green),
               ),
@@ -876,17 +876,15 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
           .addMemberToGroup(widget.chatId, userId);
 
       if (success) {
-        Navigator.pop(context); 
-        
         if (!mounted) return;
-        Navigator.of(context)..pop()..pop();
+        Navigator.pop(context); 
         
         await ref.read(chatListProvider.notifier).refresh();
         
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${_selectedUser!.name ?? 'Usuário'} foi adicionado ao grupo'),
+            content: Text('${_selectedUser!.name} foi adicionado ao grupo'),
             backgroundColor: Colors.green,
           ),
         );

@@ -55,6 +55,15 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
     });
   }
 
+  void _performGroupSearch() {
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      setState(() {
+        _searchQuery = query;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -223,176 +232,186 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
   }
 
   Widget _buildGroupChatTab() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 16), // espaço para o teclado
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Column(
-                children: [
-                  // campo de nome do grupo
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: TextField(
-                      controller: _groupNameController,
-                      decoration: InputDecoration(
-                        hintText: 'Nome do grupo (ex: Carona Campus)',
-                        prefixIcon: const Icon(Icons.group),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _groupNameController,
+              decoration: InputDecoration(
+                hintText: 'Nome do grupo (ex: Carona Campus)',
+                prefixIcon: const Icon(Icons.group),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+              ),
+              maxLength: 50,
+              onChanged: (value) {
+                setState(() {});
+              },
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar usuários para adicionar',
+                      prefixIcon: const Icon(Icons.person_add),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
                       ),
-                      maxLength: 50,
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                    ),
+                    onChanged: (value) {
+                      setState(() {}); 
+                    },
+                    onSubmitted: (_) => _performGroupSearch(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _searchController.text.trim().isNotEmpty
+                      ? _performGroupSearch
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  child: const Icon(Icons.search),
+                ),
+              ],
+            ),
+          ),
+
+          if (_selectedUsers.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              height: 80,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Participantes selecionados (${_selectedUsers.length}):',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
-
-                  // campo de busca de usuários
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Buscar usuários para adicionar',
-                        prefixIcon: const Icon(Icons.person_add),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value.trim();
-                        });
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _selectedUsers.length,
+                      itemBuilder: (context, index) {
+                        final user = _selectedUsers[index];
+                        return Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          child: Chip(
+                            avatar: CircleAvatar(
+                              radius: 12,
+                              backgroundImage: user.avatarUrl != null &&
+                                      user.avatarUrl!.isNotEmpty
+                                  ? NetworkImage(user.avatarUrl!)
+                                  : null,
+                              child: user.avatarUrl == null ||
+                                      user.avatarUrl!.isEmpty
+                                  ? Text(
+                                      _getInitials(user.name),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            label: Text(
+                              user.name,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            deleteIcon: const Icon(
+                              Icons.close,
+                              size: 16,
+                            ),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedUsers.remove(user);
+                              });
+                            },
+                          ),
+                        );
                       },
                     ),
-                  ),
-
-                  // lista de participantes em chips
-                  if (_selectedUsers.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      height: 80,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Participantes selecionados (${_selectedUsers.length}):',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _selectedUsers.length,
-                              itemBuilder: (context, index) {
-                                final user = _selectedUsers[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  child: Chip(
-                                    avatar: CircleAvatar(
-                                      radius: 12,
-                                      backgroundImage:
-                                          user.avatarUrl != null &&
-                                                  user.avatarUrl!.isNotEmpty
-                                              ? NetworkImage(user.avatarUrl!)
-                                              : null,
-                                      child:
-                                          user.avatarUrl == null ||
-                                                  user.avatarUrl!.isEmpty
-                                              ? Text(
-                                                _getInitials(user.name),
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                ),
-                                              )
-                                              : null,
-                                    ),
-                                    label: Text(
-                                      user.name ?? 'Usuário',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    deleteIcon: const Icon(
-                                      Icons.close,
-                                      size: 16,
-                                    ),
-                                    onDeleted: () {
-                                      setState(() {
-                                        _selectedUsers.remove(user);
-                                      });
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  // botão de criar grupo (sempre abaixo dos campos)
-                  if (_selectedUsers.isNotEmpty &&
-                      _groupNameController.text.trim().isNotEmpty) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: ElevatedButton.icon(
-                        onPressed:
-                            _canCreateGroup() && !_isCreatingGroup
-                                ? _createGroup
-                                : null,
-                        icon:
-                            _isCreatingGroup
-                                ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                                : const Icon(Icons.group_add),
-                        label: Text(
-                          _isCreatingGroup ? 'Criando grupo...' : 'Criar Grupo',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor:
-                              _canCreateGroup()
-                                  ? Theme.of(context).primaryColor
-                                  : Colors.grey,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // lista de resultados da busca ou estado vazio
-                  Expanded(
-                    child:
-                        _searchQuery.isEmpty
-                            ? _buildGroupEmptyState()
-                            : _buildGroupUserSearchResults(),
                   ),
                 ],
               ),
             ),
+          ],
+
+          if (_selectedUsers.isNotEmpty &&
+              _groupNameController.text.trim().isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _canCreateGroup() && !_isCreatingGroup
+                    ? _createGroup
+                    : null,
+                icon: _isCreatingGroup
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.group_add),
+                label: Text(
+                  _isCreatingGroup ? 'Criando grupo...' : 'Criar Grupo',
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: _canCreateGroup()
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+
+          SizedBox(
+            height: 400,
+            child: _searchQuery.isEmpty
+                ? _buildGroupEmptyState()
+                : _buildGroupUserSearchResults(),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -512,14 +531,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
                   setState(() {
                     _selectedUsers.add(user);
                   });
-                  _showUserAddedSnackBar(user.name ?? 'Usuário');
+                  _showUserAddedSnackBar(user.name);
                 },
               ),
               onTap: () {
                 setState(() {
                   _selectedUsers.add(user);
                 });
-                _showUserAddedSnackBar(user.name ?? 'Usuário');
+                _showUserAddedSnackBar(user.name);
               },
             );
           },
@@ -688,7 +707,7 @@ class _UserListItem extends StatelessWidget {
                   : null,
         ),
         title: Text(
-          user.name ?? 'Usuário',
+          user.name,
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle:

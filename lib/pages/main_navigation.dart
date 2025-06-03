@@ -136,11 +136,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
                 style: TextStyle(color: Colors.red),
               ),
               onTap: () async {
-                Navigator.pop(context);
+                final navigator = Navigator.of(context);
+                navigator.pop();
                 await ref.read(authProvider.notifier).logout();
                 if (!mounted) return;
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
+                navigator.pushNamedAndRemoveUntil(
                   '/login',
                   (route) => false,
                 );
