@@ -50,24 +50,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       if (success) {
         _currentUser = _authService.currentUser;
+        _errorMessage = null;
         state = AuthState.authenticated;
         return true;
       } else {
-        _errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
-        state = AuthState.unauthenticated;
+        _errorMessage = 'Falha no login. Tente novamente.';
+        state = AuthState.error;
         return false;
       }
     } catch (e) {
-      if (e.toString().contains('TimeoutException')) {
-        _errorMessage = 'Tempo limite excedido. Verifique sua conexão com a internet.';
-      } else if (e.toString().contains('SocketException')) {
-        _errorMessage = 'Não foi possível conectar ao servidor. Verifique sua conexão.';
-      } else if (e.toString().contains('FormatException')) {
-        _errorMessage = 'Resposta inválida do servidor.';
-      } else {
-        _errorMessage = 'Erro ao fazer login: $e';
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.substring(11);
       }
       
+      _errorMessage = errorMsg;
       state = AuthState.error;
       return false;
     }
@@ -95,6 +92,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           : AuthState.unauthenticated;
     }
   }
+
+  String getHomeRouteForUser() {
+    return _authService.getHomeRouteForUser();
+  }
+
+  String getUserTypeDescription() {
+    return _authService.getUserTypeDescription();
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
@@ -117,6 +122,7 @@ final currentUserProvider = Provider<User?>((ref) {
 });
 
 final authErrorProvider = Provider<String?>((ref) {
+  ref.watch(authProvider);
   final authNotifier = ref.read(authProvider.notifier);
   return authNotifier.errorMessage;
 }); 

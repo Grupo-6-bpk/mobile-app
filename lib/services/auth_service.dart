@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,31 +73,65 @@ class AuthService {
   }
 
   Future<bool> login(String email, String password) async {
-    final url = '${AppConfig.baseUrl}/${AppConfig.loginEndpoint}';
+    final url = Uri.parse('${AppConfig.baseUrl}/login');
+    
     try {
-      debugPrint(url);
-      final requestBody = jsonEncode({'email': email, 'password': password});
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
-            body: requestBody,
-          )
-          .timeout(const Duration(seconds: 15));
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      ).timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         try {
           final data = jsonDecode(response.body);
           if (data['token'] != null) {
             _token = data['token'];
             final jwtPayload = _decodeJwtPayload(_token!);
+            
             if (jwtPayload != null && jwtPayload['id'] != null) {
-              _currentUser = User(
-                userId: jwtPayload['id'] ?? 0,
-                name: email.split('@')[0],
-                email: jwtPayload['email'] ?? email,
-                phone: '',
-                avatarUrl: null,
-              );
+              final userId = jwtPayload['id'];
+              
+              print('🔍 DEBUG AuthService.login:');
+              print('   JWT User ID: $userId (type: ${userId.runtimeType})');
+              
+              try {
+                final userResponse = await http.get(
+                  Uri.parse('${AppConfig.baseUrl}/api/users/$userId'),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer $_token',
+                  },
+                ).timeout(const Duration(seconds: 10));
+                
+                if (userResponse.statusCode == 200) {
+                  final userData = jsonDecode(userResponse.body);
+                  _currentUser = User.fromJson(userData);
+                  
+                  print('   ✅ Full user loaded - ID: ${_currentUser?.userId}, Name: ${_currentUser?.name}');
+                } else {
+                  _currentUser = User(
+                    userId: userId ?? 0,
+                    name: email.split('@')[0],
+                    email: jwtPayload['email'] ?? email,
+                    phone: '',
+                    avatarUrl: null,
+                  );
+                  
+                  print('   ⚠️ Fallback user created - ID: ${_currentUser?.userId}, Name: ${_currentUser?.name}');
+                }
+              } catch (userError) {
+                debugPrint('Erro ao buscar dados do usuário: $userError');
+                _currentUser = User(
+                  userId: userId ?? 0,
+                  name: email.split('@')[0],
+                  email: jwtPayload['email'] ?? email,
+                  phone: '',
+                  avatarUrl: null,
+                );
+                
+                print('   ❌ Error fallback user - ID: ${_currentUser?.userId}, Name: ${_currentUser?.name}');
+              }
             } else {
               _currentUser = User(
                 userId: 0,
@@ -104,23 +140,59 @@ class AuthService {
                 phone: '',
                 avatarUrl: null,
               );
+              
+              print('   ⚠️ No JWT ID - Default user created - ID: ${_currentUser?.userId}');
             }
+            
             await _saveTokenToStorage(_token!);
             await _saveUserToStorage(_currentUser!);
             return true;
           } else {
-            return false;
+            throw Exception('Token não recebido do servidor');
           }
         } catch (jsonError) {
-          return false;
+          throw Exception('Resposta inválida do servidor');
         }
       } else if (response.statusCode == 401) {
-        return false;
+        try {
+          final errorData = jsonDecode(response.body);
+          final errorMessage = errorData['message'] ?? errorData['error'] ?? 'Email ou senha incorretos';
+          throw Exception('Credenciais inválidas: $errorMessage');
+        } catch (e) {
+          throw Exception('Email ou senha incorretos. Verifique suas credenciais e tente novamente.');
+        }
+      } else if (response.statusCode == 400) {
+        try {
+          final errorData = jsonDecode(response.body);
+          final errorMessage = errorData['message'] ?? errorData['error'] ?? 'Dados de login inválidos';
+          throw Exception('Erro nos dados: $errorMessage');
+        } catch (e) {
+          throw Exception('Dados de login inválidos. Verifique o formato do email.');
+        }
+      } else if (response.statusCode == 422) {
+        throw Exception('Dados de login não atenden aos requisitos. Verifique o email e senha.');
+      } else if (response.statusCode == 429) {
+        throw Exception('Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.');
+      } else if (response.statusCode == 503) {
+        throw Exception('Servidor em manutenção. Tente novamente em alguns minutos.');
+      } else if (response.statusCode >= 500) {
+        throw Exception('Servidor temporariamente indisponível (erro ${response.statusCode}). Tente novamente mais tarde.');
       } else {
-        return false;
+        throw Exception('Erro inesperado do servidor (código ${response.statusCode}). Contate o suporte se o problema persistir.');
       }
+    } on TimeoutException {
+      throw Exception('Tempo limite esgotado. Verifique sua conexão com a internet e tente novamente.');
+    } on SocketException {
+      throw Exception('Sem conexão com a internet. Verifique sua rede e tente novamente.');
+    } on FormatException {
+      throw Exception('Resposta inválida do servidor. Tente novamente ou contate o suporte.');
+    } on HttpException {
+      throw Exception('Erro de comunicação com o servidor. Verifique sua conexão.');
     } catch (e) {
-      return false;
+      if (e.toString().contains('Exception:')) {
+        rethrow; 
+      }
+      throw Exception('Erro inesperado durante o login: ${e.toString()}');
     }
   }
 
@@ -206,5 +278,33 @@ class AuthService {
       default:
         throw ArgumentError('Método HTTP não suportado: $method');
     }
+  }
+
+  String getHomeRouteForUser() {
+    if (_currentUser == null) return "/main";
+    
+    if (_currentUser!.isDriver == true && _currentUser!.isPassenger == true) {
+      return "/driverHome";
+    } else if (_currentUser!.isDriver == true) {
+      return "/driverHome";
+    } else if (_currentUser!.isPassenger == true) {
+      return "/passengerHome";
+    }
+    
+    return "/main";
+  }
+
+  String getUserTypeDescription() {
+    if (_currentUser == null) return "indefinido";
+    
+    if (_currentUser!.isDriver == true && _currentUser!.isPassenger == true) {
+      return "driver e passenger";
+    } else if (_currentUser!.isDriver == true) {
+      return "driver";
+    } else if (_currentUser!.isPassenger == true) {
+      return "passenger";
+    }
+    
+    return "indefinido";
   }
 }

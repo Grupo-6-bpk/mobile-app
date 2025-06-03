@@ -17,7 +17,8 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
   String _searchQuery = '';
-  
+  bool _isSearching = false;
+
   final TextEditingController _groupNameController = TextEditingController();
   final List<User> _selectedUsers = [];
   bool _isCreatingGroup = false;
@@ -36,6 +37,24 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
     super.dispose();
   }
 
+  void _performSearch() {
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      setState(() {
+        _searchQuery = query;
+        _isSearching = true;
+      });
+    }
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchQuery = '';
+      _isSearching = false;
+      _searchController.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,18 +62,12 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
         title: const Text('Nova Conversa'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Chat Direto'),
-            Tab(text: 'Criar Grupo'),
-          ],
+          tabs: const [Tab(text: 'Chat Direto'), Tab(text: 'Criar Grupo')],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildDirectChatTab(),
-          _buildGroupChatTab(),
-        ],
+        children: [_buildDirectChatTab(), _buildGroupChatTab()],
       ),
     );
   }
@@ -64,56 +77,80 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Buscar por telefone (ex: 11999)',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide.none,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar por telefone (ex: 11999)',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon:
+                        _searchController.text.isNotEmpty
+                            ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: _clearSearch,
+                            )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                  ),
+                  onSubmitted: (_) => _performSearch(),
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                ),
               ),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.trim();
-              });
-            },
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed:
+                    _searchController.text.trim().isNotEmpty
+                        ? _performSearch
+                        : null,
+                style: ElevatedButton.styleFrom(
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(16),
+                ),
+                child: const Icon(Icons.search),
+              ),
+            ],
           ),
         ),
-        
+
         Expanded(
-          child: _searchQuery.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Digite um número de telefone',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
+          child:
+              !_isSearching || _searchQuery.isEmpty
+                  ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.search, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'Digite um número de telefone',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Ex: 11999, 41988, etc.',
-                        style: TextStyle(
-                          color: Colors.grey,
+                        SizedBox(height: 8),
+                        Text(
+                          'Ex: 11999, 41988, etc.',
+                          style: TextStyle(color: Colors.grey),
                         ),
-                      ),
-                    ],
-                  ),
-                )
-              : _buildUserSearchResults(),
+                        SizedBox(height: 8),
+                        Text(
+                          'Clique no botão para pesquisar',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  : _buildUserSearchResults(),
         ),
       ],
     );
@@ -125,34 +162,24 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
 
     return usersAsync.when(
       data: (users) {
-        final filteredUsers = users.where((user) => 
-          user.userId != currentUser?.userId
-        ).toList();
+        final filteredUsers =
+            users.where((user) => user.userId != currentUser?.userId).toList();
 
         if (filteredUsers.isEmpty) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.person_off,
-                  size: 64,
-                  color: Colors.grey,
-                ),
+                Icon(Icons.person_off, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
                   'Nenhum usuário encontrado',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Verifique o número e tente novamente',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -171,167 +198,201 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
           },
         );
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(),
-      ),
-      error: (error, stackTrace) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Erro na busca',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGroupChatTab() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          child: TextField(
-            controller: _groupNameController,
-            decoration: InputDecoration(
-              hintText: 'Nome do grupo (ex: Carona Campus)',
-              prefixIcon: const Icon(Icons.group),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-            ),
-            maxLength: 50,
-          ),
-        ),
-
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Buscar usuários para adicionar',
-              prefixIcon: const Icon(Icons.person_add),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.trim();
-              });
-            },
-          ),
-        ),
-
-        if (_selectedUsers.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Container(
-            height: 80,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error:
+          (error, stackTrace) => Center(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
                 Text(
-                  'Participantes selecionados (${_selectedUsers.length}):',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  'Erro na busca',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                Expanded(
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _selectedUsers.length,
-                    itemBuilder: (context, index) {
-                      final user = _selectedUsers[index];
-                      return Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        child: Chip(
-                          avatar: CircleAvatar(
-                            radius: 12,
-                            backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                                ? NetworkImage(user.avatarUrl!)
-                                : null,
-                            child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                                ? Text(
-                                    _getInitials(user.name),
-                                    style: const TextStyle(fontSize: 10),
-                                  )
-                                : null,
-                          ),
-                          label: Text(
-                            user.name ?? 'Usuário',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          deleteIcon: const Icon(Icons.close, size: 16),
-                          onDeleted: () {
-                            setState(() {
-                              _selectedUsers.remove(user);
-                            });
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
           ),
-        ],
+    );
+  }
 
-        if (_selectedUsers.isNotEmpty && _groupNameController.text.trim().isNotEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ElevatedButton.icon(
-              onPressed: _canCreateGroup() && !_isCreatingGroup ? _createGroup : null,
-              icon: _isCreatingGroup
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.group_add),
-              label: Text(_isCreatingGroup ? 'Criando grupo...' : 'Criar Grupo'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                backgroundColor: _canCreateGroup() 
-                    ? Theme.of(context).primaryColor 
-                    : Colors.grey,
-                foregroundColor: Colors.white,
+  Widget _buildGroupChatTab() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 16), // espaço para o teclado
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                children: [
+                  // campo de nome do grupo
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: _groupNameController,
+                      decoration: InputDecoration(
+                        hintText: 'Nome do grupo (ex: Carona Campus)',
+                        prefixIcon: const Icon(Icons.group),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                      maxLength: 50,
+                    ),
+                  ),
+
+                  // campo de busca de usuários
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar usuários para adicionar',
+                        prefixIcon: const Icon(Icons.person_add),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.trim();
+                        });
+                      },
+                    ),
+                  ),
+
+                  // lista de participantes em chips
+                  if (_selectedUsers.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      height: 80,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Participantes selecionados (${_selectedUsers.length}):',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _selectedUsers.length,
+                              itemBuilder: (context, index) {
+                                final user = _selectedUsers[index];
+                                return Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  child: Chip(
+                                    avatar: CircleAvatar(
+                                      radius: 12,
+                                      backgroundImage:
+                                          user.avatarUrl != null &&
+                                                  user.avatarUrl!.isNotEmpty
+                                              ? NetworkImage(user.avatarUrl!)
+                                              : null,
+                                      child:
+                                          user.avatarUrl == null ||
+                                                  user.avatarUrl!.isEmpty
+                                              ? Text(
+                                                _getInitials(user.name),
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                ),
+                                              )
+                                              : null,
+                                    ),
+                                    label: Text(
+                                      user.name ?? 'Usuário',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    deleteIcon: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                    ),
+                                    onDeleted: () {
+                                      setState(() {
+                                        _selectedUsers.remove(user);
+                                      });
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // botão de criar grupo (sempre abaixo dos campos)
+                  if (_selectedUsers.isNotEmpty &&
+                      _groupNameController.text.trim().isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            _canCreateGroup() && !_isCreatingGroup
+                                ? _createGroup
+                                : null,
+                        icon:
+                            _isCreatingGroup
+                                ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Icon(Icons.group_add),
+                        label: Text(
+                          _isCreatingGroup ? 'Criando grupo...' : 'Criar Grupo',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor:
+                              _canCreateGroup()
+                                  ? Theme.of(context).primaryColor
+                                  : Colors.grey,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // lista de resultados da busca ou estado vazio
+                  Expanded(
+                    child:
+                        _searchQuery.isEmpty
+                            ? _buildGroupEmptyState()
+                            : _buildGroupUserSearchResults(),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-
-        // Lista de usuários para adicionar
-        Expanded(
-          child: _searchQuery.isEmpty
-              ? _buildGroupEmptyState()
-              : _buildGroupUserSearchResults(),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -340,11 +401,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.group_add,
-            size: 64,
-            color: Colors.grey,
-          ),
+          const Icon(Icons.group_add, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
           const Text(
             'Crie um grupo para caronas',
@@ -357,9 +414,12 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
           const SizedBox(height: 8),
           const Text(
             'Busque usuários para adicionar ao grupo',
-            style: TextStyle(
-              color: Colors.grey,
-            ),
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Clique no botão de pesquisa para buscar',
+            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Container(
@@ -372,11 +432,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
             ),
             child: Column(
               children: [
-                const Icon(
-                  Icons.info_outline,
-                  color: Colors.blue,
-                  size: 20,
-                ),
+                const Icon(Icons.info_outline, color: Colors.blue, size: 20),
                 const SizedBox(height: 8),
                 const Text(
                   'Como criar um grupo:',
@@ -388,10 +444,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
                 const SizedBox(height: 4),
                 const Text(
                   '1. Digite um nome para o grupo\n2. Busque e adicione participantes\n3. Clique em "Criar Grupo"',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.blue, fontSize: 12),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -417,27 +470,26 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
 
     return usersAsync.when(
       data: (users) {
-        // Filtrar usuários já selecionados e o próprio usuário
-        final availableUsers = users
-            .where((user) => 
-              user.userId != currentUser?.userId && // Não incluir o próprio usuário
-              !_selectedUsers.any((selected) => selected.userId == user.userId)
-            )
-            .toList();
+        final availableUsers =
+            users
+                .where(
+                  (user) =>
+                      user.userId != currentUser?.userId &&
+                      !_selectedUsers.any(
+                        (selected) => selected.userId == user.userId,
+                      ),
+                )
+                .toList();
 
         if (availableUsers.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.person_off,
-                  size: 48,
-                  color: Colors.grey,
-                ),
+                const Icon(Icons.person_off, size: 48, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
-                  _searchQuery.isEmpty 
+                  _searchQuery.isEmpty
                       ? 'Digite algo para buscar usuários'
                       : 'Nenhum usuário disponível',
                   style: const TextStyle(color: Colors.grey),
@@ -474,30 +526,27 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Colors.red,
+      error:
+          (error, stackTrace) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Erro na busca: $error',
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Erro na busca: $error',
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   bool _canCreateGroup() {
-    return _groupNameController.text.trim().isNotEmpty && 
-           _selectedUsers.isNotEmpty;
+    return _groupNameController.text.trim().isNotEmpty &&
+        _selectedUsers.isNotEmpty;
   }
 
   Future<void> _createDirectChat(User user) async {
@@ -507,14 +556,28 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
         _showErrorSnackBar('Usuário inválido: ID ausente');
         return;
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Criando conversa com ${user.name}...'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
       final chat = await chatNotifier.createDirectChat(user.userId!);
-      
+
       if (chat != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Conversa criada com ${user.name}!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(chat: chat),
-          ),
+          MaterialPageRoute(builder: (context) => ChatScreen(chat: chat)),
         );
       } else {
         _showErrorSnackBar('Erro ao criar conversa');
@@ -526,7 +589,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
 
   Future<void> _createGroup() async {
     final groupName = _groupNameController.text.trim();
-    
+
     if (!_canCreateGroup()) {
       if (groupName.isEmpty) {
         _showErrorSnackBar('Digite um nome para o grupo');
@@ -542,21 +605,23 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
 
     try {
       final chatNotifier = ref.read(chatListProvider.notifier);
-      final participantIds = _selectedUsers
-          .map((u) => u.userId)
-          .whereType<int>()
-          .toList();
-      
+      final participantIds =
+          _selectedUsers.map((u) => u.userId).whereType<int>().toList();
+
       final chat = await chatNotifier.createGroup(groupName, participantIds);
-      
+
       if (chat != null && mounted) {
-        await Future.delayed(const Duration(seconds: 2));
-        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Grupo "$groupName" criado com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(chat: chat),
-          ),
+          MaterialPageRoute(builder: (context) => ChatScreen(chat: chat)),
         );
       } else {
         _showErrorSnackBar('Erro ao criar grupo');
@@ -574,10 +639,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -608,11 +670,7 @@ class _UserListItem extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? trailing;
 
-  const _UserListItem({
-    required this.user,
-    required this.onTap,
-    this.trailing,
-  });
+  const _UserListItem({required this.user, required this.onTap, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -620,20 +678,23 @@ class _UserListItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-              ? NetworkImage(user.avatarUrl!)
-              : null,
-          child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-              ? Text(_getInitials(user.name))
-              : null,
+          backgroundImage:
+              user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                  ? NetworkImage(user.avatarUrl!)
+                  : null,
+          child:
+              user.avatarUrl == null || user.avatarUrl!.isEmpty
+                  ? Text(_getInitials(user.name))
+                  : null,
         ),
         title: Text(
           user.name ?? 'Usuário',
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
-        subtitle: user.phone != null && user.phone!.isNotEmpty
-            ? Text(user.phone!)
-            : null,
+        subtitle:
+            user.phone != null && user.phone!.isNotEmpty
+                ? Text(user.phone!)
+                : null,
         trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
       ),
@@ -650,4 +711,4 @@ class _UserListItem extends StatelessWidget {
     }
     return '?';
   }
-} 
+}

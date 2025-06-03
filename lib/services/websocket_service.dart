@@ -62,8 +62,12 @@ class WebSocketService {
           data as Map<String, dynamic>,
           currentUserId: _authService.currentUser?.userId,
         );
+        
+        print('   WebSocket Message created - isFromCurrentUser: ${message.isFromCurrentUser}');
+        
         _messageController.add(message);
       } catch (e) {
+        print('❌ DEBUG WebSocket error: $e');
       }
     });
     _socket!.on('message_ack', (data) {

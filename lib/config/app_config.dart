@@ -7,7 +7,7 @@ class AppConfig {
 
   static const String loginEndpoint = 'login';
   static const String chatsEndpoint = '/api/chats';
-  static const String usersSearchEndpoint = 'api/users/search';
+  static const String usersSearchEndpoint = '/api/users/search';
 
   static const int messagePageSize = 20;
   static const int maxRetryAttempts = 3;
@@ -20,5 +20,4 @@ class AppConfig {
   static const int minPasswordLength = 6;
   static const int maxMessageLength = 1000;
 
-  static List<String> get testUrls => [baseUrl];
 }

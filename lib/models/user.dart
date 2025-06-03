@@ -1,8 +1,54 @@
+class Driver {
+  int? id;
+  bool? cnhVerified;
+  bool? active;
+
+  Driver({
+    this.id,
+    this.cnhVerified,
+    this.active,
+  });
+
+  Driver.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as int?,
+      cnhVerified = json['cnhVerified'] == 1 || json['cnhVerified'] == true,
+      active = json['active'] == 1 || json['active'] == true;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'cnhVerified': cnhVerified,
+      'active': active,
+    };
+  }
+}
+
+class Passenger {
+  int? id;
+  bool? active;
+
+  Passenger({
+    this.id,
+    this.active,
+  });
+
+  Passenger.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as int?,
+      active = json['active'] == 1 || json['active'] == true;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'active': active,
+    };
+  }
+}
+
 class User {
   int? userId;
   String name;
   String? lastName;
-  String email;
+  String? email;
   String? password;
   String? cpf;
   String? phone;
@@ -20,12 +66,14 @@ class User {
   bool? isPassenger;
   bool? verified;
   String? avatarUrl;
+  Driver? driver;
+  Passenger? passenger;
 
   User({
     this.userId,
     required this.name,
     this.lastName,
-    required this.email,
+    this.email,
     this.password,
     this.cpf,
     this.phone,
@@ -43,13 +91,15 @@ class User {
     this.isPassenger,
     this.verified,
     this.avatarUrl,
+    this.driver,
+    this.passenger,
   });
 
   User.fromJson(Map<String, dynamic> json)
-    : userId = json['userId'] as int?,
+    : userId = json['userId'] as int? ?? json['id'] as int?,
       name = json['name']?.toString() ?? '',
       lastName = json['last_name']?.toString(),
-      email = json['email']?.toString() ?? '',
+      email = json['email']?.toString(),
       password = json['password']?.toString(),
       cpf = json['cpf']?.toString(),
       phone = json['phone']?.toString(),
@@ -66,7 +116,9 @@ class User {
       isDriver = json['isDriver'] == 1 || json['isDriver'] == true,
       isPassenger = json['isPassenger'] == 1 || json['isPassenger'] == true,
       verified = json['verified'] == 1 || json['verified'] == true,
-      avatarUrl = json['avatarUrl']?.toString();
+      avatarUrl = json['avatarUrl']?.toString(),
+      driver = json['driver'] != null ? Driver.fromJson(json['driver']) : null,
+      passenger = json['passenger'] != null ? Passenger.fromJson(json['passenger']) : null;
 
   Map<String, dynamic> toJson() {
     return {
@@ -91,6 +143,8 @@ class User {
       'isPassenger': isPassenger,
       'verified': verified,
       'avatarUrl': avatarUrl,
+      'driver': driver?.toJson(),
+      'passenger': passenger?.toJson(),
     };
   }
 }

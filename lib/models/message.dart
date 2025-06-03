@@ -20,15 +20,18 @@ class Message {
   });
 
   factory Message.fromJson(Map<String, dynamic> json, {int? currentUserId}) {
+    final senderId = json['senderId'] ?? 0;
+    final isFromCurrentUser = currentUserId != null && senderId == currentUserId;
+    
     return Message(
       messageId: json['messageId'] ?? json['id'] ?? 0,
       chatId: json['chatId'] ?? 0,
-      senderId: json['senderId'] ?? 0,
+      senderId: senderId,
       senderName: json['senderName'] ?? '',
       senderAvatar: json['senderAvatar'],
       content: json['content'] ?? '',
       sentAt: DateTime.parse(json['sentAt'] ?? DateTime.now().toIso8601String()),
-      isFromCurrentUser: currentUserId != null && (json['senderId'] ?? 0) == currentUserId,
+      isFromCurrentUser: isFromCurrentUser,
     );
   }
 

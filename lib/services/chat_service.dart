@@ -16,7 +16,10 @@ class ChatService {
 
   Future<List<Chat>> getChats() async {
     try {
-      final response = await _authService.authenticatedRequest('GET', AppConfig.chatsEndpoint);
+      final response = await _authService.authenticatedRequest(
+        'GET',
+        AppConfig.chatsEndpoint,
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> chatsJson = jsonDecode(response.body);
@@ -56,11 +59,7 @@ class ChatService {
       final response = await _authService.authenticatedRequest(
         'POST',
         AppConfig.chatsEndpoint,
-        body: {
-          'isGroup': true,
-          'name': name,
-          'participantIds': participantIds,
-        },
+        body: {'isGroup': true, 'name': name, 'participantIds': participantIds},
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -77,13 +76,18 @@ class ChatService {
 
   Future<Chat> getChatDetails(int chatId) async {
     try {
-      final response = await _authService.authenticatedRequest('GET', '${AppConfig.chatsEndpoint}/$chatId');
+      final response = await _authService.authenticatedRequest(
+        'GET',
+        '${AppConfig.chatsEndpoint}/$chatId',
+      );
 
       if (response.statusCode == 200) {
         final chatJson = jsonDecode(response.body);
         return Chat.fromJson(chatJson);
       } else {
-        throw Exception('Erro ao carregar detalhes do chat: ${response.statusCode}');
+        throw Exception(
+          'Erro ao carregar detalhes do chat: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Erro ao carregar detalhes do chat: $e');
@@ -121,7 +125,9 @@ class ChatService {
           }
 
           if (response.body.isEmpty) {
-            throw Exception('Backend retornou resposta vazia para envio de mensagem');
+            throw Exception(
+              'Backend retornou resposta vazia para envio de mensagem',
+            );
           }
 
           final messageJson = jsonDecode(response.body);
@@ -132,29 +138,40 @@ class ChatService {
 
           return message;
         } else if (response.statusCode == 404) {
-          throw Exception('Chat não encontrado. Grupo pode ainda estar sendo criado no backend.');
+          throw Exception(
+            'Chat não encontrado. Grupo pode ainda estar sendo criado no backend.',
+          );
         } else {
           throw Exception('Erro ao enviar mensagem: ${response.statusCode}');
         }
       } catch (e) {
         retryCount++;
 
-        if (retryCount < maxRetries && (e is FormatException || e.toString().contains('Chat não encontrado'))) {
+        if (retryCount < maxRetries &&
+            (e is FormatException ||
+                e.toString().contains('Chat não encontrado'))) {
           await Future.delayed(retryDelay);
           continue;
         }
 
-        throw Exception('Erro ao enviar mensagem após $maxRetries tentativas: $e');
+        throw Exception(
+          'Erro ao enviar mensagem após $maxRetries tentativas: $e',
+        );
       }
     }
 
     throw Exception('Falha ao enviar mensagem após $maxRetries tentativas');
   }
 
-  Future<List<Message>> getMessages(int chatId, {int? limit, String? cursor}) async {
+  Future<List<Message>> getMessages(
+    int chatId, {
+    int? limit,
+    String? cursor,
+  }) async {
     try {
       final pageSize = limit ?? AppConfig.messagePageSize;
-      String endpoint = '${AppConfig.chatsEndpoint}/$chatId/messages?limit=$pageSize';
+      String endpoint =
+          '${AppConfig.chatsEndpoint}/$chatId/messages?limit=$pageSize';
       if (cursor != null) {
         endpoint += '&cursor=$cursor';
       }
@@ -169,13 +186,25 @@ class ChatService {
         final data = jsonDecode(response.body);
         final List<dynamic> messagesJson = data['messages'] ?? data;
 
-        final messages = messagesJson.map((json) {
-          final message = Message.fromJson(
-            json,
-            currentUserId: _authService.currentUser?.userId,
-          );
-          return message;
-        }).toList();
+        final messages =
+            messagesJson.map((json) {
+              final senderId = json['senderId'] ?? 0;
+              final senderName = json['senderName'] ?? '';
+              final content = json['content'] ?? '';
+
+              print(
+                '   Message - SenderID: $senderId, SenderName: $senderName, Content: "$content"',
+              );
+
+              final message = Message.fromJson(
+                json,
+                currentUserId: _authService.currentUser?.userId,
+              );
+
+              print('   ✅ isFromCurrentUser: ${message.isFromCurrentUser}');
+
+              return message;
+            }).toList();
 
         return messages;
       } else if (response.statusCode == 404) {
@@ -184,7 +213,8 @@ class ChatService {
         throw Exception('Erro ao carregar mensagens: ${response.statusCode}');
       }
     } catch (e) {
-      if (e.toString().contains('FormatException') || e.toString().contains('404')) {
+      if (e.toString().contains('FormatException') ||
+          e.toString().contains('404')) {
         return [];
       }
 
@@ -203,10 +233,11 @@ class ChatService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
           await _webSocketService.inviteUser(chatId, userId);
-        } catch (e) {
-        }
+        } catch (e) {}
       } else {
-        throw Exception('Erro ao adicionar membro: ${response.statusCode} - ${response.body}');
+        throw Exception(
+          'Erro ao adicionar membro: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('Erro ao adicionar membro: $e');
@@ -221,13 +252,16 @@ class ChatService {
         body: {'userId': userId},
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         try {
           await _webSocketService.removeUser(chatId, userId);
-        } catch (e) {
-        }
+        } catch (e) {}
       } else {
-        throw Exception('Erro ao remover membro: ${response.statusCode} - ${response.body}');
+        throw Exception(
+          'Erro ao remover membro: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('Erro ao remover membro: $e');
@@ -244,10 +278,11 @@ class ChatService {
       if (response.statusCode == 200 || response.statusCode == 204) {
         try {
           await _webSocketService.deleteChat(chatId);
-        } catch (e) {
-        }
+        } catch (e) {}
       } else {
-        throw Exception('Erro ao excluir chat: ${response.statusCode} - ${response.body}');
+        throw Exception(
+          'Erro ao excluir chat: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('Erro ao excluir chat: $e');
@@ -265,7 +300,9 @@ class ChatService {
       if (response.statusCode == 200 || response.statusCode == 204) {
         await _webSocketService.blockUser(chatId, targetUserId);
       } else {
-        throw Exception('Erro ao bloquear usuário: ${response.statusCode} - ${response.body}');
+        throw Exception(
+          'Erro ao bloquear usuário: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('Erro ao bloquear usuário: $e');
@@ -283,7 +320,9 @@ class ChatService {
       if (response.statusCode == 200 || response.statusCode == 204) {
         await _webSocketService.unblockUser(chatId, targetUserId);
       } else {
-        throw Exception('Erro ao desbloquear usuário: ${response.statusCode} - ${response.body}');
+        throw Exception(
+          'Erro ao desbloquear usuário: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('Erro ao desbloquear usuário: $e');
@@ -303,16 +342,19 @@ class ChatService {
         }
 
         final responseData = jsonDecode(response.body);
-        
+
         if (responseData is List) {
           final List<dynamic> usersJson = responseData;
-          return usersJson.map((json) {
-            try {
-              return User.fromJson(json as Map<String, dynamic>);
-            } catch (e) {
-              return null;
-            }
-          }).whereType<User>().toList();
+          return usersJson
+              .map((json) {
+                try {
+                  return User.fromJson(json as Map<String, dynamic>);
+                } catch (e) {
+                  return null;
+                }
+              })
+              .whereType<User>()
+              .toList();
         } else {
           return [];
         }
@@ -341,7 +383,8 @@ class ChatService {
   }
 
   Stream<Message> get onMessageReceived => _webSocketService.onMessageReceived;
-  Stream<Map<String, dynamic>> get onMessageAck => _webSocketService.onMessageAck;
+  Stream<Map<String, dynamic>> get onMessageAck =>
+      _webSocketService.onMessageAck;
   Stream<String> get onError => _webSocketService.onError;
   Stream<bool> get onConnectionChange => _webSocketService.onConnectionChange;
   Stream<Chat> get onNewChat => _webSocketService.onNewChat;

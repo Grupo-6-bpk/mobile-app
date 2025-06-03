@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
-import 'package:http/http.dart' as http;
 import 'dart:async';
-import 'dart:convert';
-import 'package:mobile_app/config/app_config.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -23,6 +20,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _rememberMe = false;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -37,7 +39,71 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next == AuthState.authenticated) {
-        Navigator.pushReplacementNamed(context, "/main");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Login realizado com sucesso!'),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            final targetRoute = authNotifier.getHomeRouteForUser();
+            final userType = authNotifier.getUserTypeDescription();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Redirecionando para área de $userType'),
+                duration: const Duration(seconds: 1),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            
+            Future.delayed(const Duration(milliseconds: 800), () {
+              if (mounted) {
+                Navigator.pushReplacementNamed(context, targetRoute);
+              }
+            });
+          }
+        });
+      } else if (next == AuthState.error && previous == AuthState.loading) {
+        final errorMsg = ref.read(authErrorProvider);
+        if (errorMsg != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMsg,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade600,
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            ),
+          );
+        }
       }
     });
 
@@ -70,24 +136,53 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         if (errorMessage != null) ...[
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(16),
                             margin: const EdgeInsets.only(bottom: 20),
                             decoration: BoxDecoration(
-                              color: Colors.red.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.red.shade300),
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.red.shade300,
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.shade100,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.error_outline, color: Colors.red.shade700),
-                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red.shade700,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
                                 Expanded(
-                                  child: Text(
-                                    errorMessage,
-                                    style: TextStyle(
-                                      color: Colors.red.shade700,
-                                      fontSize: 14,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Erro no Login',
+                                        style: TextStyle(
+                                          color: Colors.red.shade700,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        errorMessage,
+                                        style: TextStyle(
+                                          color: Colors.red.shade600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 IconButton(
@@ -95,12 +190,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   onPressed: () => authNotifier.clearError(),
                                   color: Colors.red.shade700,
                                   iconSize: 20,
+                                  tooltip: 'Fechar',
                                 ),
                               ],
                             ),
                           ),
                         ],
-                        
+
                         CustomTextfield(
                           controller: _emailController,
                           label: "Email",
@@ -110,7 +206,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             if (value == null || value.isEmpty) {
                               return 'Por favor, digite seu email';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                            if (!RegExp(
+                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                            ).hasMatch(value)) {
                               return 'Por favor, digite um email válido';
                             }
                             return null;
@@ -149,10 +247,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           children: [
                             TextButton(
                               onPressed: () {
-                                // TODO: Implementar recuperação de senha
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Funcionalidade em desenvolvimento'),
+                                    content: Text(
+                                      'Funcionalidade em desenvolvimento',
+                                    ),
                                   ),
                                 );
                               },
@@ -162,7 +261,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               child: Text(
                                 "Esqueceu a senha?",
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                   letterSpacing: 0.2,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -173,7 +275,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 Text(
                                   "Manter conectado",
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                     letterSpacing: 0.2,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -196,32 +301,66 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             FractionallySizedBox(
                               widthFactor: 0.6,
                               child: CustomButton(
-                                onPressed: authState == AuthState.loading 
-                                    ? null 
-                                    : () => _handleLogin(),
+                                onPressed:
+                                    authState == AuthState.loading
+                                        ? null
+                                        : () => _handleLogin(),
                                 variant: ButtonVariant.primary,
-                                text: authState == AuthState.loading 
-                                    ? "Entrando..." 
-                                    : "Login",
+                                text:
+                                    authState == AuthState.loading
+                                        ? "Entrando..."
+                                        : "Entrar",
                               ),
                             ),
                             if (authState == AuthState.loading) ...[
                               const SizedBox(height: 16),
-                              const CircularProgressIndicator(),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Verificando credenciais...',
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                             TextButton(
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
                               ),
-                              onPressed: authState == AuthState.loading 
-                                  ? null 
-                                  : () {
-                                Navigator.pushNamed(context, "/signUpRole");
-                              },
+                              onPressed:
+                                  authState == AuthState.loading
+                                      ? null
+                                      : () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          "/signUpRole",
+                                        );
+                                      },
                               child: Text(
                                 "Cadastre-se",
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                   letterSpacing: 0.2,
                                 ),
                               ),
@@ -241,8 +380,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    ref.read(authProvider.notifier).clearError();
-    
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -250,102 +387,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    try {
-      final success = await ref.read(authProvider.notifier).login(email, password);
-      
-      if (!success && mounted) {
-        return;
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro inesperado: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _testConnectivity() async {
-    try {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Testando conectividade com servidor...'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      final testResults = <String>[];
-      
-      for (String baseUrl in AppConfig.testUrls) {
-        final stopwatch = Stopwatch()..start();
-        
-        try {
-          final healthResponse = await http.get(
-            Uri.parse('$baseUrl/health'),
-            headers: {'Content-Type': 'application/json'},
-          ).timeout(const Duration(seconds: 3));
-          
-          stopwatch.stop();
-          testResults.add('✅ $baseUrl/health: ${healthResponse.statusCode} (${stopwatch.elapsedMilliseconds}ms)');
-        } catch (e) {
-          stopwatch.stop();
-          
-          final loginStopwatch = Stopwatch()..start();
-          try {
-            final loginResponse = await http.post(
-              Uri.parse('$baseUrl/login'),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({'email': 'test@test.com', 'password': 'test'}),
-            ).timeout(const Duration(seconds: 3));
-            
-            loginStopwatch.stop();
-            testResults.add('⚠️ $baseUrl/health: ERRO, mas /login: ${loginResponse.statusCode} (${loginStopwatch.elapsedMilliseconds}ms)');
-          } catch (loginError) {
-            loginStopwatch.stop();
-            testResults.add('❌ $baseUrl: FALHOU - $e');
-          }
-        }
-      }
-      
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Teste de Conectividade'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: testResults.map((result) => 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(result, style: const TextStyle(fontSize: 12)),
-                  )
-                ).toList(),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_outlined, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Por favor, preencha todos os campos'),
             ],
           ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro no teste: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+          backgroundColor: Colors.orange.shade600,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
     }
+
+    ref.read(authProvider.notifier).login(email, password);
   }
 }

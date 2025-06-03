@@ -46,7 +46,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         Navigator.pushNamedAndRemoveUntil(
           context, 
           '/login', 
-          (route) => false, // Remove todas as rotas anteriores
+          (route) => false,
         );
       }
     });
