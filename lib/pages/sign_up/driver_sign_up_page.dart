@@ -13,11 +13,9 @@ class DriverSignUpPage extends StatefulWidget {
   State<DriverSignUpPage> createState() => _DriverSignUpPageState();
 }
 
-class _DriverSignUpPageState extends State<DriverSignUpPage> {
-  int _currentStep = 0;
+class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep = 0;
   bool isFirstStepValid = false;
   bool isSecondStepValid = false;
-  bool isThirdStepValid = false;
   final double horizontalPadding = 10.0;
 
   final TextEditingController _firstNameController = TextEditingController();
@@ -31,13 +29,8 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   final TextEditingController _streetController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
-  final TextEditingController _zipcodeController = TextEditingController();
-  final TextEditingController _driverLicenseController =
+  final TextEditingController _zipcodeController = TextEditingController();  final TextEditingController _driverLicenseController =
       TextEditingController();
-
-  final TextEditingController _renavamController = TextEditingController();
-  final TextEditingController _carModelController = TextEditingController();
-  final TextEditingController _carPlateController = TextEditingController();
 
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
@@ -48,12 +41,8 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   final FocusNode _cpfFocusNode = FocusNode();
   final FocusNode _streetFocusNode = FocusNode();
   final FocusNode _numberFocusNode = FocusNode();
-  final FocusNode _cityFocusNode = FocusNode();
-  final FocusNode _zipcodeFocusNode = FocusNode();
+  final FocusNode _cityFocusNode = FocusNode();  final FocusNode _zipcodeFocusNode = FocusNode();
   final FocusNode _driverLicenseFocusNode = FocusNode();
-  final FocusNode _renavamFocusNode = FocusNode();
-  final FocusNode _carModelFocusNode = FocusNode();
-  final FocusNode _carPlateFocusNode = FocusNode();
 
   final ValueNotifier<FilePickerResult?> _frontCNHNotifier =
       ValueNotifier<FilePickerResult?>(null);
@@ -68,14 +57,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
   );
 
   final ValueNotifier<FilePickerResult?> _proofOfLinkNotifier =
-      ValueNotifier<FilePickerResult?>(null);
-  final ValueNotifier<String?> _proofOfLinkUrlNotifier = ValueNotifier<String?>(
-    null,
-  );
-
-  final ValueNotifier<FilePickerResult?> _carPhotoNotifier =
-      ValueNotifier<FilePickerResult?>(null);
-  final ValueNotifier<String?> _carPhotoUrlNotifier = ValueNotifier<String?>(
+      ValueNotifier<FilePickerResult?>(null);  final ValueNotifier<String?> _proofOfLinkUrlNotifier = ValueNotifier<String?>(
     null,
   );
 
@@ -94,19 +76,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Preencha todos os campos")),
         );
-      }
-    } else if (_currentStep == 1) {
-      if (_validateSecondStep()) {
-        setState(() {
-          isSecondStepValid = true;
-          _currentStep++;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Preencha todos os campos")),
-        );
-      }
-    } else if (_currentStep == 2) {
+      }    } else if (_currentStep == 1) {
       if (_validateSecondStep()) {
         await _createDriver();
       } else {
@@ -209,8 +179,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                   onStepCancel: _previousStep,
                   controlsBuilder: (context, details) {
                     return Container();
-                  },
-                  steps: [
+                  },                  steps: [
                     Step(
                       title: Text("Dados"),
                       content: Column(
@@ -447,66 +416,8 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                             ),
                           ),
                         ],
-                      ),
-                      isActive: _currentStep == 1,
+                      ),                      isActive: _currentStep == 1,
                       state: _getStepState(1),
-                    ),
-                    Step(
-                      title: Text("Carro"),
-                      content: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(height: 20),
-                          Text(
-                            "Documentos do Carro",
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            child: CustomFilePicker(
-                              label: "Imagem do carro",
-                              fileNotifier: _carPhotoNotifier,
-                              fileUrl: _carPhotoUrlNotifier,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          CustomTextfield(
-                            controller: _renavamController,
-                            focusNode: _renavamFocusNode,
-                            onSubmitted:
-                                (_) => FocusScope.of(
-                                  context,
-                                ).requestFocus(_carModelFocusNode),
-                            label: "Renavam",
-                            obscureText: false,
-                          ),
-                          const SizedBox(height: 20),
-                          CustomTextfield(
-                            controller: _carModelController,
-                            focusNode: _carModelFocusNode,
-                            onSubmitted:
-                                (_) => FocusScope.of(
-                                  context,
-                                ).requestFocus(_carPlateFocusNode),
-                            label: "Modelo do Carro",
-                            obscureText: false,
-                          ),
-                          const SizedBox(height: 20),
-                          CustomTextfield(
-                            controller: _carPlateController,
-                            focusNode: _carPlateFocusNode,
-                            label: "Placa do Carro",
-                            obscureText: false,
-                          ),
-                        ],
-                      ),
-                      isActive: _currentStep == 2,
-                      state: _getStepState(2),
                     ),
                   ],
                 ),
@@ -532,7 +443,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                       onPressed: _nextStep,
                       variant: ButtonVariant.primary,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      text: _currentStep == 2 ? "Finalizar" : "Próximo",
+                      text: _currentStep == 1 ? "Finalizar" : "Próximo",
                     ),
                   ],
                 ),
