@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_app/components/custom_button.dart';
+import 'package:mobile_app/pages/vehicle/vehicle_list_page.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -216,8 +217,7 @@ class SettingsPage extends ConsumerWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
+                        children: [                          Text(
                             "CPF: ",
                             style: TextStyle(
                               color:
@@ -252,6 +252,62 @@ class SettingsPage extends ConsumerWidget {
                             ],
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 10),
+                      Divider(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        thickness: 1,
+                      ),
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const VehicleListPage(driverId: 1), // TODO: usar ID real
+                            ),
+                          );
+                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Meus Veículos: ",
+                              style: TextStyle(
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Gerenciar",
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Icon(
+                                  Icons.arrow_forward_ios_sharp,
+                                  size: 15,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
