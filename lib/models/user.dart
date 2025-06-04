@@ -66,9 +66,9 @@ class User {
       createdAt = DateTime.parse(json['createAt']),
       updatedAt =
           json['updated_at'] != null ? DateTime.parse(json['updatedAt']) : null,
-      isDriver = json['isDriver'] == 1,
-      isPassenger = json['isPassenger'] == 1,
-      verified = json['verified'] == 1;
+      isDriver = json['isDriver'] == true,
+      isPassenger = json['isPassenger'] == true,
+      verified = json['verified'] == true;
 
   Map<String, dynamic> toJson() {
     return {
@@ -91,9 +91,9 @@ class User {
       'zipcode': zipcode,
       'createAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
-      'isDriver': isDriver ? 1 : 0,
-      'isPassenger': isPassenger ? 1 : 0,
-      'verified': verified ? 1 : 0,
+      'isDriver': isDriver ? true : false,
+      'isPassenger': isPassenger ? true : false,
+      'verified': verified ? true : false,
     };
   }
 }
