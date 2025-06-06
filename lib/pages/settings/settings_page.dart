@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/providers/auth_provider.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -264,6 +265,20 @@ class SettingsPage extends ConsumerWidget {
                   onPressed: () {},
                   text: "Excluir conta",
                   variant: ButtonVariant.danger,
+                ),
+              ),
+              const SizedBox(height: 15),
+              FractionallySizedBox(
+                widthFactor: 0.9,
+                child: CustomButton(
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) {
+                      Navigator.pushReplacementNamed(context, "/login");
+                    }
+                  },
+                  text: "Fazer logout",
+                  variant: ButtonVariant.secondary,
                 ),
               ),
               const SizedBox(height: 20),

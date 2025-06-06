@@ -1,78 +1,136 @@
-class User {
+class Driver {
   int? id;
+  bool? cnhVerified;
+  bool? active;
+
+  Driver({
+    this.id,
+    this.cnhVerified,
+    this.active,
+  });
+
+  Driver.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as int?,
+      cnhVerified = json['cnhVerified'] == 1 || json['cnhVerified'] == true,
+      active = json['active'] == 1 || json['active'] == true;
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'cnhVerified': cnhVerified, 'active': active};
+  }
+}
+
+class Passenger {
+  int? id;
+  bool? active;
+
+  Passenger({
+    this.id,
+    this.active,
+  });
+
+  Passenger.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as int?,
+      active = json['active'] == 1 || json['active'] == true;
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'active': active};
+  }
+}
+
+class User {
+  int? userId;
   String name;
-  String lastName;
-  String email;
-  String password;
-  String cpf;
-  String phone;
-  String street;
-  String cnh;
+  String? lastName;
+  String? email;
+  String? password;
+  String? cpf;
+  String? phone;
+  String? street;
+  String? cnh;
   String? cnhBackUrl;
   String? cnhFrontUrl;
   String? bpkLinkUrl;
   String? rgFrontUrl;
   String? rgBackUrl;
-  int number;
-  String city;
-  String zipcode;
-  DateTime createdAt;
+  int? number;
+  String? city;
+  String? zipcode;
+  DateTime? createdAt;
   DateTime? updatedAt;
-  bool isDriver;
-  bool isPassenger;
-  bool verified;
+  bool? isDriver;
+  bool? isPassenger;
+  bool? verified;
+  String? avatarUrl;
+  Driver? driver;
+  Passenger? passenger;
 
   User({
-    this.id,
+    this.userId,
     required this.name,
-    required this.lastName,
-    required this.email,
-    required this.password,
-    required this.cpf,
-    required this.phone,
-    required this.street,
-    required this.cnh,
+    this.lastName,
+    this.email,
+    this.password,
+    this.cpf,
+    this.phone,
+    this.street,
+    this.cnh,
     this.cnhBackUrl,
     this.cnhFrontUrl,
     this.rgFrontUrl,
     this.rgBackUrl,
     this.bpkLinkUrl,
-    required this.number,
-    required this.city,
-    required this.zipcode,
-    required this.createdAt,
+    this.number,
+    this.city,
+    this.zipcode,
+    this.createdAt,
     this.updatedAt,
-    required this.isDriver,
-    required this.isPassenger,
-    required this.verified,
+    this.isDriver,
+    this.isPassenger,
+    this.verified,
+    this.avatarUrl,
+    this.driver,
+    this.passenger,
   });
 
   User.fromJson(Map<String, dynamic> json)
-    : id = json['id'],
-      name = json['name'],
-      lastName = json['last_name'],
-      email = json['email'],
-      password = json['password'],
-      cpf = json['cpf'],
-      phone = json['phone'],
-      street = json['street'],
-      cnh = json['cnh'],
-      cnhBackUrl = json['cnh_back'],
-      cnhFrontUrl = json['cnh_front'],
-      bpkLinkUrl = json['bpk_link'],
-      number = json['number'],
-      city = json['city'],
-      zipcode = json['zipcode'],
-      createdAt = DateTime.parse(json['createAt']),
+    : userId = json['userId'] as int? ?? json['id'] as int?,
+      name = json['name']?.toString() ?? '',
+      lastName = json['last_name']?.toString(),
+      email = json['email']?.toString(),
+      password = json['password']?.toString(),
+      cpf = json['cpf']?.toString(),
+      phone = json['phone']?.toString(),
+      street = json['street']?.toString(),
+      cnh = json['cnh']?.toString(),
+      cnhBackUrl = json['cnh_back']?.toString(),
+      cnhFrontUrl = json['cnh_front']?.toString(),
+      rgFrontUrl = json['rg_front']?.toString(),
+      rgBackUrl = json['rg_back']?.toString(),
+      bpkLinkUrl = json['bpk_link']?.toString(),
+      number = json['number'] as int?,
+      city = json['city']?.toString(),
+      zipcode = json['zipcode']?.toString(),
+      createdAt =
+          json['createAt'] != null
+              ? DateTime.tryParse(json['createAt'].toString())
+              : null,
       updatedAt =
-          json['updated_at'] != null ? DateTime.parse(json['updatedAt']) : null,
-      isDriver = json['isDriver'] == true,
-      isPassenger = json['isPassenger'] == true,
-      verified = json['verified'] == true;
+          json['updated_at'] != null
+              ? DateTime.tryParse(json['updated_at'].toString())
+              : null,
+      isDriver = json['isDriver'] == 1 || json['isDriver'] == true,
+      isPassenger = json['isPassenger'] == 1 || json['isPassenger'] == true,
+      verified = json['verified'] == 1 || json['verified'] == true,
+      avatarUrl = json['avatarUrl']?.toString(),
+      driver = json['driver'] != null ? Driver.fromJson(json['driver']) : null,
+      passenger =
+          json['passenger'] != null
+              ? Passenger.fromJson(json['passenger'])
+              : null;
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'userId': userId,
       'name': name,
       'last_name': lastName,
       'email': email,
@@ -89,11 +147,14 @@ class User {
       'number': number,
       'city': city,
       'zipcode': zipcode,
-      'createAt': createdAt.toIso8601String(),
+      'createAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
-      'isDriver': isDriver ? true : false,
-      'isPassenger': isPassenger ? true : false,
-      'verified': verified ? true : false,
+      'isDriver': isDriver,
+      'isPassenger': isPassenger,
+      'verified': verified,
+      'avatarUrl': avatarUrl,
+      'driver': driver?.toJson(),
+      'passenger': passenger?.toJson(),
     };
   }
 }

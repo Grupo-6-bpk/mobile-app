@@ -175,6 +175,7 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
       isDriver: true,
       isPassenger: false,
       verified: false,
+      avatarUrl: "",
     );
 
     bool success = await UserService.registerUser(driver);

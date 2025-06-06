@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
-import 'package:mobile_app/pages/chat/chat_page.dart';
+import 'package:mobile_app/pages/chat/chat_list_screen.dart';
 import 'package:mobile_app/pages/passenger_home/passenger_home_screen.dart';
 import 'package:mobile_app/pages/settings/settings_page.dart';
 import 'package:mobile_app/passenger_history/passenger_ride_history_page.dart';
@@ -29,7 +29,7 @@ class _PassengerHomeState extends State<PassengerHome> {
           <Widget>[
             const PassengerHomeScreen(),
             const PassengerRideHistoryPage(),
-            const ChatPage(),
+            const ChatListScreen(),
             const SettingsPage(),
           ][_currentPageIndex],
       bottomNavigationBar: CustomMenuBar(
