@@ -16,16 +16,14 @@ class ChatCreatedSuccessfully implements Exception {
 }
 
 class ChatService {
-  final AuthService _authService = AuthService();
-  final WebSocketService _webSocketService = WebSocketService();
+  final AuthService authService;
+  final WebSocketService webSocketService;
 
-  static final ChatService _instance = ChatService._internal();
-  factory ChatService() => _instance;
-  ChatService._internal();
+  ChatService(this.authService, this.webSocketService);
 
   Future<List<Chat>> getChats() async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'GET',
         AppConfig.chatsEndpoint,
       );
@@ -43,7 +41,7 @@ class ChatService {
 
   Future<Chat> createDirectChat(int participantId) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'POST',
         AppConfig.chatsEndpoint,
         body: {
@@ -70,7 +68,7 @@ class ChatService {
 
   Future<Chat> createGroup(String name, List<int> participantIds) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'POST',
         AppConfig.chatsEndpoint,
         body: {'isGroup': true, 'name': name, 'participantIds': participantIds},
@@ -94,7 +92,7 @@ class ChatService {
 
   Future<Chat> getChatDetails(int chatId) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'GET',
         '${AppConfig.chatsEndpoint}/$chatId',
       );
@@ -119,15 +117,16 @@ class ChatService {
 
     while (retryCount < maxRetries) {
       try {
-        final response = await _authService.authenticatedRequest(
+        final response = await authService.authenticatedRequest(
           'POST',
           '${AppConfig.chatsEndpoint}/$chatId/messages',
           body: {'content': content},
+          expectedSessionId: AuthService.sessionId,
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           if (response.statusCode == 201 && response.body.isEmpty) {
-            final currentUser = _authService.currentUser;
+            final currentUser = authService.currentUser;
             final tempMessage = Message(
               messageId: DateTime.now().millisecondsSinceEpoch,
               chatId: chatId,
@@ -151,7 +150,7 @@ class ChatService {
           final messageJson = jsonDecode(response.body);
           final message = Message.fromJson(
             messageJson,
-            currentUserId: _authService.currentUser?.userId,
+            currentUserId: authService.currentUser?.userId,
           );
 
           return message;
@@ -194,7 +193,11 @@ class ChatService {
         endpoint += '&cursor=$cursor';
       }
 
-      final response = await _authService.authenticatedRequest('GET', endpoint);
+      final response = await authService.authenticatedRequest(
+        'GET', 
+        endpoint,
+        expectedSessionId: AuthService.sessionId,
+      );
 
       if (response.statusCode == 200) {
         if (response.body.isEmpty) {
@@ -208,7 +211,7 @@ class ChatService {
             messagesJson.map((json) {
               return Message.fromJson(
                 json,
-                currentUserId: _authService.currentUser?.userId,
+                currentUserId: authService.currentUser?.userId,
               );
             }).toList();
 
@@ -230,7 +233,7 @@ class ChatService {
 
   Future<void> addMemberToGroup(int chatId, int userId) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'POST',
         '${AppConfig.chatsEndpoint}/$chatId/invite',
         body: {'userId': userId},
@@ -238,7 +241,7 @@ class ChatService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
-          await _webSocketService.inviteUser(chatId, userId);
+          await webSocketService.inviteUser(chatId, userId);
         } catch (e) {
           debugPrint('WebSocket invite error: $e');
         }
@@ -254,7 +257,7 @@ class ChatService {
 
   Future<void> removeMemberFromGroup(int chatId, int userId) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'POST',
         '${AppConfig.chatsEndpoint}/$chatId/remove',
         body: {'userId': userId},
@@ -264,7 +267,7 @@ class ChatService {
           response.statusCode == 201 ||
           response.statusCode == 204) {
         try {
-          await _webSocketService.removeUser(chatId, userId);
+          await webSocketService.removeUser(chatId, userId);
         } catch (e) {
           debugPrint('WebSocket remove user error: $e');
         }
@@ -280,14 +283,14 @@ class ChatService {
 
   Future<void> deleteChat(int chatId) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'DELETE',
         '${AppConfig.chatsEndpoint}/$chatId',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         try {
-          await _webSocketService.deleteChat(chatId);
+          await webSocketService.deleteChat(chatId);
         } catch (e) {
           debugPrint('WebSocket delete chat error: $e');
         }
@@ -303,14 +306,14 @@ class ChatService {
 
   Future<void> blockUser(int chatId, int targetUserId) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'POST',
         '${AppConfig.chatsEndpoint}/$chatId/block',
         body: {'targetUserId': targetUserId},
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        await _webSocketService.blockUser(chatId, targetUserId);
+        await webSocketService.blockUser(chatId, targetUserId);
       } else {
         throw Exception(
           'Erro ao bloquear usuário: ${response.statusCode} - ${response.body}',
@@ -323,14 +326,14 @@ class ChatService {
 
   Future<void> unblockUser(int chatId, int targetUserId) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'POST',
         '${AppConfig.chatsEndpoint}/$chatId/unblock',
         body: {'targetUserId': targetUserId},
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        await _webSocketService.unblockUser(chatId, targetUserId);
+        await webSocketService.unblockUser(chatId, targetUserId);
       } else {
         throw Exception(
           'Erro ao desbloquear usuário: ${response.statusCode} - ${response.body}',
@@ -343,7 +346,7 @@ class ChatService {
 
   Future<List<User>> searchUsersByPhone(String phone) async {
     try {
-      final response = await _authService.authenticatedRequest(
+      final response = await authService.authenticatedRequest(
         'GET',
         '${AppConfig.usersSearchEndpoint}?phone=$phone',
       );
@@ -379,43 +382,72 @@ class ChatService {
   }
 
   Future<void> connectWebSocket() async {
-    await _webSocketService.connect();
+    final token = authService.token;
+    final userId = authService.currentUser?.userId;
+    debugPrint('ChatService: Conectando WebSocket com token para usuário ID: $userId');
+    await webSocketService.connect(token);
   }
 
   Future<void> disconnectWebSocket() async {
-    await _webSocketService.disconnect();
+    await webSocketService.disconnect();
   }
 
   Future<void> joinChat(int chatId) async {
-    await _webSocketService.joinChat(chatId);
+    await webSocketService.joinChat(chatId);
   }
 
   Future<void> leaveChat(int chatId) async {
-    await _webSocketService.leaveChat(chatId);
+    await webSocketService.leaveChat(chatId);
   }
 
-  Stream<Message> get onMessageReceived => _webSocketService.onMessageReceived;
+  Stream<Message> get onMessageReceived => webSocketService.onMessageReceived;
   Stream<Map<String, dynamic>> get onMessageAck =>
-      _webSocketService.onMessageAck;
-  Stream<String> get onError => _webSocketService.onError;
-  Stream<bool> get onConnectionChange => _webSocketService.onConnectionChange;
-  Stream<Chat> get onNewChat => _webSocketService.onNewChat;
+      webSocketService.onMessageAck;
+  Stream<String> get onError => webSocketService.onError;
+  Stream<bool> get onConnectionChange => webSocketService.onConnectionChange;
+  Stream<Chat> get onNewChat => webSocketService.onNewChat;
 
   Future<void> markMessagesAsRead(int chatId, List<int> messageIds) async {
-    await _webSocketService.markAsRead(chatId, messageIds);
+    await webSocketService.markAsRead(chatId, messageIds);
   }
 
   Future<void> startTyping(int chatId) async {
-    await _webSocketService.startTyping(chatId);
+    await webSocketService.startTyping(chatId);
   }
 
   Future<void> stopTyping(int chatId) async {
-    await _webSocketService.stopTyping(chatId);
+    await webSocketService.stopTyping(chatId);
   }
 
-  bool get isWebSocketConnected => _webSocketService.isConnected;
+  bool get isWebSocketConnected => webSocketService.isConnected;
+
+  static final List<VoidCallback> _disposables = [];
+  
+  static void registerDisposable(VoidCallback dispose) {
+    _disposables.add(dispose);
+  }
+  
+  static void unregisterDisposable(VoidCallback dispose) {
+    _disposables.remove(dispose);
+  }
+  
+  static void disposeAll() {
+    for (final dispose in List.from(_disposables)) {
+      try {
+        dispose();
+      } catch (e) {
+        debugPrint('Erro ao fazer dispose: $e');
+      }
+    }
+    _disposables.clear();
+  }
+
+  Future<void> reset() async {
+    disposeAll();
+    await webSocketService.reset();
+  }
 
   void dispose() {
-    _webSocketService.dispose();
+    webSocketService.dispose();
   }
 }

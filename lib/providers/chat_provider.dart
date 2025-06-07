@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import '../models/user.dart';
+import '../services/auth_service.dart';
 import '../services/chat_service.dart';
-import 'package:flutter/foundation.dart';
+import 'auth_provider.dart';
 
 enum ChatState {
   initial,
@@ -14,18 +16,22 @@ enum ChatState {
 }
 
 class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
-  final ChatService _chatService = ChatService();
   final List<StreamSubscription> _subscriptions = [];
+  ChatService? _chatService;
 
-  ChatListNotifier() : super(const AsyncValue.loading()) {
+  ChatListNotifier() : super(const AsyncValue.loading());
+
+  void setChatService(ChatService chatService) {
+    _chatService = chatService;
     _initializeChats();
     _setupWebSocketListeners();
   }
 
   Future<void> _initializeChats() async {
+    if (_chatService == null) return;
+    
     try {
-      await _chatService.connectWebSocket();
-      final chats = await _chatService.getChats();
+      final chats = await _chatService!.getChats();
       state = AsyncValue.data(chats);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
@@ -33,8 +39,10 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   void _setupWebSocketListeners() {
+    if (_chatService == null) return;
+    
     _subscriptions.add(
-      _chatService.onNewChat.listen((chat) {
+      _chatService!.onNewChat.listen((chat) {
         state.whenData((chats) {
           final newChats = [chat, ...chats];
           state = AsyncValue.data(newChats);
@@ -43,7 +51,7 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
     );
 
     _subscriptions.add(
-      _chatService.onMessageReceived.listen((message) {
+      _chatService!.onMessageReceived.listen((message) {
         state.whenData((chats) {
           final updatedChats = chats.map((chat) {
             if (chat.chatId == message.chatId) {
@@ -72,8 +80,10 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   Future<Chat?> createDirectChat(int participantId) async {
+    if (_chatService == null) return null;
+    
     try {
-      final chat = await _chatService.createDirectChat(participantId);
+      final chat = await _chatService!.createDirectChat(participantId);
       state.whenData((chats) {
         final newChats = [chat, ...chats];
         state = AsyncValue.data(newChats);
@@ -94,8 +104,10 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   Future<Chat?> createGroup(String name, List<int> participantIds) async {
+    if (_chatService == null) return null;
+    
     try {
-      final chat = await _chatService.createGroup(name, participantIds);
+      final chat = await _chatService!.createGroup(name, participantIds);
       state.whenData((chats) {
         final newChats = [chat, ...chats];
         state = AsyncValue.data(newChats);
@@ -128,8 +140,10 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   Future<bool> addMemberToGroup(int chatId, int userId) async {
+    if (_chatService == null) return false;
+    
     try {
-      await _chatService.addMemberToGroup(chatId, userId);
+      await _chatService!.addMemberToGroup(chatId, userId);
       return true;
     } catch (e) {
       return false;
@@ -137,8 +151,10 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   Future<bool> removeMemberFromGroup(int chatId, int userId) async {
+    if (_chatService == null) return false;
+    
     try {
-      await _chatService.removeMemberFromGroup(chatId, userId);
+      await _chatService!.removeMemberFromGroup(chatId, userId);
       return true;
     } catch (e) {
       return false;
@@ -146,8 +162,10 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   Future<bool> deleteChat(int chatId) async {
+    if (_chatService == null) return false;
+    
     try {
-      await _chatService.deleteChat(chatId);
+      await _chatService!.deleteChat(chatId);
       state.whenData((chats) {
         final updatedChats = chats.where((chat) => chat.chatId != chatId).toList();
         state = AsyncValue.data(updatedChats);
@@ -159,8 +177,10 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   Future<bool> blockUser(int chatId, int targetUserId) async {
+    if (_chatService == null) return false;
+    
     try {
-      await _chatService.blockUser(chatId, targetUserId);
+      await _chatService!.blockUser(chatId, targetUserId);
       return true;
     } catch (e) {
       return false;
@@ -168,12 +188,29 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
   }
 
   Future<bool> unblockUser(int chatId, int targetUserId) async {
+    if (_chatService == null) return false;
+    
     try {
-      await _chatService.unblockUser(chatId, targetUserId);
+      await _chatService!.unblockUser(chatId, targetUserId);
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  Future<void> reset() async {
+    if (_chatService == null) return;
+    
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
+    
+    await _chatService!.reset();
+    
+    state = const AsyncValue.loading();
+    await _initializeChats();
+    _setupWebSocketListeners();
   }
 
   @override
@@ -181,31 +218,52 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }
-    _chatService.dispose();
+    if (_chatService != null) {
+      _chatService!.dispose();
+    }
     super.dispose();
   }
 }
 
 class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
   final int chatId;
-  final ChatService _chatService = ChatService();
+  ChatService? _chatService;
   final List<StreamSubscription> _subscriptions = [];
   String? _nextCursor;
   Timer? _reloadTimer;
+  late final int _sessionId;
 
   MessageListNotifier(this.chatId) : super(const AsyncValue.loading()) {
+    _sessionId = AuthService.sessionId;
+  }
+
+  void setChatService(ChatService chatService) {
+    debugPrint('MessageListNotifier[$chatId]: Configurando novo ChatService');
+    
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
+    
+    _reloadTimer?.cancel();
+    
+    _chatService = chatService;
+    ChatService.registerDisposable(() => dispose());
+    
     _initializeMessages();
     _setupWebSocketListeners();
     _setupPeriodicReload();
   }
 
   Future<void> _initializeMessages() async {
+    if (_chatService == null) return;
+    
     try {
       await Future.delayed(const Duration(seconds: 1));
-      await _chatService.joinChat(chatId);
+      await _chatService!.joinChat(chatId);
       await Future.delayed(const Duration(seconds: 2));
-      await _chatService.joinChat(chatId);
-      final messages = await _chatService.getMessages(chatId);
+      await _chatService!.joinChat(chatId);
+      final messages = await _chatService!.getMessages(chatId);
       state = AsyncValue.data(messages.reversed.toList());
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
@@ -213,10 +271,14 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
   }
 
   void _setupWebSocketListeners() {
+    if (_chatService == null) return;
+    
     _subscriptions.add(
-      _chatService.onMessageReceived.listen((message) {
+      _chatService!.onMessageReceived.listen((message) {
         if (message.chatId == chatId) {
-          state.whenData((messages) {
+          final currentState = state;
+          if (currentState is AsyncData<List<Message>>) {
+            final messages = currentState.value;
             try {
               final messageExists = messages.any((m) => 
                 m.messageId == message.messageId || 
@@ -232,25 +294,37 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
             } catch (e) {
               debugPrint('WebSocket duplicate detection error: $e');
             }
-          });
+          }
         }
       }),
     );
   }
 
   Future<bool> sendMessage(String content) async {
+    if (_chatService == null) {
+      debugPrint('MessageListNotifier[$chatId]: ChatService não disponível para envio de mensagem');
+      return false;
+    }
+    
+    debugPrint('MessageListNotifier[$chatId]: Enviando mensagem: "$content"');
+    
     try {
       final expectedContent = content;
       final expectedTime = DateTime.now();
-      final currentMessages = state.value ?? [];
+      final initialState = state;
+      final currentMessages = initialState is AsyncData<List<Message>> ? initialState.value : <Message>[];
       if (currentMessages.isEmpty) {
-        await _chatService.joinChat(chatId);
+        await _chatService!.joinChat(chatId);
         await Future.delayed(const Duration(milliseconds: 500));
       }
-      final message = await _chatService.sendMessage(chatId, content);
+      final message = await _chatService!.sendMessage(chatId, content);
+      
+      debugPrint('MessageListNotifier[$chatId]: Mensagem enviada com sucesso - ID: ${message.messageId}');
+      
       if (message.messageId > 1000000000000) {
         await Future.delayed(const Duration(seconds: 3));
-        final currentMessages = state.value ?? [];
+        final checkState = state;
+        final currentMessages = checkState is AsyncData<List<Message>> ? checkState.value : <Message>[];
         final hasRealMessage = currentMessages.any((m) => 
           m.content == expectedContent && 
           m.senderId == message.senderId &&
@@ -261,38 +335,43 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
           return true;
         }
       }
-      state.whenData((messages) {
+      final currentState = state;
+      if (currentState is AsyncData<List<Message>>) {
+        final messages = currentState.value;
         final newMessages = [...messages, message];
         state = AsyncValue.data(newMessages);
-      });
+      }
       return true;
     } catch (e) {
+      debugPrint('MessageListNotifier[$chatId]: Erro ao enviar mensagem: $e');
       return false;
     }
   }
 
   Future<void> loadMoreMessages() async {
-    if (_nextCursor == null) return;
+    if (_nextCursor == null || _chatService == null) return;
     try {
-      final newMessages = await _chatService.getMessages(
+      final newMessages = await _chatService!.getMessages(
         chatId,
         cursor: _nextCursor,
       );
-      state.whenData((messages) {
+      final currentState = state;
+      if (currentState is AsyncData<List<Message>>) {
+        final messages = currentState.value;
         final allMessages = [...newMessages.reversed, ...messages];
         state = AsyncValue.data(allMessages);
-      });
+      }
     } catch (e) {
       debugPrint('Error loading more messages: $e');
     }
   }
 
   void startTyping() {
-    _chatService.startTyping(chatId);
+    _chatService?.startTyping(chatId);
   }
 
   void stopTyping() {
-    _chatService.stopTyping(chatId);
+    _chatService?.stopTyping(chatId);
   }
 
   void _setupPeriodicReload() {
@@ -301,22 +380,41 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
         timer.cancel();
         return;
       }
+      
+      if (_sessionId != AuthService.sessionId) {
+        debugPrint('MessageListNotifier: Sessão inválida, cancelando timer');
+        timer.cancel();
+        dispose();
+        return;
+      }
+      
       try {
-        final newMessages = await _chatService.getMessages(chatId);
-        state.whenData((currentMessages) {
-          if (newMessages.length != currentMessages.length) {
-            state = AsyncValue.data(newMessages.reversed.toList());
+        if (_chatService != null) {
+          final newMessages = await _chatService!.getMessages(chatId);
+          final currentState = state;
+          if (currentState is AsyncData<List<Message>>) {
+            final currentMessages = currentState.value;
+            if (newMessages.length != currentMessages.length) {
+              state = AsyncValue.data(newMessages.reversed.toList());
+            }
           }
-        });
+        }
       } catch (e) {
         debugPrint('Error reloading messages after timeout: $e');
+        if (e.toString().contains('Sessão inválida')) {
+          timer.cancel();
+          dispose();
+        }
       }
     });
   }
 
   @override
   void dispose() {
-    _chatService.leaveChat(chatId);
+    ChatService.unregisterDisposable(() => dispose());
+    if (_chatService != null) {
+      _chatService!.leaveChat(chatId);
+    }
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }
@@ -326,27 +424,61 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
   }
 }
 
-final chatListProvider = StateNotifierProvider<ChatListNotifier, AsyncValue<List<Chat>>>((ref) {
-  return ChatListNotifier();
+final chatListProvider = StateNotifierProvider.autoDispose<ChatListNotifier, AsyncValue<List<Chat>>>((ref) {
+  final notifier = ChatListNotifier();
+  final authNotifier = ref.watch(authProvider.notifier);
+  
+  ref.listen(authProvider, (previous, next) {
+    if (next == AuthState.authenticated && authNotifier.chatService != null) {
+      notifier.setChatService(authNotifier.chatService!);
+    }
+  });
+  
+  if (authNotifier.chatService != null) {
+    notifier.setChatService(authNotifier.chatService!);
+  }
+  
+  return notifier;
 });
 
-final messageListProvider = StateNotifierProvider.family<MessageListNotifier, AsyncValue<List<Message>>, int>(
+final messageListProvider = StateNotifierProvider.autoDispose.family<MessageListNotifier, AsyncValue<List<Message>>, int>(
   (ref, chatId) {
-    return MessageListNotifier(chatId);
+    final notifier = MessageListNotifier(chatId);
+    final authNotifier = ref.watch(authProvider.notifier);
+    
+    debugPrint('MessageListProvider[$chatId]: Criando nova instância');
+    
+    ref.listen(authProvider, (previous, next) {
+      debugPrint('MessageListProvider[$chatId]: Estado mudou de $previous para $next');
+      if (next == AuthState.authenticated && authNotifier.chatService != null) {
+        debugPrint('MessageListProvider[$chatId]: Configurando ChatService para usuário ${authNotifier.currentUser?.userId}');
+        notifier.setChatService(authNotifier.chatService!);
+      }
+    });
+    
+    if (authNotifier.isAuthenticated && authNotifier.chatService != null) {
+      debugPrint('MessageListProvider[$chatId]: Configuração inicial do ChatService para usuário ${authNotifier.currentUser?.userId}');
+      notifier.setChatService(authNotifier.chatService!);
+    }
+    
+    return notifier;
   },
 );
 
-final userSearchProvider = FutureProvider.family<List<User>, String>((ref, phone) async {
-  final chatService = ChatService();
-  return await chatService.searchUsersByPhone(phone);
+final userSearchProvider = FutureProvider.autoDispose.family<List<User>, String>((ref, phone) async {
+  final authNotifier = ref.read(authProvider.notifier);
+  if (authNotifier.chatService == null) return [];
+  return await authNotifier.chatService!.searchUsersByPhone(phone);
 });
 
-final webSocketConnectionProvider = StreamProvider<bool>((ref) {
-  final chatService = ChatService();
-  return chatService.onConnectionChange;
+final webSocketConnectionProvider = StreamProvider.autoDispose<bool>((ref) {
+  final authNotifier = ref.read(authProvider.notifier);
+  if (authNotifier.chatService == null) return Stream.value(false);
+  return authNotifier.chatService!.onConnectionChange;
 });
 
-final webSocketErrorProvider = StreamProvider<String>((ref) {
-  final chatService = ChatService();
-  return chatService.onError;
+final webSocketErrorProvider = StreamProvider.autoDispose<String>((ref) {
+  final authNotifier = ref.read(authProvider.notifier);
+  if (authNotifier.chatService == null) return Stream.value('');
+  return authNotifier.chatService!.onError;
 });

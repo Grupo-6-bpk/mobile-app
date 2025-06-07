@@ -8,7 +8,7 @@ import 'auth_service.dart';
 
 class WebSocketService {
   io.Socket? _socket;
-  final AuthService _authService = AuthService();
+  final AuthService authService;
   final StreamController<Message> _messageController = StreamController.broadcast();
   final StreamController<Map<String, dynamic>> _messageAckController = StreamController.broadcast();
   final StreamController<String> _errorController = StreamController.broadcast();
@@ -19,22 +19,75 @@ class WebSocketService {
   Stream<String> get onError => _errorController.stream;
   Stream<bool> get onConnectionChange => _connectionController.stream;
   Stream<Chat> get onNewChat => _newChatController.stream;
-  static final WebSocketService _instance = WebSocketService._internal();
-  factory WebSocketService() => _instance;
-  WebSocketService._internal();
   bool get isConnected => _socket?.connected ?? false;
-  Future<void> connect() async {
-    if (_socket?.connected == true) return;
-    final token = _authService.token;
-    if (token == null) {
-      _errorController.add('Token de autenticação não encontrado');
+  bool _isConnecting = false;
+  String? _lastToken;
+
+  WebSocketService(this.authService);
+
+  void _safeAddToMessageController(Message message) {
+    if (!_messageController.isClosed) {
+      _messageController.add(message);
+    }
+  }
+
+  void _safeAddToMessageAckController(Map<String, dynamic> data) {
+    if (!_messageAckController.isClosed) {
+      _messageAckController.add(data);
+    }
+  }
+
+  void _safeAddToErrorController(String error) {
+    if (!_errorController.isClosed) {
+      _errorController.add(error);
+    }
+  }
+
+  void _safeAddToConnectionController(bool connected) {
+    if (!_connectionController.isClosed) {
+      _connectionController.add(connected);
+    }
+  }
+
+  void _safeAddToNewChatController(Chat chat) {
+    if (!_newChatController.isClosed) {
+      _newChatController.add(chat);
+    }
+  }
+
+  Future<void> connect([String? token]) async {
+    if (_isConnecting) {
+      debugPrint('WebSocketService: Já conectando, aguardando...');
       return;
     }
+
+    final authToken = token ?? authService.token;
+    if (authToken == null) {
+      _safeAddToErrorController('Token de autenticação não encontrado');
+      debugPrint('WebSocketService: ERRO - Token não encontrado');
+      return;
+    }
+
+    debugPrint('WebSocketService: Token recebido: ${authToken.substring(0, 20)}...');
+    debugPrint('WebSocketService: Usuário do AuthService: ${authService.currentUser?.userId}');
+    debugPrint('WebSocketService: Email do usuário: ${authService.currentUser?.email}');
+
+    if (_socket?.connected == true) {
+      debugPrint('WebSocketService: Forçando reset de conexão existente');
+      await reset();
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    
+    _isConnecting = true;
+    _lastToken = authToken;
+    
+    debugPrint('WebSocketService: Iniciando nova conexão com token para usuário: ${authService.currentUser?.userId}');
+    
     try {
       _socket = io.io(AppConfig.webSocketUrl, io.OptionBuilder()
           .setTransports(['websocket'])
-          .setAuth({'token': token})
-          .setExtraHeaders({'Authorization': 'Bearer $token'})
+          .setAuth({'token': authToken})
+          .setExtraHeaders({'Authorization': 'Bearer $authToken'})
           .enableAutoConnect()
           .enableReconnection()
           .setReconnectionAttempts(AppConfig.maxRetryAttempts)
@@ -42,38 +95,42 @@ class WebSocketService {
           .build());
       _setupEventListeners();
       _socket!.connect();
+      debugPrint('WebSocketService: Conexão iniciada com sucesso para usuário: ${authService.currentUser?.userId}');
     } catch (e) {
-      _errorController.add('Erro ao conectar WebSocket: $e');
+      _safeAddToErrorController('Erro ao conectar WebSocket: $e');
+      debugPrint('WebSocketService: ERRO na conexão: $e');
+    } finally {
+      _isConnecting = false;
     }
   }
   void _setupEventListeners() {
     if (_socket == null) return;
     _socket!.onConnect((_) {
-      _connectionController.add(true);
+      _safeAddToConnectionController(true);
     });
     _socket!.onDisconnect((_) {
-      _connectionController.add(false);
+      _safeAddToConnectionController(false);
     });
     _socket!.onError((error) {
-      _errorController.add('Erro de conexão: $error');
+      _safeAddToErrorController('Erro de conexão: $error');
     });
     _socket!.on('message_received', (data) {
       try {
         final message = Message.fromJson(
           data as Map<String, dynamic>,
-          currentUserId: _authService.currentUser?.userId,
+          currentUserId: authService.currentUser?.userId,
         );
         
         debugPrint('   WebSocket Message created - isFromCurrentUser: ${message.isFromCurrentUser}');
         
-        _messageController.add(message);
+        _safeAddToMessageController(message);
       } catch (e) {
         debugPrint('❌ DEBUG WebSocket error: $e');
       }
     });
     _socket!.on('message_ack', (data) {
       try {
-        _messageAckController.add(data as Map<String, dynamic>);
+        _safeAddToMessageAckController(data as Map<String, dynamic>);
       } catch (e) {
         debugPrint('WebSocket message_ack error: $e');
       }
@@ -81,14 +138,14 @@ class WebSocketService {
     _socket!.on('chat_created', (data) {
       try {
         final chat = Chat.fromJson(data as Map<String, dynamic>);
-        _newChatController.add(chat);
+        _safeAddToNewChatController(chat);
       } catch (e) {
         debugPrint('WebSocket chat_created error: $e');
       }
     });
     _socket!.on('error', (data) {
       final message = data is Map ? data['message'] ?? 'Erro desconhecido' : data.toString();
-      _errorController.add(message);
+      _safeAddToErrorController(message);
     });
     _socket!.on('user_joined_group', (data) {
     });
@@ -104,7 +161,7 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
@@ -113,7 +170,7 @@ class WebSocketService {
         'content': content,
       });
     } catch (e) {
-      _errorController.add('Erro ao enviar mensagem: $e');
+      _safeAddToErrorController('Erro ao enviar mensagem: $e');
     }
   }
   Future<void> createGroup(String name, List<int> participantIds) async {
@@ -121,7 +178,7 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
@@ -130,7 +187,7 @@ class WebSocketService {
         'participantIds': participantIds,
       });
     } catch (e) {
-      _errorController.add('Erro ao criar grupo: $e');
+      _safeAddToErrorController('Erro ao criar grupo: $e');
     }
   }
   Future<void> joinChat(int chatId) async {
@@ -138,13 +195,13 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
       _socket!.emit('join_chat', {'chatId': chatId});
     } catch (e) {
-      _errorController.add('Erro ao entrar no chat: $e');
+      _safeAddToErrorController('Erro ao entrar no chat: $e');
     }
   }
   Future<void> leaveChat(int chatId) async {
@@ -152,7 +209,7 @@ class WebSocketService {
     try {
       _socket!.emit('leave_chat', {'chatId': chatId});
     } catch (e) {
-      _errorController.add('Erro ao sair do chat: $e');
+      _safeAddToErrorController('Erro ao sair do chat: $e');
     }
   }
   Future<void> blockUser(int chatId, int targetUserId) async {
@@ -160,7 +217,7 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
@@ -169,7 +226,7 @@ class WebSocketService {
         'targetUserId': targetUserId,
       });
     } catch (e) {
-      _errorController.add('Erro ao bloquear usuário: $e');
+      _safeAddToErrorController('Erro ao bloquear usuário: $e');
     }
   }
   Future<void> unblockUser(int chatId, int targetUserId) async {
@@ -177,7 +234,7 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
@@ -186,7 +243,7 @@ class WebSocketService {
         'targetUserId': targetUserId,
       });
     } catch (e) {
-      _errorController.add('Erro ao desbloquear usuário: $e');
+      _safeAddToErrorController('Erro ao desbloquear usuário: $e');
     }
   }
   Future<void> markAsRead(int chatId, List<int> messageIds) async {
@@ -197,7 +254,7 @@ class WebSocketService {
         'messageIds': messageIds,
       });
     } catch (e) {
-      _errorController.add('Erro ao marcar como lido: $e');
+      _safeAddToErrorController('Erro ao marcar como lido: $e');
     }
   }
   Future<void> startTyping(int chatId) async {
@@ -221,7 +278,7 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
@@ -230,7 +287,7 @@ class WebSocketService {
         'userId': userId,
       });
     } catch (e) {
-      _errorController.add('Erro ao convidar usuário: $e');
+      _safeAddToErrorController('Erro ao convidar usuário: $e');
     }
   }
   Future<void> removeUser(int chatId, int userId) async {
@@ -238,7 +295,7 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
@@ -247,7 +304,7 @@ class WebSocketService {
         'userId': userId,
       });
     } catch (e) {
-      _errorController.add('Erro ao remover usuário: $e');
+      _safeAddToErrorController('Erro ao remover usuário: $e');
     }
   }
   Future<void> deleteChat(int chatId) async {
@@ -255,7 +312,7 @@ class WebSocketService {
       await connect();
     }
     if (!isConnected) {
-      _errorController.add('Não conectado ao WebSocket');
+      _safeAddToErrorController('Não conectado ao WebSocket');
       return;
     }
     try {
@@ -263,20 +320,42 @@ class WebSocketService {
         'chatId': chatId,
       });
     } catch (e) {
-      _errorController.add('Erro ao excluir chat: $e');
+      _safeAddToErrorController('Erro ao excluir chat: $e');
     }
   }
   Future<void> disconnect() async {
     if (_socket?.connected == true) {
       _socket!.disconnect();
     }
-    _connectionController.add(false);
+    _safeAddToConnectionController(false);
   }
   Future<void> reconnect() async {
     await disconnect();
     await Future.delayed(const Duration(seconds: 1));
     await connect();
   }
+  Future<void> reset() async {
+    debugPrint('WebSocketService: Iniciando reset completo - Token anterior: ${_lastToken?.substring(0, 20)}...');
+    
+    await disconnect();
+    
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    if (_socket != null) {
+      try {
+        _socket!.dispose();
+      } catch (e) {
+        debugPrint('WebSocketService: Erro ao dispor socket: $e');
+      }
+      _socket = null;
+    }
+    
+    _isConnecting = false;
+    _lastToken = null;
+    
+    debugPrint('WebSocketService: Reset concluído - Estado limpo');
+  }
+
   void dispose() {
     _socket?.dispose();
     _messageController.close();

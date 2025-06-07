@@ -8,12 +8,12 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/user.dart';
 import '../config/app_config.dart';
-import 'websocket_service.dart';
 
 class AuthService {
   static Database? _database;
   String? _token;
   User? _currentUser;
+  static int _sessionId = 0;
 
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
@@ -22,6 +22,7 @@ class AuthService {
   String? get token => _token;
   User? get currentUser => _currentUser;
   bool get isAuthenticated => _token != null;
+  static int get sessionId => _sessionId;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -50,8 +51,12 @@ class AuthService {
 
   Map<String, dynamic>? _decodeJwtPayload(String token) {
     try {
+      debugPrint('AuthService: Decodificando JWT: ${token.substring(0, 30)}...');
       final parts = token.split('.');
-      if (parts.length != 3) return null;
+      if (parts.length != 3) {
+        debugPrint('AuthService: JWT inválido - partes incorretas');
+        return null;
+      }
       String payload = parts[1];
       switch (payload.length % 4) {
         case 0:
@@ -67,8 +72,11 @@ class AuthService {
       }
       final decodedBytes = base64.decode(payload);
       final decodedJson = utf8.decode(decodedBytes);
-      return jsonDecode(decodedJson);
+      final result = jsonDecode(decodedJson);
+      debugPrint('AuthService: JWT decodificado - ID: ${result['id']}, Email: ${result['email']}');
+      return result;
     } catch (e) {
+      debugPrint('AuthService: Erro ao decodificar JWT: $e');
       return null;
     }
   }
@@ -135,6 +143,8 @@ class AuthService {
             
             await _saveTokenToStorage(_token!);
             await _saveUserToStorage(_currentUser!);
+            _sessionId++;
+            debugPrint('AuthService: Nova sessão iniciada - ID: $_sessionId');
             return true;
           } else {
             throw Exception('Token não recebido do servidor');
@@ -206,44 +216,71 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       _token = prefs.getString(AppConfig.tokenKey);
       final userData = prefs.getString(AppConfig.userKey);
-      if (userData != null) {
-        _currentUser = User.fromJson(jsonDecode(userData));
+      
+      if (userData != null && userData.isNotEmpty) {
+        try {
+          _currentUser = User.fromJson(jsonDecode(userData));
+          debugPrint('AuthService: Dados de usuário carregados: ${_currentUser?.email}');
+        } catch (parseError) {
+          debugPrint('AuthService: Erro ao fazer parse dos dados do usuário: $parseError');
+          _currentUser = null;
+          _token = null;
+          await prefs.remove(AppConfig.tokenKey);
+          await prefs.remove(AppConfig.userKey);
+        }
+      } else {
+        _currentUser = null;
+        _token = null;
+        debugPrint('AuthService: Nenhum dado de usuário encontrado no storage');
       }
     } catch (e) {
-      debugPrint('Erro ao carregar dados de autenticação: $e');
+      debugPrint('AuthService: Erro ao carregar dados de autenticação: $e');
+      _token = null;
+      _currentUser = null;
     }
   }
 
   Future<void> logout() async {
+    _sessionId++;
+    debugPrint('AuthService: Sessão invalidada - ID: $_sessionId');
+    
     _token = null;
     _currentUser = null;
     
     try {
-      final webSocketService = WebSocketService();
-      await webSocketService.disconnect();
-      
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(AppConfig.tokenKey);
-      await prefs.remove(AppConfig.userKey);
-      
       await prefs.clear();
       
-      final db = await database;
-      await db.delete('auth_tokens');
+      if (_database != null) {
+        await _database!.close();
+        _database = null;
+      }
       
-      await db.close();
-      _database = null;
+      try {
+        String path = join(await getDatabasesPath(), AppConfig.databaseName);
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+          debugPrint('Banco de dados SQLite deletado: $path');
+        }
+      } catch (dbDeleteError) {
+        debugPrint('Erro ao deletar arquivo do banco: $dbDeleteError');
+      }
+      
+      debugPrint('Logout realizado: todos os dados locais foram limpos');
       
     } catch (e) {
       debugPrint('Erro ao limpar dados de autenticação: $e');
+      
       _token = null;
       _currentUser = null;
+      _database = null;
       
       try {
-        final webSocketService = WebSocketService();
-        await webSocketService.disconnect();
-      } catch (wsError) {
-        debugPrint('Erro ao desconectar WebSocket: $wsError');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+      } catch (prefsError) {
+        debugPrint('Erro ao limpar SharedPreferences: $prefsError');
       }
     }
   }
@@ -264,7 +301,16 @@ class AuthService {
     String method,
     String endpoint, {
     Map<String, dynamic>? body,
+    int? expectedSessionId,
   }) async {
+    if (expectedSessionId != null && expectedSessionId != _sessionId) {
+      throw Exception('Sessão inválida - operação cancelada');
+    }
+    
+    if (!isAuthenticated) {
+      throw Exception('Usuário não autenticado');
+    }
+    
     final headers = getAuthHeaders();
     final uri = Uri.parse('${AppConfig.baseUrl}$endpoint');
     switch (method.toUpperCase()) {
@@ -293,7 +339,7 @@ class AuthService {
     if (_currentUser == null) return "/main";
     
     if (_currentUser!.isDriver == true && _currentUser!.isPassenger == true) {
-      return "/driverHome";
+      return "/loginRole";
     } else if (_currentUser!.isDriver == true) {
       return "/driverHome";
     } else if (_currentUser!.isPassenger == true) {

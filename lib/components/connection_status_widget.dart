@@ -38,32 +38,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
         }
         return const SizedBox.shrink();
       },
-      loading: () => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        color: Colors.orange.shade100,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.orange.shade700,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Conectando...',
-              style: TextStyle(
-                color: Colors.orange.shade700,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
+      loading: () => const SizedBox.shrink(),
       error: (error, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         color: Colors.red.shade100,

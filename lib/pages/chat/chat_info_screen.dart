@@ -5,7 +5,6 @@ import '../../models/user.dart';
 import '../../models/chat_participant.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
-import '../../services/chat_service.dart';
 
 class ChatInfoScreen extends ConsumerStatefulWidget {
   final Chat chat;
@@ -843,8 +842,15 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
     });
 
     try {
-      final chatService = ChatService();
-      final users = await chatService.searchUsersByPhone(phone);
+      final authNotifier = ref.read(authProvider.notifier);
+      if (authNotifier.chatService == null) {
+        setState(() {
+          _errorMessage = 'Serviço de chat não disponível';
+          _isSearching = false;
+        });
+        return;
+      }
+      final users = await authNotifier.chatService!.searchUsersByPhone(phone);
       
       setState(() {
         _searchResults = users;
