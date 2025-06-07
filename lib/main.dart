@@ -86,7 +86,6 @@ class MyApp extends ConsumerWidget {
           return Consumer(
             builder: (context, ref, child) {
               final currentUser = ref.watch(currentUserProvider);
-              
               if (currentUser == null) {
                 return const Scaffold(
                   body: Center(
@@ -95,15 +94,14 @@ class MyApp extends ConsumerWidget {
                 );
               }
               
-              // Se for motorista, vai para DriverHomePage
-              if (currentUser.isDriver == true) {
+              if(currentUser.isDriver == true && currentUser.isPassenger == true) {
+                return const LoginRolePage();
+              } else if (currentUser.isDriver == true) {
                 return const DriverHomePage();
               }
-              // Se for passageiro, vai para PassengerHome
               else if (currentUser.isPassenger == true) {
                 return const PassengerHome();
               }
-              // Fallback para PassengerHome se não tiver role definido
               else {
                 return const PassengerHome();
               }

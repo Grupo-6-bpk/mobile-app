@@ -413,14 +413,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
 
     final authNotifier = ref.read(authProvider.notifier);
-    final success = await authNotifier.login(email, password);
-    
-    if (!mounted) return;
-    
-    if (success) {
-      if (!mounted) return;
-      final homeRoute = authNotifier.getHomeRouteForUser();
-      Navigator.pushReplacementNamed(context, homeRoute);
-    }
+    await authNotifier.login(email, password);
   }
 }
