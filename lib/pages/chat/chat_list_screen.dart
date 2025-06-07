@@ -43,9 +43,7 @@ class ChatListScreen extends ConsumerWidget {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'logout') {
-                _handleLogout(context, ref);
-              } else if (value == 'refresh') {
+              if (value == 'refresh') {
                 ref.read(chatListProvider.notifier).refresh();
               }
             },
@@ -57,16 +55,6 @@ class ChatListScreen extends ConsumerWidget {
                     Icon(Icons.refresh),
                     SizedBox(width: 8),
                     Text('Atualizar'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text('Sair'),
                   ],
                 ),
               ),
@@ -228,30 +216,7 @@ class ChatListScreen extends ConsumerWidget {
     );
   }
 
-  void _handleLogout(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sair'),
-        content: const Text('Tem certeza que deseja sair?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sair'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed == true) {
-      await ref.read(authProvider.notifier).logout();
-    }
   }
-}
 
 class _ChatListItem extends StatelessWidget {
   final Chat chat;
