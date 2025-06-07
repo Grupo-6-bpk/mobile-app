@@ -33,6 +33,15 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
     try {
       final chats = await _chatService!.getChats();
       state = AsyncValue.data(chats);
+      
+      for (final chat in chats) {
+        try {
+          await _chatService!.joinChat(chat.chatId);
+          debugPrint('ChatProvider: Entrou automaticamente no chat existente ${chat.chatId}');
+        } catch (e) {
+          debugPrint('ChatProvider: Erro ao entrar no chat ${chat.chatId}: $e');
+        }
+      }
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
@@ -42,11 +51,23 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
     if (_chatService == null) return;
     
     _subscriptions.add(
-      _chatService!.onNewChat.listen((chat) {
-        state.whenData((chats) {
-          final newChats = [chat, ...chats];
-          state = AsyncValue.data(newChats);
-        });
+      _chatService!.onNewChat.listen((chat) async {
+        try {
+          await _chatService!.joinChat(chat.chatId);
+          debugPrint('ChatProvider: Entrou automaticamente no novo chat ${chat.chatId}');
+        } catch (e) {
+          debugPrint('ChatProvider: Erro ao entrar automaticamente no chat ${chat.chatId}: $e');
+        }
+        
+        final currentState = state;
+        if (currentState is AsyncData<List<Chat>>) {
+          final chats = currentState.value;
+          if (!chats.any((existingChat) => existingChat.chatId == chat.chatId)) {
+            final newChats = [chat, ...chats];
+            state = AsyncValue.data(newChats);
+            debugPrint('ChatProvider: Novo chat ${chat.chatId} adicionado à lista');
+          }
+        }
       }),
     );
 
