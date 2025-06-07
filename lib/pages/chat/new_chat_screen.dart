@@ -594,10 +594,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
           ),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => ChatScreen(chat: chat)),
-        );
+        if (chat.chatId == -1) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ChatScreen(chat: chat)),
+          );
+        }
       } else {
         _showErrorSnackBar('Erro ao criar conversa');
       }
@@ -638,10 +642,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen>
           ),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => ChatScreen(chat: chat)),
-        );
+        if (chat.chatId == -1) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ChatScreen(chat: chat)),
+          );
+        }
       } else {
         _showErrorSnackBar('Erro ao criar grupo');
       }

@@ -80,6 +80,15 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
       });
       return chat;
     } catch (e) {
+      if (e.toString().contains('Chat criado com sucesso')) {
+        await refresh();
+        return Chat(
+          chatId: -1, 
+          isGroup: false, 
+          participants: [], 
+          createdAt: DateTime.now()
+        );
+      }
       return null;
     }
   }
@@ -93,6 +102,15 @@ class ChatListNotifier extends StateNotifier<AsyncValue<List<Chat>>> {
       });
       return chat;
     } catch (e) {
+      if (e.toString().contains('Grupo criado com sucesso')) {
+        await refresh();
+        return Chat(
+          chatId: -1, 
+          isGroup: true, 
+          participants: [], 
+          createdAt: DateTime.now()
+        );
+      }
       return null;
     }
   }
@@ -212,7 +230,6 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
               final newMessages = [...messages, message];
               state = AsyncValue.data(newMessages);
             } catch (e) {
-              // Ignore WebSocket errors for duplicates detection
               debugPrint('WebSocket duplicate detection error: $e');
             }
           });
@@ -292,7 +309,6 @@ class MessageListNotifier extends StateNotifier<AsyncValue<List<Message>>> {
           }
         });
       } catch (e) {
-        // Error in reloading messages after timeout
         debugPrint('Error reloading messages after timeout: $e');
       }
     });

@@ -7,6 +7,14 @@ import '../config/app_config.dart';
 import 'auth_service.dart';
 import 'websocket_service.dart';
 
+class ChatCreatedSuccessfully implements Exception {
+  final String message;
+  ChatCreatedSuccessfully(this.message);
+  
+  @override
+  String toString() => message;
+}
+
 class ChatService {
   final AuthService _authService = AuthService();
   final WebSocketService _webSocketService = WebSocketService();
@@ -44,9 +52,14 @@ class ChatService {
         },
       );
 
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final chatJson = jsonDecode(response.body);
-        return Chat.fromJson(chatJson);
+        if (response.body.isNotEmpty) {
+          final chatJson = jsonDecode(response.body);
+          return Chat.fromJson(chatJson);
+        } else {
+          throw ChatCreatedSuccessfully('Chat criado com sucesso, atualizando lista...');
+        }
       } else {
         throw Exception('Erro ao criar chat: ${response.statusCode}');
       }
@@ -64,9 +77,13 @@ class ChatService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final chatJson = jsonDecode(response.body);
-        final chat = Chat.fromJson(chatJson);
-        return chat;
+        if (response.body.isNotEmpty) {
+          final chatJson = jsonDecode(response.body);
+          final chat = Chat.fromJson(chatJson);
+          return chat;
+        } else {
+          throw ChatCreatedSuccessfully('Grupo criado com sucesso, atualizando lista...');
+        }
       } else {
         throw Exception('Erro ao criar grupo: ${response.statusCode}');
       }

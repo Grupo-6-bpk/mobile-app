@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/user.dart';
 import '../config/app_config.dart';
+import 'websocket_service.dart';
 
 class AuthService {
   static Database? _database;
@@ -216,14 +217,34 @@ class AuthService {
   Future<void> logout() async {
     _token = null;
     _currentUser = null;
+    
     try {
+      final webSocketService = WebSocketService();
+      await webSocketService.disconnect();
+      
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(AppConfig.tokenKey);
       await prefs.remove(AppConfig.userKey);
+      
+      await prefs.clear();
+      
       final db = await database;
       await db.delete('auth_tokens');
+      
+      await db.close();
+      _database = null;
+      
     } catch (e) {
       debugPrint('Erro ao limpar dados de autenticação: $e');
+      _token = null;
+      _currentUser = null;
+      
+      try {
+        final webSocketService = WebSocketService();
+        await webSocketService.disconnect();
+      } catch (wsError) {
+        debugPrint('Erro ao desconectar WebSocket: $wsError');
+      }
     }
   }
 
