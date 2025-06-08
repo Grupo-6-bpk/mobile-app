@@ -8,6 +8,8 @@ class CustomTextfield extends StatelessWidget {
   final IconButton? icon;
   final bool obscureText;
   final bool isNumeric;
+  final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
 
   const CustomTextfield({
     super.key,
@@ -18,22 +20,26 @@ class CustomTextfield extends StatelessWidget {
     this.icon,
     required this.obscureText,
     this.isNumeric = false,
+    this.validator,
+    this.keyboardType,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       obscureText: obscureText,
       focusNode: focusNode,
-      onSubmitted: onSubmitted,
-      keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+      onFieldSubmitted: onSubmitted,
+      validator: validator,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         suffixIcon: icon,
         label: Text(label),
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
         fillColor: Theme.of(context).colorScheme.surface,
         filled: true,
+        errorMaxLines: 2,
       ),
     );
   }
