@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
+import 'package:mobile_app/components/custom_file_picker.dart';
 import 'package:mobile_app/models/vehicle.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
 
@@ -22,28 +24,28 @@ class VehicleRegistrationPage extends StatefulWidget {
 class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-
   // Controllers
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _streetController = TextEditingController();
-  final TextEditingController _numberController = TextEditingController();
+  final TextEditingController _colorController = TextEditingController();
   final TextEditingController _renavamController = TextEditingController();
-  final TextEditingController _plateController = TextEditingController();
-  final TextEditingController _fuelConsumptionController =
+  final TextEditingController _plateController = TextEditingController();  final TextEditingController _fuelConsumptionController =
       TextEditingController();
+
+  // File pickers for car image
+  final ValueNotifier<FilePickerResult?> _carImageNotifier =
+      ValueNotifier<FilePickerResult?>(null);
+  final ValueNotifier<String?> _carImageUrlNotifier = ValueNotifier<String?>(null);
 
   // Focus Nodes
   final FocusNode _modelFocusNode = FocusNode();
   final FocusNode _brandFocusNode = FocusNode();
   final FocusNode _yearFocusNode = FocusNode();
-  final FocusNode _phoneFocusNode = FocusNode();
-  final FocusNode _streetFocusNode = FocusNode();
-  final FocusNode _numberFocusNode = FocusNode();
+  final FocusNode _colorFocusNode = FocusNode();
   final FocusNode _renavamFocusNode = FocusNode();
-  final FocusNode _plateFocusNode = FocusNode();  final FocusNode _fuelConsumptionFocusNode = FocusNode();
+  final FocusNode _plateFocusNode = FocusNode();
+  final FocusNode _fuelConsumptionFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -51,30 +53,28 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
     if (widget.vehicleToEdit != null) {
       _populateFieldsForEdit();
     }
-  }
-
-  void _populateFieldsForEdit() {
+  }  void _populateFieldsForEdit() {
     final vehicle = widget.vehicleToEdit!;
     _modelController.text = vehicle.model;
     _brandController.text = vehicle.brand;
     _yearController.text = vehicle.year.toString();
-    _phoneController.text = vehicle.phone;
-    _streetController.text = vehicle.street;
-    _numberController.text = vehicle.number.toString();
+    _colorController.text = vehicle.color;
     _renavamController.text = vehicle.renavam;
     _plateController.text = vehicle.plate;
     _fuelConsumptionController.text = vehicle.fuelConsumption.toString();
+    
+    // Set the car image URL if available
+    if (vehicle.carImageUrl != null) {
+      _carImageUrlNotifier.value = vehicle.carImageUrl;
+    }
   }
-
   @override
   void dispose() {
     // Dispose controllers
     _modelController.dispose();
     _brandController.dispose();
     _yearController.dispose();
-    _phoneController.dispose();
-    _streetController.dispose();
-    _numberController.dispose();
+    _colorController.dispose();
     _renavamController.dispose();
     _plateController.dispose();
     _fuelConsumptionController.dispose();
@@ -83,23 +83,18 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
     _modelFocusNode.dispose();
     _brandFocusNode.dispose();
     _yearFocusNode.dispose();
-    _phoneFocusNode.dispose();
-    _streetFocusNode.dispose();
-    _numberFocusNode.dispose();
+    _colorFocusNode.dispose();
     _renavamFocusNode.dispose();
     _plateFocusNode.dispose();
     _fuelConsumptionFocusNode.dispose();
 
     super.dispose();
   }
-
   bool _validateForm() {
     return _modelController.text.isNotEmpty &&
         _brandController.text.isNotEmpty &&
         _yearController.text.isNotEmpty &&
-        _phoneController.text.isNotEmpty &&
-        _streetController.text.isNotEmpty &&
-        _numberController.text.isNotEmpty &&
+        _colorController.text.isNotEmpty &&
         _renavamController.text.isNotEmpty &&
         _plateController.text.isNotEmpty &&
         _fuelConsumptionController.text.isNotEmpty;
@@ -114,18 +109,16 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
 
     setState(() => _isLoading = true);
 
-    try {
-      final vehicle = Vehicle(
+    try {      final vehicle = Vehicle(
         id: widget.vehicleToEdit?.id,
         model: _modelController.text.trim(),
         brand: _brandController.text.trim(),
         year: int.parse(_yearController.text.trim()),
-        phone: _phoneController.text.trim(),
-        street: _streetController.text.trim(),
-        number: int.parse(_numberController.text.trim()),
+        color: _colorController.text.trim(),
         renavam: _renavamController.text.trim(),
         plate: _plateController.text.trim().toUpperCase(),
         fuelConsumption: double.parse(_fuelConsumptionController.text.trim()),
+        carImageUrl: _carImageUrlNotifier.value,
         driverId: widget.driverId,
       );
 
@@ -216,17 +209,32 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-
-                // Ano
-                CustomTextfield(
-                  controller: _yearController,
-                  focusNode: _yearFocusNode,
-                  label: 'Ano',
-                  obscureText: false,
-                  isNumeric: true,
-                  onSubmitted: (_) =>
-                      FocusScope.of(context).requestFocus(_plateFocusNode),
+                const SizedBox(height: 20),                // Ano e Cor
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextfield(
+                        controller: _yearController,
+                        focusNode: _yearFocusNode,
+                        label: 'Ano',
+                        obscureText: false,
+                        isNumeric: true,
+                        onSubmitted: (_) =>
+                            FocusScope.of(context).requestFocus(_colorFocusNode),
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: CustomTextfield(
+                        controller: _colorController,
+                        focusNode: _colorFocusNode,
+                        label: 'Cor',
+                        obscureText: false,
+                        onSubmitted: (_) =>
+                            FocusScope.of(context).requestFocus(_plateFocusNode),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
 
@@ -251,69 +259,28 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
                   onSubmitted: (_) => FocusScope.of(context)
                       .requestFocus(_fuelConsumptionFocusNode),
                 ),
-                const SizedBox(height: 20),
-
-                // Consumo de combustível
+                const SizedBox(height: 20),                // Consumo de combustível
                 CustomTextfield(
                   controller: _fuelConsumptionController,
                   focusNode: _fuelConsumptionFocusNode,
                   label: 'Consumo (km/l)',
                   obscureText: false,
                   isNumeric: true,
-                  onSubmitted: (_) =>
-                      FocusScope.of(context).requestFocus(_phoneFocusNode),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
 
-                Text(
-                  'Informações de Contato',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
+                // Imagem do veículo
+                SizedBox(
+                  width: double.infinity,
+                  child: CustomFilePicker(
+                    label: "Foto do Veículo",
+                    fileNotifier: _carImageNotifier,
+                    fileUrl: _carImageUrlNotifier,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 40),
 
-                // Telefone
-                CustomTextfield(
-                  controller: _phoneController,
-                  focusNode: _phoneFocusNode,
-                  label: 'Telefone',
-                  obscureText: false,
-                  onSubmitted: (_) =>
-                      FocusScope.of(context).requestFocus(_streetFocusNode),
-                ),
-                const SizedBox(height: 20),
-
-                // Endereço
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: CustomTextfield(
-                        controller: _streetController,
-                        focusNode: _streetFocusNode,
-                        label: 'Rua/Avenida',
-                        obscureText: false,
-                        onSubmitted: (_) =>
-                            FocusScope.of(context).requestFocus(_numberFocusNode),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      flex: 1,
-                      child: CustomTextfield(
-                        controller: _numberController,
-                        focusNode: _numberFocusNode,
-                        label: 'Número',
-                        obscureText: false,
-                        isNumeric: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),                // Botão de cadastrar/editar
+                // Botão de cadastrar/editar
                 SizedBox(
                   width: double.infinity,
                   child: CustomButton(

@@ -10,9 +10,9 @@ class VehicleService {
 
   static Future<bool> registerVehicle(Vehicle vehicle) async {
     try {
-      debugPrint('Registering vehicle at: ${apiUrl}api/vehicles/');
+      debugPrint('Registering vehicle at: ${apiUrl}/api/vehicles/');
       final response = await http.post(
-        Uri.parse('${apiUrl}api/vehicles/'),
+        Uri.parse('${apiUrl}/api/vehicles/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(vehicle.toJson()),
       );
@@ -38,7 +38,7 @@ class VehicleService {
   static Future<List<Vehicle>> getVehiclesByDriverId(int driverId) async {
     try {
       final response = await http.get(
-        Uri.parse('${apiUrl}api/vehicles/driver/$driverId'),
+        Uri.parse('${apiUrl}/api/vehicles/driver/$driverId'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -58,7 +58,7 @@ class VehicleService {
   static Future<bool> updateVehicle(Vehicle vehicle) async {
     try {
       final response = await http.put(
-        Uri.parse('${apiUrl}api/vehicles/${vehicle.id}'),
+        Uri.parse('${apiUrl}/api/vehicles/${vehicle.id}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(vehicle.toJson()),
       );
@@ -81,7 +81,7 @@ class VehicleService {
   static Future<bool> deleteVehicle(int vehicleId) async {
     try {
       final response = await http.delete(
-        Uri.parse('${apiUrl}api/vehicles/$vehicleId'),
+        Uri.parse('${apiUrl}/api/vehicles/$vehicleId'),
         headers: {'Content-Type': 'application/json'},
       );
 
