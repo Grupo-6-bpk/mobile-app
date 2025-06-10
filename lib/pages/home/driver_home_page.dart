@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/components/available_passenger_card.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
-import 'package:mobile_app/pages/chat/chat_page.dart';
+import 'package:mobile_app/pages/chat/chat_list_screen.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
 import 'package:mobile_app/pages/settings/settings_page.dart';
 
@@ -134,7 +134,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
           <Widget>[
             _buildDriverHomePage(),
             const RideHistoryPage(),
-            const ChatPage(),
+            const ChatListScreen(),
             const SettingsPage(),
           ][_currentPageIndex],
       bottomNavigationBar: CustomMenuBar(

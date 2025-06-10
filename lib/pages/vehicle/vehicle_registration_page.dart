@@ -7,12 +7,10 @@ import 'package:mobile_app/models/vehicle.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
 
 class VehicleRegistrationPage extends StatefulWidget {
-  final int driverId;
   final Vehicle? vehicleToEdit;
 
   const VehicleRegistrationPage({
     super.key,
-    required this.driverId,
     this.vehicleToEdit,
   });
 
@@ -119,7 +117,7 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
         plate: _plateController.text.trim().toUpperCase(),
         fuelConsumption: double.parse(_fuelConsumptionController.text.trim()),
         carImageUrl: _carImageUrlNotifier.value,
-        driverId: widget.driverId,
+        driverId: 0, // This will be set by the service using the current user
       );
 
       bool success;
@@ -142,12 +140,28 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao ${widget.vehicleToEdit != null ? 'atualizar' : 'cadastrar'} veículo')),
         );
-      }
-    } catch (e) {
+      }    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${e.toString()}')),
-        );
+        String errorMessage = e.toString();
+        
+        // Remove "Exception: " prefix if present
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.substring(11);
+        }
+        
+        // Handle authentication errors specifically
+        if (errorMessage.contains('Usuário não autenticado') || 
+            errorMessage.contains('Sessão expirada')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+          // Optionally navigate to login screen
+          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro: $errorMessage')),
+          );
+        }
       }
     } finally {
       if (mounted) {

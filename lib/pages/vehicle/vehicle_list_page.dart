@@ -5,11 +5,8 @@ import 'package:mobile_app/pages/vehicle/vehicle_registration_page.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
 
 class VehicleListPage extends StatefulWidget {
-  final int driverId;
-
   const VehicleListPage({
     super.key,
-    required this.driverId,
   });
 
   @override
@@ -25,29 +22,43 @@ class _VehicleListPageState extends State<VehicleListPage> {
     super.initState();
     _loadVehicles();
   }
-
   Future<void> _loadVehicles() async {
     setState(() => _isLoading = true);
     try {
-      final vehicles = await VehicleService.getVehiclesByDriverId(widget.driverId);
+      final vehicles = await VehicleService.getVehiclesByDriverId();
       setState(() {
         _vehicles = vehicles;
         _isLoading = false;
-      });
-    } catch (e) {
+      });    } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar veículos: $e')),
-        );
+        String errorMessage = e.toString();
+        
+        // Remove "Exception: " prefix if present
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.substring(11);
+        }
+        
+        // Handle authentication errors specifically
+        if (errorMessage.contains('Usuário não autenticado') || 
+            errorMessage.contains('Sessão expirada')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+          // Optionally navigate to login screen
+          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao carregar veículos: $errorMessage')),
+          );
+        }
       }
     }
-  }
-  Future<void> _navigateToAddVehicle() async {
+  }  Future<void> _navigateToAddVehicle() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VehicleRegistrationPage(driverId: widget.driverId),
+        builder: (context) => const VehicleRegistrationPage(),
       ),
     );
 
@@ -61,7 +72,6 @@ class _VehicleListPageState extends State<VehicleListPage> {
       context,
       MaterialPageRoute(
         builder: (context) => VehicleRegistrationPage(
-          driverId: widget.driverId,
           vehicleToEdit: vehicle,
         ),
       ),
@@ -89,23 +99,45 @@ class _VehicleListPageState extends State<VehicleListPage> {
           ),
         ],
       ),
-    );
-
-    if (confirm == true && vehicle.id != null) {
-      final success = await VehicleService.deleteVehicle(vehicle.id!);
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Veículo excluído com sucesso')),
-        );
-        _loadVehicles();
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao excluir veículo')),
-        );
+    );    if (confirm == true && vehicle.id != null) {
+      try {
+        final success = await VehicleService.deleteVehicle(vehicle.id!);
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Veículo excluído com sucesso')),
+          );
+          _loadVehicles();
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao excluir veículo')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          String errorMessage = e.toString();
+          
+          // Remove "Exception: " prefix if present
+          if (errorMessage.startsWith('Exception: ')) {
+            errorMessage = errorMessage.substring(11);
+          }
+          
+          // Handle authentication errors specifically
+          if (errorMessage.contains('Usuário não autenticado') || 
+              errorMessage.contains('Sessão expirada')) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(errorMessage)),
+            );
+            // Optionally navigate to login screen
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao excluir veículo: $errorMessage')),
+            );
+          }
+        }
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,17 +151,6 @@ class _VehicleListPageState extends State<VehicleListPage> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: CustomButton(
-                  onPressed: _navigateToAddVehicle,
-                  variant: ButtonVariant.primary,
-                  text: 'Adicionar Veículo',
-                ),
-              ),
-            ),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -141,22 +162,22 @@ class _VehicleListPageState extends State<VehicleListPage> {
                               Icon(
                                 Icons.directions_car_outlined,
                                 size: 64,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 'Nenhum veículo cadastrado',
                                 style: TextStyle(
                                   fontSize: 18,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Toque no botão acima para cadastrar seu primeiro veículo',
+                                'Toque no botão abaixo para cadastrar seu primeiro veículo',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -165,7 +186,7 @@ class _VehicleListPageState extends State<VehicleListPage> {
                       : RefreshIndicator(
                           onRefresh: _loadVehicles,
                           child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                             itemCount: _vehicles.length,
                             itemBuilder: (context, index) {
                               final vehicle = _vehicles[index];
@@ -177,7 +198,7 @@ class _VehicleListPageState extends State<VehicleListPage> {
                                     width: 60,
                                     height: 60,
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
@@ -201,7 +222,8 @@ class _VehicleListPageState extends State<VehicleListPage> {
                                       Text('Ano: ${vehicle.year}'),
                                       Text('Consumo: ${vehicle.fuelConsumption} km/l'),
                                     ],
-                                  ),                                  trailing: PopupMenuButton<String>(
+                                  ),
+                                  trailing: PopupMenuButton<String>(
                                     onSelected: (value) {
                                       if (value == 'edit') {
                                         _navigateToEditVehicle(vehicle);
@@ -237,6 +259,21 @@ class _VehicleListPageState extends State<VehicleListPage> {
                             },
                           ),
                         ),
+            ),
+            // Botão fixo na parte inferior
+            Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: CustomButton(
+                  onPressed: _navigateToAddVehicle,
+                  variant: ButtonVariant.primary,
+                  text: 'Adicionar Veículo',
+                ),
+              ),
             ),
           ],
         ),

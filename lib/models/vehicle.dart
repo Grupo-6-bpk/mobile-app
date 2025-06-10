@@ -25,18 +25,17 @@ class Vehicle {
     required this.driverId,
     this.createdAt,
     this.updatedAt,
-  });
-  Vehicle.fromJson(Map<String, dynamic> json)
+  });  Vehicle.fromJson(Map<String, dynamic> json)
       : id = json['id'],
-        model = json['model'],
-        brand = json['brand'],
-        year = json['year'],
-        color = json['color'],
-        renavam = json['renavam'],
-        plate = json['plate'],
-        fuelConsumption = json['fuelConsumption'].toDouble(),
+        model = json['model'] ?? '',
+        brand = json['brand'] ?? '',
+        year = json['year'] ?? 0,
+        color = json['color'] ?? '',
+        renavam = json['renavam'] ?? '',
+        plate = json['plate'] ?? '',
+        fuelConsumption = (json['fuelConsumption'] ?? 0).toDouble(),
         carImageUrl = json['carImageUrl'],
-        driverId = json['driverId'],
+        driverId = json['driverId'] ?? 0,
         createdAt = json['createdAt'] != null
             ? DateTime.parse(json['createdAt'])
             : null,

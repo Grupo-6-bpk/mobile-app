@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/pages/vehicle/vehicle_list_page.dart';
 
 class VehicleQuickAccessCard extends StatelessWidget {
-  final int driverId;
-
   const VehicleQuickAccessCard({
     super.key,
-    required this.driverId,
   });
 
   @override
@@ -18,7 +15,7 @@ class VehicleQuickAccessCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => VehicleListPage(driverId: driverId),
+              builder: (context) => const VehicleListPage(),
             ),
           );
         },
@@ -26,12 +23,11 @@ class VehicleQuickAccessCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
-            children: [
-              Container(
+            children: [              Container(
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -53,20 +49,18 @@ class VehicleQuickAccessCard extends StatelessWidget {
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),                    Text(
                       'Gerencie seus veículos cadastrados',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
                 ),
-              ),
-              Icon(
+              ),              Icon(
                 Icons.arrow_forward_ios,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                 size: 16,
               ),
             ],
