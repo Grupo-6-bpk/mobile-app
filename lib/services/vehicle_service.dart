@@ -29,11 +29,11 @@ class VehicleService {
       // Remove null values that might cause issues
       vehicleData.removeWhere((key, value) => value == null);
 
-      debugPrint('Registering vehicle at: ${apiUrl}/api/vehicles/');
+      debugPrint('Registering vehicle at: $apiUrl/api/vehicles/');
       debugPrint('Vehicle data: $vehicleData');
       
       final response = await http.post(
-        Uri.parse('${apiUrl}/api/vehicles/'),
+        Uri.parse('$apiUrl/api/vehicles/'),
         headers: _authService.getAuthHeaders(),
         body: jsonEncode(vehicleData),
       );
@@ -72,7 +72,7 @@ class VehicleService {
       }      final driverId = currentUser!.driver!.id;
       debugPrint('Getting vehicles for driver ID: $driverId');
 
-      final url = '${apiUrl}/api/vehicles/driver/$driverId';
+      final url = '$apiUrl/api/vehicles/driver/$driverId';
       debugPrint('Making request to: $url');
       debugPrint('Headers: ${_authService.getAuthHeaders()}');
 
@@ -136,7 +136,7 @@ class VehicleService {
       }
 
       final response = await http.put(
-        Uri.parse('${apiUrl}/api/vehicles/${vehicle.id}'),
+        Uri.parse('$apiUrl/api/vehicles/${vehicle.id}'),
         headers: _authService.getAuthHeaders(),
         body: jsonEncode(vehicle.toJson()),
       );
@@ -166,7 +166,7 @@ class VehicleService {
       }
 
       final response = await http.delete(
-        Uri.parse('${apiUrl}/api/vehicles/$vehicleId'),
+        Uri.parse('$apiUrl/api/vehicles/$vehicleId'),
         headers: _authService.getAuthHeaders(),
       );
 
