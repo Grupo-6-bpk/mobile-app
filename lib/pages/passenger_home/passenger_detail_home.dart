@@ -1,9 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:intl/intl.dart';
+import 'package:mobile_app/models/ride.dart';
+import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/services/user_service.dart';
 
 class PassengerDetailHome extends StatelessWidget {
-  final Map<String, dynamic> carona;
+  final Ride ride;
 
-  const PassengerDetailHome({super.key, required this.carona});
+  const PassengerDetailHome({super.key, required this.ride});
+
+  Future<String> _getAddressFromCoordinates(String coordinates) async {
+    try {
+      final parts = coordinates.split(',');
+      if (parts.length == 2) {
+        final lat = double.parse(parts[0].trim());
+        final lon = double.parse(parts[1].trim());
+        List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+        if (placemarks.isNotEmpty) {
+          final p = placemarks.first;
+          return '${p.thoroughfare}, ${p.subLocality}, ${p.locality} - ${p.administrativeArea}';
+        }
+      }
+      return 'Endereço não disponível';
+    } catch (e) {
+      return 'Endereço não disponível';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,38 +68,46 @@ class PassengerDetailHome extends StatelessWidget {
   }
 
   Widget _buildMotoristaInfo(ThemeData theme) {
-    return Row(
-      children: [
-        CircleAvatar(
-          backgroundImage: NetworkImage(carona['avatar']),
-          radius: 25,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return FutureBuilder<User>(
+        future: UserService.getUserById(ride.driver.userId),
+        builder: (context, snapshot) {
+          final userName = snapshot.hasData ? snapshot.data!.name : 'Carregando...';
+          return Row(
             children: [
-              Text(
-                carona['nome'],
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              CircleAvatar(
+                backgroundColor: Colors.grey.shade800,
+                child: const Icon(Icons.person),
+                radius: 25,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userName,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Veículo: ${ride.vehicle.brand} ${ride.vehicle.model}',
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface, fontSize: 12),
+                    ),
+                    Text(
+                      'Placa: ${ride.vehicle.plate}',
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface, fontSize: 12),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                'Veículo: Sonic 3.0 Turbo',
-                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
-              ),
-              Text(
-                'Cor: Branco',
-                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
-              ),
             ],
-          ),
-        ),
-      ],
-    );
+          );
+        });
   }
 
   Widget _buildAvaliacao(ThemeData theme) {
@@ -92,7 +123,7 @@ class PassengerDetailHome extends StatelessWidget {
             children: List.generate(
               5,
               (i) => Icon(
-                i < carona['estrelas'] ? Icons.star : Icons.star_border,
+                i < 4 ? Icons.star : Icons.star_border, // Placeholder
                 color: Colors.amber,
                 size: 16,
               ),
@@ -104,6 +135,7 @@ class PassengerDetailHome extends StatelessWidget {
   }
 
   Widget _buildMapaPlaceholder(ThemeData theme) {
+    // This can be replaced with a real map later
     return Container(
       height: 130,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -111,28 +143,37 @@ class PassengerDetailHome extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         color: theme.colorScheme.surface,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: CustomPaint(
-          painter: RoutePainter(),
-          child: Container(),
-        ),
-      ),
+      child: const Center(child: Text('Placeholder para o Mapa da Rota')),
     );
   }
 
   Widget _buildInformacoesViagem(ThemeData theme) {
+    final formattedTime = DateFormat('HH:mm dd/MM/yyyy').format(ride.departureTime);
+    final formattedPrice = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
+        .format(ride.pricePerMember ?? 0);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildInfoLine('Saída', carona['local'], theme),
-        _buildInfoLine('Horário de saída', carona['horario'], theme),
-        _buildInfoLine('Celular', '45 98432-3230', theme),
-        if (carona.containsKey('preco'))
+        FutureBuilder<String>(
+          future: _getAddressFromCoordinates(ride.startLocation),
+          builder: (context, snapshot) {
+            return _buildInfoLine('Saída', snapshot.data ?? 'Carregando...', theme);
+          }
+        ),
+        FutureBuilder<String>(
+          future: _getAddressFromCoordinates(ride.endLocation),
+          builder: (context, snapshot) {
+            return _buildInfoLine('Destino', snapshot.data ?? 'Carregando...', theme);
+          }
+        ),
+        _buildInfoLine('Horário de saída', formattedTime, theme),
+        _buildInfoLine('Assentos disponíveis', ride.availableSeats.toString(), theme),
+        if (ride.pricePerMember != null)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              'Valor máximo da viagem: ${carona['preco']}',
+              'Valor por pessoa: $formattedPrice',
               style: TextStyle(
                 color: theme.colorScheme.secondary,
                 fontSize: 16,
@@ -155,6 +196,7 @@ class PassengerDetailHome extends StatelessWidget {
   }
 
   Widget _buildBotoesAcao(BuildContext context, ThemeData theme) {
+    // The logic for these buttons can be implemented similarly to the request button.
     return Row(
       children: [
         Expanded(
@@ -190,8 +232,6 @@ class PassengerDetailHome extends StatelessWidget {
     );
   }
 }
-
-
 
 class RoutePainter extends CustomPainter {
   @override

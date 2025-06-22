@@ -10,6 +10,7 @@ import 'package:mobile_app/models/vehicle.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/group_service.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
+import 'package:mobile_app/services/ride_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -605,12 +606,12 @@ class _CreateRidePageState extends State<CreateRidePage> {
         final messageContent = '''
 🚗 **Nova carona criada!**
 
-📍 **De:** ${_originController.text}
+📍 **De:** \\${_originController.text}
 🎯 **Para:** Biopark Educação
-⏰ **Horário:** ${_departureTimeController.text}
+⏰ **Horário:** \\${_departureTimeController.text}
 📅 **Data:** $formattedDate
-🚙 **Veículo:** ${_selectedVehicle!.brand} ${_selectedVehicle!.model}
-💺 **Vagas:** ${_seatsController.text}
+🚙 **Veículo:** \\${_selectedVehicle!.brand} \\${_selectedVehicle!.model}
+💺 **Vagas:** \\${_seatsController.text}
 📏 **Distância:** $_distanceInKm
 
 Interessados podem entrar em contato!
@@ -618,7 +619,7 @@ Interessados podem entrar em contato!
             .trim();
 
         if (kDebugMode) {
-          print('Mensagem para grupo ${_selectedGroupObj!.name}: $messageContent');
+          print('Mensagem para grupo \\${_selectedGroupObj!.name}: $messageContent');
         }
       } catch (e) {
         if (kDebugMode) {
@@ -652,6 +653,27 @@ Interessados podem entrar em contato!
       if (!mounted) return;
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        int? rideId;
+        try {
+          final responseData = jsonDecode(response.body);
+          rideId = responseData['id'] ?? responseData['rideId'];
+        } catch (_) {}
+
+        if (_selectedGroupObj != null && rideId != null) {
+          final int nonNullRideId = rideId!;
+          try {
+            final members = await GroupService.getGroupMembers(_selectedGroupObj!.id);
+            for (final member in members) {
+              if (member.userId == null || member.userId == authService.currentUser!.userId) continue;
+              await RideService.createRequest(nonNullRideId, member.userId!);
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Erro ao criar requests para membros do grupo: $e');
+            }
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Viagem criada com sucesso!'),
@@ -663,7 +685,7 @@ Interessados podem entrar em contato!
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
-                  'Erro ao criar viagem: ${response.statusCode} - ${response.body}')),
+                  'Erro ao criar viagem: \\${response.statusCode} - \\${response.body}')),
         );
       }
     } catch (e) {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/config/app_config.dart';
+import 'package:mobile_app/models/user.dart';
 
 class Group {
   final int id;
@@ -70,6 +71,28 @@ class GroupService {
       }
     } catch (e) {
       throw Exception('Erro ao buscar grupos: $e');
+    }
+  }
+
+  static Future<List<User>> getGroupMembers(int groupId) async {
+    try {
+      if (!_authService.isAuthenticated) {
+        throw Exception('Usuário não autenticado');
+      }
+
+      final response = await http.get(
+        Uri.parse('$apiUrl/api/groups/$groupId/members'),
+        headers: _authService.getAuthHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> membersJson = jsonDecode(response.body);
+        return membersJson.map((json) => User.fromJson(json)).toList();
+      } else {
+        throw Exception('Erro ao buscar membros do grupo: \\${response.statusCode} - \\${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Erro ao buscar membros do grupo: $e');
     }
   }
 } 

@@ -1,7 +1,14 @@
 // caronas_screen.dart
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile_app/components/custom_button.dart';
+import 'package:mobile_app/models/ride.dart';
 import 'package:mobile_app/pages/passenger_home/passenger_detail_home.dart';
+import 'package:mobile_app/services/ride_service.dart';
+import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/services/auth_service.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   const PassengerHomeScreen({super.key});
@@ -11,72 +18,35 @@ class PassengerHomeScreen extends StatefulWidget {
 }
 
 class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
-  void updatePageIndex(int index) {
-    setState(() {});
+  late Future<List<Ride>> _ridesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ridesFuture = RideService.getRides();
   }
 
-  final List<Map<String, dynamic>> caronas = [
-    {
-      'nome': 'Jéssica Santos',
-      'local': 'Av. Maripa - 549B, Centro, Toledo - PR',
-      'horario': '07h00',
-      'preco': 'R\$935.00',
-      'estrelas': 4,
-      'avatar': 'https://i.pravatar.cc/150?img=47',
-    },
-    {
-      'nome': 'Nicolas Neto',
-      'local': 'Av. Maripa - 549B, Centro, Toledo - PR',
-      'horario': '07h00',
-      'preco': 'R\$535.00',
-      'estrelas': 3,
-      'avatar': 'https://i.pravatar.cc/150?img=12',
-    },
-    {
-      'nome': 'Pedro Neto',
-      'local': 'Av. Maripa - 549B, Centro, Toledo - PR',
-      'horario': '07h00',
-      'preco': 'R\$335.00',
-      'estrelas': 4,
-      'avatar': 'https://i.pravatar.cc/150?img=23',
-    },
-    {
-      'nome': "Maria's Tur",
-      'local': 'Av. Maripa - 549B, Centro, Toledo - PR',
-      'horario': '07h00',
-      'preco': 'R\$235.00',
-      'estrelas': 3,
-      'avatar': 'https://i.pravatar.cc/150?img=30',
-    },
-  ];
-
-  void showPassagerDetailHome(
-    BuildContext context,
-    Map<String, dynamic> carona,
-  ) {
+  void showPassagerDetailHome(BuildContext context, Ride ride) {
     final theme = Theme.of(context);
 
     showDialog(
       context: context,
       barrierDismissible: true,
+      // Use a slightly transparent barrier color
       barrierColor: theme.colorScheme.onSurface.withAlpha((255 * 0.8).toInt()),
-      builder:
-          (_) => Center(
-            child: Material(
-              color: theme.cardColor,
-              elevation: 12,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.9,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: PassengerDetailHome(carona: carona),
-                ),
-              ),
-            ),
+      builder: (_) => Center(
+        child: Material(
+          color: Colors.transparent, // Make material transparent
+          elevation: 12,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            child: PassengerDetailHome(ride: ride),
+          ),
+        ),
+      ),
     );
   }
 
@@ -91,7 +61,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Boa tarde, Gabriel',
+                'Boa tarde, Gabriel', // This could be dynamic
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -103,20 +73,37 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                 'Caronas Disponíveis:',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withAlpha((255 * 0.7).toInt()),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withAlpha((255 * 0.7).toInt()),
                 ),
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: ListView.builder(
-                  itemCount: caronas.length,
-                  itemBuilder: (context, index) {
-                    final carona = caronas[index];
-                    return CaronaCard(
-                      carona: carona,
-                      onTap: () => showPassagerDetailHome(context, carona),
+                child: FutureBuilder<List<Ride>>(
+                  future: _ridesFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(
+                          child: Text('Erro ao carregar corridas: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text('Nenhuma carona encontrada.'));
+                    }
+
+                    final rides = snapshot.data!;
+                    debugPrint('FutureBuilder: Construindo lista com ${rides.length} corridas.');
+                    return ListView.builder(
+                      itemCount: rides.length,
+                      itemBuilder: (context, index) {
+                        final ride = rides[index];
+                        return CaronaCard(
+                          ride: ride,
+                          onTap: () => showPassagerDetailHome(context, ride),
+                        );
+                      },
                     );
                   },
                 ),
@@ -130,13 +117,35 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 }
 
 class CaronaCard extends StatelessWidget {
-  final Map<String, dynamic> carona;
+  final Ride ride;
   final VoidCallback onTap;
 
-  const CaronaCard({super.key, required this.carona, required this.onTap});
+  const CaronaCard({super.key, required this.ride, required this.onTap});
+
+  Future<String> _getAddressFromCoordinates(String coordinates) async {
+    try {
+      final parts = coordinates.split(',');
+      if (parts.length == 2) {
+        final lat = double.parse(parts[0].trim());
+        final lon = double.parse(parts[1].trim());
+        List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+        if (placemarks.isNotEmpty) {
+          final p = placemarks.first;
+          return '${p.thoroughfare}, ${p.subLocality}, ${p.locality} - ${p.administrativeArea}';
+        }
+      }
+      return 'Endereço não disponível';
+    } catch (e) {
+      return 'Endereço não disponível';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final formattedTime = DateFormat('HH:mm').format(ride.departureTime);
+    final formattedPrice = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
+        .format(ride.pricePerMember ?? 0);
+
     return Card(
       color: Theme.of(context).cardColor,
       margin: const EdgeInsets.only(bottom: 12),
@@ -149,7 +158,8 @@ class CaronaCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: NetworkImage(carona['avatar']),
+                  backgroundColor: Colors.grey.shade800,
+                  child: const Icon(Icons.person, color: Colors.white),
                   radius: 25,
                 ),
                 const SizedBox(width: 12),
@@ -160,13 +170,26 @@ class CaronaCard extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              carona['nome'],
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
+                            child: FutureBuilder<User>(
+                              future: UserService.getUserById(ride.driver.userId),
+                              builder: (context, userSnapshot) {
+                                String displayName;
+                                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                                  displayName = 'Carregando...';
+                                } else if (userSnapshot.hasError || !userSnapshot.hasData) {
+                                  displayName = '${ride.vehicle.brand} ${ride.vehicle.model}';
+                                } else {
+                                  displayName = userSnapshot.data!.name;
+                                }
+                                return Text(
+                                  displayName,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           IconButton(
@@ -180,25 +203,30 @@ class CaronaCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
+                      FutureBuilder<String>(
+                        future: _getAddressFromCoordinates(ride.startLocation),
+                        builder: (context, addressSnapshot) {
+                          return Text(
+                            'Saída: ${addressSnapshot.data ?? "Carregando endereço..."}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          );
+                        },
+                      ),
                       Text(
-                        'Saída: ${carona['local']}',
+                        'Horário de saída: $formattedTime',
                         style: TextStyle(
                           fontSize: 13,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      Text(
-                        'Horário de saída: ${carona['horario']}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      if (carona.containsKey('preco'))
+                      if (ride.pricePerMember != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 6.0),
                           child: Text(
-                            'Valor máximo da viagem: ${carona['preco']}',
+                            'Valor por pessoa: $formattedPrice',
                             style: TextStyle(
                               fontSize: 13,
                               color: Theme.of(context).colorScheme.secondary,
@@ -212,7 +240,7 @@ class CaronaCard extends StatelessWidget {
                             children: List.generate(
                               5,
                               (i) => Icon(
-                                i < carona['estrelas']
+                                i < 4
                                     ? Icons.star
                                     : Icons.star_border,
                                 color: Colors.amber,
@@ -222,7 +250,18 @@ class CaronaCard extends StatelessWidget {
                           ),
                           const Spacer(),
                           CustomButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              final authService = AuthService();
+                              if (authService.currentUser?.userId != null) {
+                                RideService.createRequest(ride.id, authService.currentUser!.userId!)
+                                  .then((_) => ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Solicitação enviada!'))
+                                  ))
+                                  .catchError((e) => ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erro: $e'))
+                                  ));
+                              }
+                            },
                             text: 'Solicitar',
                             variant: ButtonVariant.primary,
                           ),

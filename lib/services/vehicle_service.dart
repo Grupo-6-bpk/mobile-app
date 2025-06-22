@@ -82,34 +82,22 @@ class VehicleService {
       );
 
       debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        debugPrint('Response data structure: $responseData');
-          // Check if the response has a vehicles array
-        if (responseData.containsKey('vehicles')) {
+      debugPrint('Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        
+        // A API agora retorna um objeto com uma chave "vehicles"
+        if (responseData is Map<String, dynamic> && 
+            responseData.containsKey('vehicles') && 
+            responseData['vehicles'] is List) {
           final List<dynamic> vehiclesJson = responseData['vehicles'];
-          debugPrint('Found ${vehiclesJson.length} vehicles in response');
-          
-          List<Vehicle> vehicles = [];
-          for (int i = 0; i < vehiclesJson.length; i++) {
-            try {
-              final vehicleJson = vehiclesJson[i];
-              debugPrint('Parsing vehicle $i: $vehicleJson');
-              final vehicle = Vehicle.fromJson(vehicleJson);
-              vehicles.add(vehicle);
-              debugPrint('Successfully parsed vehicle: ${vehicle.brand} ${vehicle.model}');
-            } catch (e) {
-              debugPrint('Error parsing vehicle $i: $e');
-            }
-          }
-          
-          debugPrint('Successfully parsed ${vehicles.length} vehicles');
-          return vehicles;
+          return vehiclesJson
+              .map((json) => Vehicle.fromJson(json))
+              .toList();
         } else {
-          // Fallback: try to treat the response as a direct array
-          final List<dynamic> vehiclesJson = jsonDecode(response.body);
-          debugPrint('Treating response as direct array with ${vehiclesJson.length} vehicles');
-          return vehiclesJson.map((json) => Vehicle.fromJson(json)).toList();
+          debugPrint('Resposta da API de veículos não está no formato esperado.');
+          return [];
         }
       } else if (response.statusCode == 401) {
         debugPrint('Authentication failed');
