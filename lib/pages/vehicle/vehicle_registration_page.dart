@@ -5,6 +5,7 @@ import 'package:mobile_app/components/custom_textfield.dart';
 import 'package:mobile_app/components/custom_file_picker.dart';
 import 'package:mobile_app/models/vehicle.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
+import 'package:mobile_app/utils/input_formatters.dart';
 
 class VehicleRegistrationPage extends StatefulWidget {
   final Vehicle? vehicleToEdit;
@@ -250,14 +251,13 @@ class _VehicleRegistrationPageState extends State<VehicleRegistrationPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-
-                // Placa
+                const SizedBox(height: 20),                // Placa
                 CustomTextfield(
                   controller: _plateController,
                   focusNode: _plateFocusNode,
                   label: 'Placa (ex: ABC1234)',
                   obscureText: false,
+                  inputFormatters: [PlateFormatter()],
                   onSubmitted: (_) =>
                       FocusScope.of(context).requestFocus(_renavamFocusNode),
                 ),
