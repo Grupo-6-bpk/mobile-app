@@ -5,6 +5,7 @@ import 'package:mobile_app/components/custom_file_picker.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
 import 'package:mobile_app/models/user.dart';
 import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/utils/input_formatters.dart';
 
 class DriverSignUpPage extends StatefulWidget {
   const DriverSignUpPage({super.key});
@@ -273,24 +274,26 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
                                     ).requestFocus(_phoneFocusNode);
                                   },
                                 ),
-                                const SizedBox(height: 20),
-                                CustomTextfield(
+                                const SizedBox(height: 20),                                CustomTextfield(
                                   controller: _phoneController,
                                   focusNode: _phoneFocusNode,
                                   label: "Telefone",
                                   obscureText: false,
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [InputFormatters.phoneFormatter],
                                   onSubmitted: (_) {
                                     FocusScope.of(
                                       context,
                                     ).requestFocus(_cpfFocusNode);
                                   },
                                 ),
-                                const SizedBox(height: 20),
-                                CustomTextfield(
+                                const SizedBox(height: 20),                                CustomTextfield(
                                   controller: _cpfController,
                                   focusNode: _cpfFocusNode,
-                                  label: "Cpf",
+                                  label: "CPF",
                                   obscureText: false,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [InputFormatters.cpfFormatter],
                                   onSubmitted: (_) {
                                     FocusScope.of(
                                       context,
@@ -347,13 +350,13 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
                                       ),
                                     ),
                                     const SizedBox(width: 15),
-                                    Expanded(
-                                      child: CustomTextfield(
+                                    Expanded(                                      child: CustomTextfield(
                                         controller: _zipcodeController,
                                         focusNode: _zipcodeFocusNode,
-                                        isNumeric: true,
                                         label: "CEP",
                                         obscureText: false,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [InputFormatters.cepFormatter],
                                       ),
                                     ),
                                   ],

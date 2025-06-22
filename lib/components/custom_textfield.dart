@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class CustomTextfield extends StatelessWidget {
   final TextEditingController controller;
@@ -10,6 +12,7 @@ class CustomTextfield extends StatelessWidget {
   final bool isNumeric;
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextfield({
     super.key,
@@ -22,6 +25,7 @@ class CustomTextfield extends StatelessWidget {
     this.isNumeric = false,
     this.validator,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   @override
@@ -33,6 +37,7 @@ class CustomTextfield extends StatelessWidget {
       onFieldSubmitted: onSubmitted,
       validator: validator,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         suffixIcon: icon,
         label: Text(label),
