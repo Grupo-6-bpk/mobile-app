@@ -126,35 +126,47 @@ class User {
       passenger =
           json['passenger'] != null
               ? Passenger.fromJson(json['passenger'])
-              : null;
-
-  Map<String, dynamic> toJson() {
-    return {
-      'userId': userId,
-      'name': name,
-      'last_name': lastName,
-      'email': email,
-      'password': password,
-      'cpf': cpf,
-      'phone': phone,
-      'street': street,
-      'cnh': cnh,
-      'cnh_back': cnhBackUrl,
-      'cnh_front': cnhFrontUrl,
-      'bpk_link': bpkLinkUrl,
-      'rg_front': rgFrontUrl,
-      'rg_back': rgBackUrl,
-      'number': number,
-      'city': city,
-      'zipcode': zipcode,
-      'createAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-      'isDriver': isDriver,
-      'isPassenger': isPassenger,
-      'verified': verified,
-      'avatarUrl': avatarUrl,
-      'driver': driver?.toJson(),
-      'passenger': passenger?.toJson(),
-    };
+              : null;  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {};
+    
+    // Adiciona apenas campos que não são null
+    data['name'] = name;
+    if (lastName != null) data['last_name'] = lastName;
+    if (email != null) data['email'] = email;
+    if (password != null) data['password'] = password;
+    if (cpf != null) data['cpf'] = cpf;
+    if (phone != null) data['phone'] = phone;
+    if (street != null) data['street'] = street;
+    if (cnh != null) data['cnh'] = cnh;
+    if (cnhBackUrl != null) data['cnh_back'] = cnhBackUrl;
+    if (cnhFrontUrl != null) data['cnh_front'] = cnhFrontUrl;
+    if (bpkLinkUrl != null) data['bpk_link'] = bpkLinkUrl;
+    if (rgFrontUrl != null) data['rg_front'] = rgFrontUrl;
+    if (rgBackUrl != null) data['rg_back'] = rgBackUrl;
+    if (number != null) data['number'] = number;
+    if (city != null) data['city'] = city;
+    if (zipcode != null) data['zipcode'] = zipcode;
+    if (createdAt != null) data['createAt'] = createdAt!.toIso8601String();
+    if (updatedAt != null) data['updatedAt'] = updatedAt!.toIso8601String();
+    if (isDriver != null) data['isDriver'] = isDriver;
+    if (isPassenger != null) data['isPassenger'] = isPassenger;
+    if (verified != null) data['verified'] = verified;
+    if (avatarUrl != null) data['avatarUrl'] = avatarUrl;
+    
+    // Só inclui userId se não for null
+    if (userId != null) {
+      data['userId'] = userId;
+    }
+    
+    // Só inclui driver/passenger se não forem null
+    if (driver != null) {
+      data['driver'] = driver!.toJson();
+    }
+    
+    if (passenger != null) {
+      data['passenger'] = passenger!.toJson();
+    }
+    
+    return data;
   }
 }

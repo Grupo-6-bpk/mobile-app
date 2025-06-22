@@ -23,15 +23,14 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _cpfController = TextEditingController();
   final TextEditingController _streetController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
-  final TextEditingController _zipcodeController = TextEditingController();  final TextEditingController _driverLicenseController =
-      TextEditingController();
+  final TextEditingController _zipcodeController = TextEditingController();  
+  final TextEditingController _driverLicenseController = TextEditingController();
 
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
@@ -99,14 +98,18 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
   bool _passwordsMatch() {
     return _passwordController.text == _confirmPasswordController.text;
   }
-
   bool _validateFirstStep() {
     return _firstNameController.text.isNotEmpty &&
         _lastNameController.text.isNotEmpty &&
         _emailController.text.isNotEmpty &&
         _passwordController.text.isNotEmpty &&
         _confirmPasswordController.text.isNotEmpty &&
-        _phoneController.text.isNotEmpty;
+        _phoneController.text.isNotEmpty &&
+        _cpfController.text.isNotEmpty &&
+        _streetController.text.isNotEmpty &&
+        _numberController.text.isNotEmpty &&
+        _cityController.text.isNotEmpty &&
+        _zipcodeController.text.isNotEmpty;
   }
 
   bool _validateSecondStep() {
