@@ -1,14 +1,13 @@
 // caronas_screen.dart
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/models/ride.dart';
+import 'package:mobile_app/models/user.dart';
 import 'package:mobile_app/pages/passenger_home/passenger_detail_home.dart';
+import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/ride_service.dart';
 import 'package:mobile_app/services/user_service.dart';
-import 'package:mobile_app/models/user.dart';
-import 'package:mobile_app/services/auth_service.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   const PassengerHomeScreen({super.key});
@@ -17,8 +16,11 @@ class PassengerHomeScreen extends StatefulWidget {
   State<PassengerHomeScreen> createState() => _PassengerHomeScreenState();
 }
 
-class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
+class _PassengerHomeScreenState extends State<PassengerHomeScreen> with AutomaticKeepAliveClientMixin<PassengerHomeScreen> {
   late Future<List<Ride>> _ridesFuture;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Importante para o AutomaticKeepAliveClientMixin
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -94,12 +97,12 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                     }
 
                     final rides = snapshot.data!;
-                    debugPrint('FutureBuilder: Construindo lista com ${rides.length} corridas.');
                     return ListView.builder(
                       itemCount: rides.length,
                       itemBuilder: (context, index) {
                         final ride = rides[index];
                         return CaronaCard(
+                          key: ValueKey(ride.id), // Add key for stability
                           ride: ride,
                           onTap: () => showPassagerDetailHome(context, ride),
                         );
@@ -122,24 +125,6 @@ class CaronaCard extends StatelessWidget {
 
   const CaronaCard({super.key, required this.ride, required this.onTap});
 
-  Future<String> _getAddressFromCoordinates(String coordinates) async {
-    try {
-      final parts = coordinates.split(',');
-      if (parts.length == 2) {
-        final lat = double.parse(parts[0].trim());
-        final lon = double.parse(parts[1].trim());
-        List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
-        if (placemarks.isNotEmpty) {
-          final p = placemarks.first;
-          return '${p.thoroughfare}, ${p.subLocality}, ${p.locality} - ${p.administrativeArea}';
-        }
-      }
-      return 'Endereço não disponível';
-    } catch (e) {
-      return 'Endereço não disponível';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final formattedTime = DateFormat('HH:mm').format(ride.departureTime);
@@ -159,8 +144,8 @@ class CaronaCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white),
                   radius: 25,
+                  child: const Icon(Icons.person, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -203,17 +188,12 @@ class CaronaCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      FutureBuilder<String>(
-                        future: _getAddressFromCoordinates(ride.startLocation),
-                        builder: (context, addressSnapshot) {
-                          return Text(
-                            'Saída: ${addressSnapshot.data ?? "Carregando endereço..."}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          );
-                        },
+                      Text(
+                        'Saída: ${ride.startLocation}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                       Text(
                         'Horário de saída: $formattedTime',
@@ -253,13 +233,18 @@ class CaronaCard extends StatelessWidget {
                             onPressed: () {
                               final authService = AuthService();
                               if (authService.currentUser?.userId != null) {
-                                RideService.createRequest(ride.id, authService.currentUser!.userId!)
-                                  .then((_) => ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Solicitação enviada!'))
-                                  ))
-                                  .catchError((e) => ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Erro: $e'))
-                                  ));
+                                RideService.createRequest(
+                                        ride.id, authService.currentUser!.userId!)
+                                    .then((_) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('Solicitação enviada!')));
+                                }).catchError((e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Erro: $e')));
+                                });
                               }
                             },
                             text: 'Solicitar',

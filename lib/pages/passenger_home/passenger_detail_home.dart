@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/models/ride.dart';
 import 'package:mobile_app/models/user.dart';
@@ -9,24 +8,6 @@ class PassengerDetailHome extends StatelessWidget {
   final Ride ride;
 
   const PassengerDetailHome({super.key, required this.ride});
-
-  Future<String> _getAddressFromCoordinates(String coordinates) async {
-    try {
-      final parts = coordinates.split(',');
-      if (parts.length == 2) {
-        final lat = double.parse(parts[0].trim());
-        final lon = double.parse(parts[1].trim());
-        List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
-        if (placemarks.isNotEmpty) {
-          final p = placemarks.first;
-          return '${p.thoroughfare}, ${p.subLocality}, ${p.locality} - ${p.administrativeArea}';
-        }
-      }
-      return 'Endereço não disponível';
-    } catch (e) {
-      return 'Endereço não disponível';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +57,8 @@ class PassengerDetailHome extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor: Colors.grey.shade800,
-                child: const Icon(Icons.person),
                 radius: 25,
+                child: const Icon(Icons.person),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -115,9 +96,11 @@ class PassengerDetailHome extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          Text(
-            'Avaliação do motorista: ',
-            style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
+          Flexible(
+            child: Text(
+              'Avaliação do motorista: ',
+              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
+            ),
           ),
           Row(
             children: List.generate(
@@ -148,25 +131,15 @@ class PassengerDetailHome extends StatelessWidget {
   }
 
   Widget _buildInformacoesViagem(ThemeData theme) {
-    final formattedTime = DateFormat('HH:mm dd/MM/yyyy').format(ride.departureTime);
+    final formattedTime = DateFormat('HH:mm').format(ride.departureTime);
     final formattedPrice = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
         .format(ride.pricePerMember ?? 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FutureBuilder<String>(
-          future: _getAddressFromCoordinates(ride.startLocation),
-          builder: (context, snapshot) {
-            return _buildInfoLine('Saída', snapshot.data ?? 'Carregando...', theme);
-          }
-        ),
-        FutureBuilder<String>(
-          future: _getAddressFromCoordinates(ride.endLocation),
-          builder: (context, snapshot) {
-            return _buildInfoLine('Destino', snapshot.data ?? 'Carregando...', theme);
-          }
-        ),
+        _buildInfoLine('Saída', ride.startLocation, theme),
+        _buildInfoLine('Destino', ride.endLocation, theme),
         _buildInfoLine('Horário de saída', formattedTime, theme),
         _buildInfoLine('Assentos disponíveis', ride.availableSeats.toString(), theme),
         if (ride.pricePerMember != null)

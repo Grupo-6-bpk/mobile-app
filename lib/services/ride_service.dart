@@ -44,26 +44,48 @@ class RideService {
   }
 
   static Future<List<Ride>> getRides() async {
-    final response = await http.get(
-      Uri.parse('$apiUrl/api/rides'),
-      headers: _authService.getAuthHeaders(),
-    );
+    if (!_authService.isAuthenticated) {
+      throw Exception('Usuário não autenticado. Faça o login para ver as corridas.');
+    }
 
-    if (response.statusCode == 200) {
-      final responseData = jsonDecode(response.body);
-      if (responseData is Map<String, dynamic> &&
-          responseData.containsKey('rides') &&
-          responseData['rides'] is List) {
-        final List<dynamic> ridesJson = responseData['rides'];
-        final rides = ridesJson.map((json) => Ride.fromJson(json)).toList();
-        debugPrint('RideService: Encontradas ${rides.length} corridas na API.');
-        return rides;
+    final url = Uri.parse('$apiUrl/api/rides');
+    final headers = _authService.getAuthHeaders();
+
+    debugPrint('--- RideService: Iniciando busca de corridas ---');
+    debugPrint('URL: $url');
+    debugPrint('Headers: $headers');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('--- RideService: Sucesso! Status 200 ---');
+        final responseData = jsonDecode(response.body);
+        if (responseData is Map<String, dynamic> &&
+            responseData.containsKey('rides') &&
+            responseData['rides'] is List) {
+          final List<dynamic> ridesJson = responseData['rides'];
+          final rides = ridesJson.map((json) => Ride.fromJson(json)).toList();
+          debugPrint('RideService: Encontradas ${rides.length} corridas na API.');
+          return rides;
+        } else {
+          debugPrint('RideService: Resposta com formato inesperado.');
+          return [];
+        }
       } else {
-        // Handle cases where the response is not in the expected format
-        return [];
+        debugPrint('--- RideService: Erro na resposta da API ---');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Response Body: ${response.body}');
+        throw Exception(
+            'Falha ao carregar corridas. Código: ${response.statusCode}');
       }
-    } else {
-      throw Exception('Failed to load rides');
+    } catch (e) {
+      debugPrint('--- RideService: Exceção na chamada HTTP ---');
+      debugPrint('Erro: $e');
+      rethrow;
     }
   }
 

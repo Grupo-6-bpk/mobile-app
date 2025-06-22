@@ -26,7 +26,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
   String? _selectedGroup;
   String _distanceInKm = 'Calculando...';
   double _calculatedDistance = 0.0;
-  List<Vehicle> _vehicles = [];
   Vehicle? _selectedVehicle;
   List<Group> _groups = [];
   Group? _selectedGroupObj;
@@ -196,7 +195,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
 
       if (mounted) {
         setState(() {
-          _vehicles = vehicles;
           if (vehicles.isNotEmpty) {
             _selectedVehicle = vehicles.first;
           }
@@ -398,7 +396,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                       formattedDate,
                       style: TextStyle(
                         color:
-                            Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                            Theme.of(context).colorScheme.onSurface.withAlpha(80),
                         fontSize: 14,
                       ),
                     ),
@@ -504,7 +502,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
           Text(
             value,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(204),
               fontSize: 14,
             ),
           ),
@@ -513,7 +511,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
             Text(
               subtitle,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(204),
                 fontSize: 14,
               ),
             ),
@@ -660,11 +658,14 @@ Interessados podem entrar em contato!
         } catch (_) {}
 
         if (_selectedGroupObj != null && rideId != null) {
-          final int nonNullRideId = rideId!;
+          final int nonNullRideId = rideId;
           try {
             final members = await GroupService.getGroupMembers(_selectedGroupObj!.id);
             for (final member in members) {
-              if (member.userId == null || member.userId == authService.currentUser!.userId) continue;
+              if (member.userId == null ||
+                  member.userId == authService.currentUser!.userId) {
+                continue;
+              }
               await RideService.createRequest(nonNullRideId, member.userId!);
             }
           } catch (e) {
@@ -680,7 +681,9 @@ Interessados podem entrar em contato!
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
-        Navigator.pop(context);
+        if (mounted) {
+          Navigator.pop(context);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
