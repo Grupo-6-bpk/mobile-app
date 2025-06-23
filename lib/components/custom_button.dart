@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum ButtonVariant { primary, secondary, danger }
+enum ButtonVariant { primary, secondary, danger, success }
 
 class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -86,6 +86,8 @@ class CustomButton extends StatelessWidget {
         };
       case ButtonVariant.danger:
         return {'background': colorScheme.error, 'text': colorScheme.onError};
+      case ButtonVariant.success:
+        return {'background': Colors.green.shade600, 'text': colorScheme.onError};
     }
   }
 }

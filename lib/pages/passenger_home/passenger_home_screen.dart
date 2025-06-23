@@ -1,4 +1,6 @@
 // caronas_screen.dart
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/components/custom_button.dart';
@@ -8,6 +10,11 @@ import 'package:mobile_app/pages/passenger_home/passenger_detail_home.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/ride_service.dart';
 import 'package:mobile_app/services/user_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+import 'package:mobile_app/config/app_config.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
   const PassengerHomeScreen({super.key});
@@ -18,6 +25,8 @@ class PassengerHomeScreen extends StatefulWidget {
 
 class _PassengerHomeScreenState extends State<PassengerHomeScreen> with AutomaticKeepAliveClientMixin<PassengerHomeScreen> {
   late Future<List<Ride>> _ridesFuture;
+  final authService = AuthService();
+  int? passengerId;
 
   @override
   bool get wantKeepAlive => true;
@@ -26,6 +35,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> with Automati
   void initState() {
     super.initState();
     _ridesFuture = RideService.getRides();
+    passengerId = authService.currentUser?.userId;
   }
 
   void showPassagerDetailHome(BuildContext context, Ride ride) {
@@ -230,24 +240,8 @@ class CaronaCard extends StatelessWidget {
                           ),
                           const Spacer(),
                           CustomButton(
-                            onPressed: () {
-                              final authService = AuthService();
-                              if (authService.currentUser?.userId != null) {
-                                RideService.createRequest(
-                                        ride.id, authService.currentUser!.userId!)
-                                    .then((_) {
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('Solicitação enviada!')));
-                                }).catchError((e) {
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Erro: $e')));
-                                });
-                              }
-                            },
-                            text: 'Solicitar',
+                            text: "Solicitar",
+                            onPressed: () => _onSolicitarPressed(context),
                             variant: ButtonVariant.primary,
                           ),
                         ],
@@ -261,5 +255,87 @@ class CaronaCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _onSolicitarPressed(BuildContext context) async {
+    try {
+      // Verifica e solicita permissão de localização, se necessário
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          // Permissão negada
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permissão de localização negada.')),
+          );
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permissão de localização permanentemente negada.')),
+        );
+        return;
+      }
+
+      // Obtém a localização atual
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      String startLocation = '${position.latitude},${position.longitude}';
+      String endLocation = 'bpkedu';
+
+      // Pegue o id do passageiro autenticado
+      final authService = AuthService();
+      final passengerId = authService.currentUser?.passenger?.id;
+
+      if (passengerId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuário não autenticado ou não é passageiro!')),
+        );
+        return;
+      }
+
+      await criarSolicitacaoCarona(startLocation, endLocation, ride.id, passengerId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitação enviada!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao obter localização: $e')),
+      );
+    }
+  }
+}
+
+Future<void> criarSolicitacaoCarona(
+    String startLocation, String endLocation, int rideId, int passengerId) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString(AppConfig.tokenKey);
+
+  final headers = {
+    'Content-Type': 'application/json',
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
+
+  final body = jsonEncode({
+    'rideId': rideId,
+    'startLocation': startLocation,
+    'endLocation': endLocation,
+    'passengerId': passengerId,
+  });
+
+  final url = Uri.parse('${AppConfig.baseUrl}/api/ride-requests/');
+  final response = await http.post(url, headers: headers, body: body);
+
+  print('Status: ${response.statusCode}');
+  print('Response: ${response.body}');
+
+  if (response.statusCode == 201 || response.statusCode == 200) {
+    // sucesso
+  } else {
+    // erro
   }
 }

@@ -11,6 +11,7 @@ import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/group_service.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
 import 'package:mobile_app/services/ride_service.dart';
+import 'package:mobile_app/pages/ride/start/ride_start.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -568,12 +569,34 @@ class _CreateRidePageState extends State<CreateRidePage> {
     }
   }
 
+  DateTime _getDepartureDateTime() {
+    try {
+      final parts = _departureTimeController.text.split(':');
+      return DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+      );
+    } catch (e) {
+      return DateTime.now();
+    }
+  }
+
   Future<void> _createRide() async {
     final authService = AuthService();
     if (!authService.isAuthenticated || authService.currentUser == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Faça login para criar uma viagem.')),
+      );
+      return;
+    }
+
+    if (_getDepartureDateTime().isBefore(DateTime.now().add(const Duration(minutes: 5)))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A partida deve ser em pelo menos 5 minutos.')),
       );
       return;
     }
@@ -645,17 +668,62 @@ Interessados podem entrar em contato!
         'vehicleId': _selectedVehicle!.id,
       });
 
+      print('CreateRidePage: Enviando requisição para criar viagem');
+      print('CreateRidePage: URL: ${AppConfig.baseUrl}/api/rides/');
+      print('CreateRidePage: Headers: $headers');
+      print('CreateRidePage: Body: $body');
+
       final url = Uri.parse('${AppConfig.baseUrl}/api/rides/');
       final response = await http.post(url, headers: headers, body: body);
+
+      print('CreateRidePage: Requisição concluída');
+      print('CreateRidePage: Status code: ${response.statusCode}');
+      print('CreateRidePage: Response body: ${response.body}');
 
       if (!mounted) return;
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        print('CreateRidePage: Status code OK, processando resposta');
         int? rideId;
-        try {
-          final responseData = jsonDecode(response.body);
-          rideId = responseData['id'] ?? responseData['rideId'];
-        } catch (_) {}
+
+        // Verifica se o corpo da resposta não está vazio antes de decodificar
+        if (response.body.isNotEmpty) {
+          try {
+            final responseData = jsonDecode(response.body);
+            print('CreateRidePage: Response data completo: $responseData');
+            print('CreateRidePage: Response data tipo: ${responseData.runtimeType}');
+
+            // Tentar todas as possíveis chaves para o rideId
+            rideId = responseData['id'] ??
+                     responseData['rideId'] ??
+                     responseData['ride_id'] ??
+                     responseData['ride']?['id'] ??
+                     responseData['data']?['id'] ??
+                     responseData['data']?['rideId'];
+
+            print('CreateRidePage: RideId extraído: $rideId');
+          } catch (e) {
+            print('CreateRidePage: Erro ao decodificar JSON ou extrair rideId: $e');
+          }
+        } else {
+          print('CreateRidePage: Corpo da resposta está vazio.');
+        }
+
+        // Se o rideId ainda for nulo, buscar a última viagem
+        if (rideId == null) {
+          print('CreateRidePage: RideId é null, buscando última viagem do motorista');
+          try {
+            final driverId = authService.currentUser!.userId;
+            if (driverId != null) {
+              rideId = await RideService.getLatestRideByDriver(driverId);
+              print('CreateRidePage: RideId da última viagem: $rideId');
+            } else {
+              print('CreateRidePage: driverId é null, não é possível buscar última viagem');
+            }
+          } catch (e) {
+            print('CreateRidePage: Erro ao buscar última viagem: $e');
+          }
+        }
 
         if (_selectedGroupObj != null && rideId != null) {
           final int nonNullRideId = rideId;
@@ -682,7 +750,21 @@ Interessados podem entrar em contato!
           ),
         );
         if (mounted) {
-          Navigator.pop(context);
+          final rideData = {
+            'driverId': authService.currentUser!.userId,
+            'startLocation': _originController.text,
+            'endLocation': "Biopark Educação",
+            'departureTime': _departureTimeController.text,
+            'estimatedArrival': _estimatedArrivalController.text,
+            'date': formattedDate,
+            'seats': _seatsController.text,
+            'distance': _distanceInKm,
+            'vehicleBrand': _selectedVehicle?.brand,
+            'vehicleModel': _selectedVehicle?.model,
+          };
+          
+          print('CreateRidePage: Navegando para /ride_start com dados: $rideData');
+          Navigator.pushNamed(context, '/ride_start', arguments: rideData);
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
