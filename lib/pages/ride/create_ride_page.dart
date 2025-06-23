@@ -11,7 +11,6 @@ import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/group_service.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
 import 'package:mobile_app/services/ride_service.dart';
-import 'package:mobile_app/pages/ride/start/ride_start.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
