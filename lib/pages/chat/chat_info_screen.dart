@@ -5,6 +5,7 @@ import '../../models/user.dart';
 import '../../models/chat_participant.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
+import '../../utils/input_formatters.dart';
 
 class ChatInfoScreen extends ConsumerStatefulWidget {
   final Chat chat;
@@ -697,9 +698,7 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
               'Busque um usuário pelo número de telefone para adicionar ao grupo:',
               style: TextStyle(fontSize: 14),
             ),
-            const SizedBox(height: 16),
-            
-            TextField(
+            const SizedBox(height: 16),            TextField(
               controller: _phoneController,
               focusNode: _phoneFocusNode,
               decoration: InputDecoration(
@@ -720,6 +719,7 @@ class _AddParticipantDialogState extends ConsumerState<_AddParticipantDialog> {
                 errorText: _errorMessage,
               ),
               keyboardType: TextInputType.phone,
+              inputFormatters: [InputFormatters.phoneFormatter],
               onSubmitted: (_) => _searchUsers(),
             ),
             
