@@ -43,9 +43,45 @@ class _CreateRidePageState extends State<CreateRidePage> {
     return "${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}";
   }
 
+  // Validação de vagas
+  bool _isValidSeats = true;
+  String? _seatsErrorMessage;
+
+  void _validateSeats(String value) {
+    print('CreateRidePage: _validateSeats() chamada com valor: "$value"');
+    final seats = int.tryParse(value);
+    print('CreateRidePage: Seats parseado na validação: $seats, tipo: ${seats.runtimeType}');
+    
+    if (seats == null || seats < 1) {
+      print('CreateRidePage: Validação falhou - seats inválido: $seats');
+      setState(() {
+        _isValidSeats = false;
+        _seatsErrorMessage = seats == null 
+            ? 'Digite um número válido de vagas' 
+            : 'A corrida deve ter pelo menos 1 vaga';
+      });
+    } else {
+      print('CreateRidePage: Validação passou - seats válido: $seats');
+      setState(() {
+        _isValidSeats = true;
+        _seatsErrorMessage = null;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    // Validar valor inicial das vagas
+    _validateSeats(_seatsController.text);
+    
+    // Adicionar listener para validação em tempo real das vagas
+    _seatsController.addListener(() {
+      print('CreateRidePage: Listener do _seatsController acionado');
+      print('CreateRidePage: Texto atual: "${_seatsController.text}"');
+      _validateSeats(_seatsController.text);
+    });
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setCurrentLocationAsOrigin();
       _loadVehicles();
@@ -341,6 +377,60 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             _buildTextField(
                               "Vagas disponíveis:",
                               _seatsController,
+                              icon: IconButton(
+                                icon: Icon(
+                                  _isValidSeats ? Icons.event_seat : Icons.error,
+                                  color: _isValidSeats 
+                                      ? colorScheme.primary 
+                                      : Colors.red,
+                                ),
+                                onPressed: null,
+                              ),
+                            ),
+                            // Mensagem de erro para vagas
+                            if (!_isValidSeats && _seatsErrorMessage != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 16,
+                                      color: Colors.red,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        _seatsErrorMessage!,
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            // Dica sobre número mínimo de vagas
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 14,
+                                    color: colorScheme.onSurface.withAlpha(120),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Mínimo: 1 vaga',
+                                    style: TextStyle(
+                                      color: colorScheme.onSurface.withAlpha(120),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 14),
                             _buildInfoSection(
@@ -543,7 +633,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
             child: CustomButton(
               text: "Criar viagem",
               variant: ButtonVariant.primary,
-              onPressed: _createRide,
+              onPressed: _isValidSeats ? _createRide : null,
               height: 45,
             ),
           ),
@@ -621,6 +711,41 @@ class _CreateRidePageState extends State<CreateRidePage> {
       return;
     }
 
+    if (int.tryParse(_seatsController.text) == null || int.parse(_seatsController.text) <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A corrida deve ter pelo menos 1 vaga disponível.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validação adicional usando a validação em tempo real
+    if (!_isValidSeats) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_seatsErrorMessage ?? 'Número de vagas inválido'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Verificar se já existe carona ativa para o motorista
+    final userId = authService.currentUser!.userId;
+    final int driverId = userId is int ? userId : int.parse(userId.toString());
+    final activeRide = await RideService.getActiveRideForDriver(driverId);
+    if (activeRide != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Você já possui uma carona ativa. Finalize ou cancele antes de criar outra.')),
+      );
+      return;
+    }
+
     if (_selectedGroupObj != null) {
       try {
         final messageContent = '''
@@ -662,7 +787,7 @@ Interessados podem entrar em contato!
         'distance': _calculatedDistance,
         'departureTime': _getDepartureDateTimeIso(),
         'fuelPrice': 5.5,
-        'totalSeats': int.tryParse(_seatsController.text) ?? 4,
+        'totalSeats': _getValidatedSeats(),
         'driverId': authService.currentUser!.userId,
         'vehicleId': _selectedVehicle!.id,
       });
@@ -671,6 +796,7 @@ Interessados podem entrar em contato!
       print('CreateRidePage: URL: ${AppConfig.baseUrl}/api/rides/');
       print('CreateRidePage: Headers: $headers');
       print('CreateRidePage: Body: $body');
+      print('CreateRidePage: Vagas validadas: ${_getValidatedSeats()}');
 
       final url = Uri.parse('${AppConfig.baseUrl}/api/rides/');
       final response = await http.post(url, headers: headers, body: body);
@@ -724,6 +850,20 @@ Interessados podem entrar em contato!
           }
         }
 
+        // VALIDAÇÃO CRÍTICA: Verificar se o rideId foi obtido
+        if (rideId == null) {
+          print('CreateRidePage: ERRO - RideId ainda é null após todas as tentativas');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Erro: Não foi possível obter o ID da viagem criada'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        print('CreateRidePage: RideId final validado: $rideId');
+
         if (_selectedGroupObj != null && rideId != null) {
           final int nonNullRideId = rideId;
           try {
@@ -749,20 +889,29 @@ Interessados podem entrar em contato!
           ),
         );
         if (mounted) {
+          final validatedSeats = _getValidatedSeats();
+          print('CreateRidePage: Vagas validadas antes de criar rideData: $validatedSeats');
+          print('CreateRidePage: Texto do campo de vagas: "${_seatsController.text}"');
+          
           final rideData = {
+            'rideId': rideId, // Garantir que rideId está presente
+            'id': rideId, // Adicionar também como 'id' para compatibilidade
             'driverId': authService.currentUser!.userId,
             'startLocation': _originController.text,
             'endLocation': "Biopark Educação",
             'departureTime': _departureTimeController.text,
             'estimatedArrival': _estimatedArrivalController.text,
             'date': formattedDate,
-            'seats': _seatsController.text,
+            'totalSeats': validatedSeats, // Usar função de validação
             'distance': _distanceInKm,
             'vehicleBrand': _selectedVehicle?.brand,
             'vehicleModel': _selectedVehicle?.model,
+            'status': 'PENDING', // Adicionar status explícito
           };
           
           print('CreateRidePage: Navegando para /ride_start com dados: $rideData');
+          print('CreateRidePage: RideId confirmado nos dados: ${rideData['rideId']}');
+          print('CreateRidePage: TotalSeats confirmado nos dados: ${rideData['totalSeats']}');
           Navigator.pushNamed(context, '/ride_start', arguments: rideData);
         }
       } else {
@@ -778,6 +927,29 @@ Interessados podem entrar em contato!
         SnackBar(content: Text('Erro ao criar viagem: $e')),
       );
     }
+  }
+
+  int _getValidatedSeats() {
+    print('CreateRidePage: _getValidatedSeats() chamada');
+    print('CreateRidePage: Texto do _seatsController: "${_seatsController.text}"');
+    print('CreateRidePage: _isValidSeats: $_isValidSeats');
+    
+    final seats = int.tryParse(_seatsController.text);
+    print('CreateRidePage: Seats parseado: $seats, tipo: ${seats.runtimeType}');
+    
+    if (seats == null || seats < 1) {
+      print('CreateRidePage: ERRO - Seats inválido: $seats');
+      throw Exception('Número de vagas inválido');
+    }
+    
+    // Verificação adicional para garantir que o valor é válido
+    if (!_isValidSeats) {
+      print('CreateRidePage: ERRO - Validação em tempo real falhou');
+      throw Exception('Validação de vagas falhou');
+    }
+    
+    print('CreateRidePage: Seats válido retornado: $seats');
+    return seats;
   }
 
   Widget _buildGroupList(ColorScheme colorScheme) {

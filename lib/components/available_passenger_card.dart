@@ -8,6 +8,7 @@ class AvailablePassengerCard extends StatelessWidget {
   final String imageUrl;
   final double rating;
   final VoidCallback onAccept;
+  final VoidCallback? onReject;
 
   const AvailablePassengerCard({
     super.key,
@@ -17,117 +18,135 @@ class AvailablePassengerCard extends StatelessWidget {
     required this.imageUrl,
     required this.rating,
     required this.onAccept,
+    this.onReject,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16.0),
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+        ),
       ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Imagem do perfil do passageiro
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.blue.shade100,
-                // Remover a tentativa de usar backgroundImage quando imageUrl está vazio
-                backgroundImage:
-                    imageUrl.isNotEmpty ? _getProfileImage() : null,
-                child:
-                    imageUrl.isEmpty
-                        ? Text(
-                          name[0],
-                          style: TextStyle(fontSize: 24, color: Colors.white),
-                        )
-                        : null,
-              ),
-              const SizedBox(width: 16.0),
-              // Informações do passageiro
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Ajustando Row com problema de overflow para garantir flexibilidade
-                    Wrap(
-                      alignment: WrapAlignment.start,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8.0,
-                      children: [
-                        Text(
-                          name,
-                          style: Theme.of(context).textTheme.titleMedium!
-                              .copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        _buildRatingStars(),
-                      ],
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            // Header com avatar e informações principais
+            Row(
+              children: [
+                // Avatar do passageiro
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : 'P',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    const SizedBox(height: 4.0),
-                    Text(
-                      'Localizada: $location',
-                      style: Theme.of(context).textTheme.bodySmall,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4.0),
-                    Text(
-                      'Celular: $phoneNumber',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12.0),
-          // Botão de aceitar agora no canto inferior direito
-          Align(
-            alignment: Alignment.bottomRight,
-            child: SizedBox(
-              width: 80,
-              child: CustomButton(
-                text: 'Aceitar',
-                variant: ButtonVariant.primary,
-                onPressed: onAccept,
-                height: 40,
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-              ),
+                const SizedBox(width: 12),
+                
+                // Informações do passageiro
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Nome e avaliação
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildRatingStars(),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      
+                      // Localização
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 12,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              location,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            
+            const SizedBox(height: 12),
+            
+            // Botões de ação
+            Row(
+              children: [
+                if (onReject != null) ...[
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Rejeitar',
+                      onPressed: onReject,
+                      variant: ButtonVariant.secondary,
+                      height: 36,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: CustomButton(
+                    text: 'Aceitar',
+                    onPressed: onAccept,
+                    variant: ButtonVariant.primary,
+                    height: 36,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  ImageProvider? _getProfileImage() {
-    // Não devemos nem tentar carregar uma imagem se o caminho estiver vazio
-    if (imageUrl.isEmpty) {
-      return null;
-    }
-
-    try {
-      return AssetImage(imageUrl);
-    } catch (e) {
-      return null;
-    }
-  }
-
   Widget _buildRatingStars() {
     return Row(
-      mainAxisSize:
-          MainAxisSize
-              .min, // Garante que a Row não tente ocupar mais espaço que o necessário
+      mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (index) {
         return Icon(
           index < rating ? Icons.star : Icons.star_border,
           color: const Color(0xFFFFD700),
-          size: 16,
+          size: 12,
         );
       }),
     );
