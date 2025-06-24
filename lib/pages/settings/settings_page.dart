@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_app/components/custom_button.dart';
-import 'package:mobile_app/models/user.dart';
 import 'package:mobile_app/pages/vehicle/vehicle_list_page.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
@@ -25,22 +24,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   final SettingsService settingsService = SettingsService();
   final user = authService.currentUser;
 
-  late TextEditingController _nameController;
-  late TextEditingController _lastNameController;
-
-  final FocusNode _lastNameFocusNode = FocusNode();
+  late TextEditingController _emailController;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: user?.name ?? name);
-
-    _lastNameController = TextEditingController(text: user?.lastName ?? "");
+    _emailController = TextEditingController(text: user?.email ?? email);
   }
 
-  Future<void> _saveTheme(String theme) async {}
+  Future<void> _saveTheme(String theme) async {
+    try {
+      await settingsService.saveSettings({'theme': theme});
+    } catch (e) {
+      debugPrint('Erro ao salvar o tema: $e');
+    }
+  }
 
-  Future<void> _editName() async {
+  Future<void> _editEmail() async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -57,54 +57,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             children: [
               Expanded(
                 child: TextField(
-                  controller: _nameController,
+                  controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: 'Digite seu nome',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (value) {
-                    _lastNameFocusNode.requestFocus();
-                  },
-                ),
-              ),
-              SizedBox(width: 20),
-              Expanded(
-                child: TextField(
-                  controller: _lastNameController,
-                  focusNode: _lastNameFocusNode,
-                  decoration: InputDecoration(
-                    labelText: 'Digite seu sobrenome',
+                    labelText: 'Digite seu email',
                     border: OutlineInputBorder(),
                   ),
                   onSubmitted: (value) async {
                     try {
-                      bool success = await settingsService.editUser(
-                        User(
-                          name: _nameController.text,
-                          email: user!.email,
-                          cpf: user!.cpf,
-                          lastName: _lastNameController.text,
-                          number: user!.number,
-                          phone: user!.phone,
-                          password: user!.password,
-                          city: user!.city,
-                          street: user!.street,
-                          verified: user!.verified,
-                          zipcode: user!.zipcode,
-                          isDriver: user!.isDriver,
-                          isPassenger: user!.isPassenger,
-                        ),
+                      bool success = await settingsService.editEmail(
+                        value,
                         user!.userId!,
                       );
                       if (success && context.mounted) {
-                        user!.name = _nameController.text;
+                        setState(() {
+                          user!.email = value;
+                          _emailController.text = value;
+                        });
                         Navigator.pop(context, value);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Email atualizado com sucesso. Você será deslogado por medida de segurança.',
+                            ),
+                            duration: Duration(seconds: 5),
+                          ),
+                        );
+
+                        Future.delayed(Duration(seconds: 5), () async {
+                          await ref.read(authProvider.notifier).logout();
+                          if (context.mounted) {
+                            Navigator.pushReplacementNamed(context, "/login");
+                          }
+                        });
                       } else if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Erro ao atualizar o nome. Tente novamente.',
+                              'Erro ao atualizar o email. Tente novamente.',
                             ),
                           ),
                         );
@@ -115,7 +106,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Erro ao atualizar o nome. Tente novamente.',
+                              'Erro ao atualizar o email. Tente novamente.',
                             ),
                           ),
                         );
@@ -215,7 +206,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                             const SizedBox(height: 5),
                             GestureDetector(
-                              onTap: _editName,
+                              onTap: _editEmail,
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 mainAxisAlignment:
@@ -244,15 +235,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                               ).colorScheme.onSurfaceVariant,
                                           fontWeight: FontWeight.w600,
                                         ),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Icon(
-                                        Icons.arrow_forward_ios_sharp,
-                                        size: 15,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
                                       ),
                                     ],
                                   ),
@@ -304,11 +286,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: _editName,
-                                  child: Text(
+                            GestureDetector(
+                              onTap: _editEmail,
+                              child: Row(
+                                children: [
+                                  Text(
                                     user?.email ?? email,
                                     style: TextStyle(
                                       color:
@@ -318,17 +300,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 5),
-                                Icon(
-                                  Icons.arrow_forward_ios_sharp,
-                                  size: 15,
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                ),
-                              ],
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.arrow_forward_ios_sharp,
+                                    size: 15,
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -363,15 +345,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                         ).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                                const SizedBox(width: 5),
-                                Icon(
-                                  Icons.arrow_forward_ios_sharp,
-                                  size: 15,
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
                                 ),
                               ],
                             ),

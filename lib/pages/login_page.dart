@@ -17,7 +17,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isObscure = true;
-  bool _rememberMe = false;
 
   @override
   void initState() {
@@ -41,7 +40,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (next == AuthState.authenticated && mounted) {
         final scaffoldMessenger = ScaffoldMessenger.of(context);
         final navigator = Navigator.of(context);
-        
+
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: const Row(
@@ -56,12 +55,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        
+
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             final targetRoute = authNotifier.getHomeRouteForUser();
             final userType = authNotifier.getUserTypeDescription();
-            
+
             if (mounted) {
               scaffoldMessenger.showSnackBar(
                 SnackBar(
@@ -70,7 +69,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   behavior: SnackBarBehavior.floating,
                 ),
               );
-              
+
               Future.delayed(const Duration(milliseconds: 800), () {
                 if (mounted) {
                   navigator.pushReplacementNamed(targetRoute);
@@ -277,29 +276,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                            Row(
-                              children: [
-                                Text(
-                                  "Manter conectado",
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                    letterSpacing: 0.2,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      _rememberMe = newValue!;
-                                    });
-                                  },
-                                ),
-                              ],
                             ),
                           ],
                         ),
