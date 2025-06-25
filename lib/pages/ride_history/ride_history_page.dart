@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/pages/ride_history/ride_detail_page.dart';
+import 'package:mobile_app/services/ride_history_service.dart';
+import 'package:mobile_app/models/ride_history.dart';
 import 'package:intl/intl.dart';
 
 class RideHistoryPage extends StatefulWidget {
@@ -11,77 +13,66 @@ class RideHistoryPage extends StatefulWidget {
 
 class _RideHistoryPageState extends State<RideHistoryPage> {
   bool _showStats = false;
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
+  final RideHistoryService _rideHistoryService = RideHistoryService();
+  List<RideHistory> _rides = [];
+  int _currentPage = 1;
+  int _totalPages = 1;
 
-  // Dados mockados de viagens para calcular estatísticas
-  final List<Map<String, dynamic>> _mockRides = [
-    {
-      'date': '23/04/2025',
-      'address': 'Av. Cirne de Lima - 5486, Centro, Toledo - PR',
-      'route': 'Biapark/Educação',
-      'time': '07:00',
-      'price': 20.90,
-      'distance': 8.5,
-      'timestamp': DateTime(2025, 4, 23, 7, 0),
-    },
-    {
-      'date': '23/04/2025',
-      'address': 'Av. Cirne de Lima - 5486, Centro, Toledo - PR',
-      'route': 'Biapark/Educação',
-      'time': '18:00',
-      'price': 50.00,
-      'distance': 12.2,
-      'timestamp': DateTime(2025, 4, 23, 18, 0),
-    },
-    {
-      'date': '24/03/2025',
-      'address': 'Av. Cirne de Lima - 5486, Centro, Toledo - PR',
-      'route': 'Biapark/Educação',
-      'time': '07:00',
-      'price': 20.90,
-      'title': 'Xander\'s Tur',
-      'vehicleInfo': 'Veículo: Sonic 3.0 Turbo, Cor: Branco',
-      'distance': 8.5,
-      'timestamp': DateTime(2025, 3, 24, 7, 0),
-    },
-    {
-      'date': '15/03/2025',
-      'address': 'Av. Parigot de Souza - 1200, Jardim, Toledo - PR',
-      'route': 'Centro/Faculdade',
-      'time': '19:30',
-      'price': 15.50,
-      'distance': 5.8,
-      'timestamp': DateTime(2025, 3, 15, 19, 30),
-    },
-    {
-      'date': '10/03/2025',
-      'address': 'Rua Jorge Lacerda - 320, Santa Maria, Toledo - PR',
-      'route': 'Biapark/Hospital',
-      'time': '08:15',
-      'price': 22.00,
-      'distance': 9.2,
-      'timestamp': DateTime(2025, 3, 10, 8, 15),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadRideHistory();
+  }
 
-  // Filtrar viagens por intervalo de datas
-  List<Map<String, dynamic>> get _filteredRides {
-    return _mockRides.where((ride) {
-      DateTime rideDate = ride['timestamp'] as DateTime;
-      return rideDate.isAfter(_startDate.subtract(const Duration(days: 1))) &&
-          rideDate.isBefore(_endDate.add(const Duration(days: 1)));
+  Future<void> _loadRideHistory({bool refresh = false}) async {
+    if (refresh) {
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+        _currentPage = 1;
+      });
+    }
+    try {
+      final response = await _rideHistoryService.getRideHistory(
+        page: _currentPage,
+        size: 10,
+      );
+      setState(() {
+        if (refresh) {
+          _rides = response.rides;
+        } else {
+          _rides.addAll(response.rides);
+        }
+        _currentPage = response.currentPage;
+        _totalPages = response.totalPages;
+        _isLoading = false;
+        _hasError = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    }
+  }
+
+  List<RideHistory> get _filteredRides {
+    return _rides.where((ride) {
+      return ride.departureTime.isAfter(_startDate.subtract(const Duration(days: 1))) &&
+          ride.departureTime.isBefore(_endDate.add(const Duration(days: 1)));
     }).toList();
   }
 
-  // Calcular estatísticas
   int get _totalRides => _filteredRides.length;
-  double get _totalSpent =>
-      _filteredRides.fold(0.0, (sum, ride) => sum + (ride['price'] as double));
-  double get _totalDistance => _filteredRides.fold(
-    0.0,
-    (sum, ride) => sum + (ride['distance'] as double),
-  );
+  double get _totalSpent => _filteredRides.fold(0.0, (sum, ride) => sum + ride.userShare);
+  double get _totalDistance => _filteredRides.fold(0.0, (sum, ride) => sum + ride.distance);
+  double get _totalSavings => _filteredRides.fold(0.0, (sum, ride) => sum + ride.savings);
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +109,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                   color: Theme.of(context).colorScheme.surfaceContainerLow,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -136,7 +127,6 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     // Filtro de datas
                     Row(
                       children: [
@@ -167,9 +157,6 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                         ),
                       ],
                     ),
-                    // const SizedBox(height: 16),
-
-                    // Cards de estatísticas
                     Row(
                       children: [
                         _buildStatCard(
@@ -197,9 +184,9 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                         ),
                         _buildStatCard(
                           context,
-                          icon: Icons.group,
-                          value: '${_totalRides * 3}',
-                          label: 'Passageiros',
+                          icon: Icons.savings,
+                          value: 'R\$ ${_totalSavings.toStringAsFixed(2)}',
+                          label: 'Economia',
                         ),
                       ],
                     ),
@@ -208,47 +195,121 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
               ),
             ),
           ),
-
           // Lista de viagens
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              itemCount: _filteredRides.length,
-              itemBuilder: (context, index) {
-                final ride = _filteredRides[index];
-                return _buildRideHistoryItem(
-                  context,
-                  date: ride['date'],
-                  address: ride['address'],
-                  route: ride['route'],
-                  time: ride['time'],
-                  price: ride['price'],
-                  title: ride['title'],
-                  vehicleInfo:
-                      ride['vehicleInfo'] ??
-                      'Veículo: Sonic 3.0 Turbo, Cor: Branco',
-                );
-              },
-            ),
+            child: _buildRidesList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDateFilter(
-    BuildContext context, {
-    required String label,
-    required DateTime date,
-    required Function(DateTime) onSelect,
-  }) {
+  Widget _buildRidesList() {
+    if (_isLoading && _rides.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    if (_hasError && _rides.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Erro ao carregar histórico',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _loadRideHistory(refresh: true),
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_filteredRides.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Nenhuma viagem encontrada',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Não há viagens no período selecionado',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadRideHistory(refresh: true),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        itemCount: _filteredRides.length + (_currentPage < _totalPages ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _filteredRides.length) {
+            // Item de carregamento para paginação
+            return _buildLoadingItem();
+          }
+          final ride = _filteredRides[index];
+          return _buildRideHistoryItem(context, ride);
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoadingItem() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  Widget _buildDateFilter(BuildContext context, {required String label, required DateTime date, required Function(DateTime) onSelect}) {
     return InkWell(
       onTap: () async {
         final picked = await showDatePicker(
           context: context,
           initialDate: date,
           firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
+          lastDate: DateTime(2100),
           builder: (context, child) {
             return Theme(
               data: Theme.of(context).copyWith(
@@ -273,7 +334,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
           ),
         ),
         child: Column(
@@ -309,12 +370,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
     );
   }
 
-  Widget _buildStatCard(
-    BuildContext context, {
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
+  Widget _buildStatCard(BuildContext context, {required IconData icon, required String value, required String label}) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -323,11 +379,11 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -338,9 +394,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -378,18 +432,9 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
     );
   }
 
-  Widget _buildRideHistoryItem(
-    BuildContext context, {
-    required String date,
-    required String address,
-    required String route,
-    required String time,
-    required double price,
-    String? title,
-    String vehicleInfo = 'Veículo: Sonic 3.0 Turbo, Cor: Branco',
-  }) {
+  Widget _buildRideHistoryItem(BuildContext context, RideHistory ride) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12.0),
@@ -399,87 +444,81 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
         child: InkWell(
           borderRadius: BorderRadius.circular(12.0),
           onTap: () {
-            // Navegar para a página de detalhes da viagem
             showDialog(
               context: context,
-              builder:
-                  (context) => RideDetailPage(
-                    date: date,
-                    address: address,
-                    time: time,
-                    title: title,
-                    vehicleInfo: vehicleInfo,
-                  ),
+              builder: (context) => RideDetailPage(ride: ride),
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.2),
-                  radius: 24,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                  radius: 22,
                   child: Icon(
                     Icons.directions_car,
                     color: Theme.of(context).colorScheme.primary,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(width: 16.0),
+                const SizedBox(width: 12.0),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (title != null)
+                      if (ride.title != null)
                         Text(
-                          title,
+                          ride.title!,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 14,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      if (title != null) const SizedBox(height: 4.0),
+                      if (ride.title != null) const SizedBox(height: 2.0),
                       Text(
-                        title == null ? 'Viagem $date' : date,
+                        ride.title == null ? 'Viagem ${DateFormat('dd/MM/yyyy').format(ride.departureTime)}' : DateFormat('dd/MM/yyyy').format(ride.departureTime),
                         style: TextStyle(
-                          fontWeight:
-                              title == null
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                          fontWeight: ride.title == null ? FontWeight.bold : FontWeight.normal,
                           color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 13,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4.0),
+                      const SizedBox(height: 2.0),
                       Text(
-                        address,
+                        ride.startAddress,
                         style: TextStyle(
                           fontSize: 12.0,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Row(
                         children: [
-                          Text(
-                            route,
-                            style: TextStyle(
-                              fontSize: 12.0,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                          Flexible(
+                            child: Text(
+                              ride.route,
+                              style: TextStyle(
+                                fontSize: 11.0,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            time,
+                            DateFormat('HH:mm').format(ride.departureTime),
                             style: TextStyle(
-                              fontSize: 12.0,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                              fontSize: 11.0,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -487,20 +526,26 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      'R\$ ${price.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      child: Text(
+                        'R\$ ${ride.userShare.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
