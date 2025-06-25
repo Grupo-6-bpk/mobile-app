@@ -16,6 +16,8 @@ import 'package:mobile_app/services/ride_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+LatLng? globalInitialLocation;
+
 class CreateRidePage extends StatefulWidget {
   const CreateRidePage({super.key});
 
@@ -117,132 +119,54 @@ class _CreateRidePageState extends State<CreateRidePage> {
   Future<void> _setCurrentLocationAsOrigin() async {
     if (!mounted) return;
 
-    bool serviceEnabled;
-    LocationPermission permission;
-
     try {
-      if (kDebugMode) {
-        debugPrint(
-          '🔍 Verificando se o serviço de localização está habilitado...',
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Serviço de localização desativado.')),
         );
-      }
-
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (kDebugMode) {
-        debugPrint('📍 Serviço de localização habilitado: $serviceEnabled');
-      }
-
-      if (!serviceEnabled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Serviço de localização desativado.')),
-          );
-        }
         return;
       }
 
-      if (kDebugMode) {
-        debugPrint('🔐 Verificando permissões de localização...');
-      }
-
-      permission = await Geolocator.checkPermission();
-      if (kDebugMode) {
-        debugPrint('📋 Permissão atual: $permission');
-      }
-
+      LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        if (kDebugMode) {
-          debugPrint('❌ Permissão negada, solicitando permissão...');
-        }
         permission = await Geolocator.requestPermission();
-        if (kDebugMode) {
-          debugPrint('📋 Nova permissão após solicitação: $permission');
-        }
-        if (permission == LocationPermission.denied) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Permissão de localização negada.')),
-            );
-          }
+        if (permission == LocationPermission.denied && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permissão de localização negada.')),
+          );
           return;
         }
       }
 
-      if (permission == LocationPermission.deniedForever) {
-        if (kDebugMode) {
-          debugPrint('🚫 Permissão permanentemente negada');
-        }
-        if (mounted) {
-          setState(() {
-            _distanceInKm = 'N/A';
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permissão de localização permanentemente negada.'),
-            ),
-          );
-        }
+      if (permission == LocationPermission.deniedForever && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permissão de localização permanentemente negada.'),
+          ),
+        );
         return;
       }
 
-      if (kDebugMode) {
-        debugPrint('🎯 Obtendo posição atual...');
-      }
-
-      position = await Geolocator.getCurrentPosition(
+      Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      if (kDebugMode) {
-        debugPrint(
-          '📍 Posição obtida: ${position!.latitude}, ${position!.longitude}',
-        );
-      }
+      globalInitialLocation = LatLng(position.latitude, position.longitude);
 
-      if (!mounted) return;
-
-      final double distanceInMeters = Geolocator.distanceBetween(
-        position!.latitude,
-        position!.longitude,
-        endLatitude,
-        endLongitude,
-      );
-      _calculatedDistance = distanceInMeters / 1000;
-
-      if (kDebugMode) {
-        debugPrint(
-          '📏 Distância calculada: ${_calculatedDistance.toStringAsFixed(2)} km',
-        );
-      }
-
-      // Usar apenas as coordenadas por enquanto
-      // final coordinates = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
       final coordinates = await mapsService.getAddressFromLatLng(
-        position!.latitude,
-        position!.longitude,
+        position.latitude,
+        position.longitude,
       );
-
-      if (kDebugMode) {
-        debugPrint('📍 Usando coordenadas: $coordinates');
-      }
 
       setState(() {
-        _originController.text = coordinates!;
-        _distanceInKm = '${_calculatedDistance.toStringAsFixed(2)} km';
+        _originController.text = coordinates ?? 'Localização não encontrada';
       });
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Erro geral na obtenção de localização: $e');
-      }
-      if (mounted) {
-        setState(() {
-          _originController.text = 'Localização não encontrada';
-          _distanceInKm = 'N/A';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao obter localização')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao obter localização')),
+      );
     }
   }
 
@@ -342,6 +266,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
               child: CustomMap(
                 height: double.infinity,
                 destinationPosition: LatLng(endLatitude, endLongitude),
+                waypoints:
+                    globalInitialLocation != null
+                        ? [globalInitialLocation!]
+                        : [],
               ),
             ),
             Expanded(
@@ -806,10 +734,8 @@ class _CreateRidePageState extends State<CreateRidePage> {
     }
 
     // Verificar se já existe carona ativa para o motorista
-    final userId = authService.currentUser!.userId;
-    //TODO: Usar driverID ao inves do userId
-    final int driverId = userId is int ? userId : int.parse(userId.toString());
-    final activeRide = await RideService.getActiveRideForDriver(driverId);
+    final int? driverId = authService.currentUser!.driver!.id;
+    final activeRide = await RideService.getActiveRideForDriver(driverId!);
     if (activeRide != null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -896,13 +822,16 @@ Interessados podem entrar em contato!
       };
 
       final body = jsonEncode({
-        'startLocation': _originController.text,
+        'startLocation':
+            globalInitialLocation != null
+                ? "${globalInitialLocation!.latitude},${globalInitialLocation!.longitude}"
+                : _originController.text,
         'endLocation': "-24.617581018219294,-53.71040973288294",
         'distance': _calculatedDistance,
         'departureTime': _getDepartureDateTimeIso(),
         'fuelPrice': 5.5,
         'totalSeats': _getValidatedSeats(),
-        'driverId': authService.currentUser!.userId,
+        'driverId': authService.currentUser!.driver!.id,
         'vehicleId': _selectedVehicle!.id,
       });
 
