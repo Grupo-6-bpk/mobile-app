@@ -56,14 +56,14 @@ class _CreateRidePageState extends State<CreateRidePage> {
   String? _seatsErrorMessage;
 
   void _validateSeats(String value) {
-    print('CreateRidePage: _validateSeats() chamada com valor: "$value"');
+    debugPrint('CreateRidePage: _validateSeats() chamada com valor: "$value"');
     final seats = int.tryParse(value);
-    print(
+    debugPrint(
       'CreateRidePage: Seats parseado na validação: $seats, tipo: ${seats.runtimeType}',
     );
 
     if (seats == null || seats < 1) {
-      print('CreateRidePage: Validação falhou - seats inválido: $seats');
+      debugPrint('CreateRidePage: Validação falhou - seats inválido: $seats');
       setState(() {
         _isValidSeats = false;
         _seatsErrorMessage =
@@ -72,7 +72,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                 : 'A corrida deve ter pelo menos 1 vaga';
       });
     } else {
-      print('CreateRidePage: Validação passou - seats válido: $seats');
+      debugPrint('CreateRidePage: Validação passou - seats válido: $seats');
       setState(() {
         _isValidSeats = true;
         _seatsErrorMessage = null;
@@ -88,8 +88,8 @@ class _CreateRidePageState extends State<CreateRidePage> {
 
     // Adicionar listener para validação em tempo real das vagas
     _seatsController.addListener(() {
-      print('CreateRidePage: Listener do _seatsController acionado');
-      print('CreateRidePage: Texto atual: "${_seatsController.text}"');
+      debugPrint('CreateRidePage: Listener do _seatsController acionado');
+      debugPrint('CreateRidePage: Texto atual: "${_seatsController.text}"');
       _validateSeats(_seatsController.text);
     });
 
@@ -838,10 +838,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
       return;
     }
 
-    // Verificar se já existe carona ativa para o motorista
-    final userId = authService.currentUser!.userId;
-    final int driverId = userId is int ? userId : int.parse(userId.toString());
-    final activeRide = await RideService.getActiveRideForDriver(driverId);
     if (activeRide != null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -906,7 +902,7 @@ Interessados podem entrar em contato!
       debugPrint('CreateRidePage: URL: ${AppConfig.baseUrl}/api/rides/');
       debugPrint('CreateRidePage: Headers: $headers');
       debugPrint('CreateRidePage: Body: $body');
-      print('CreateRidePage: Vagas validadas: ${_getValidatedSeats()}');
+      debugPrint('CreateRidePage: Vagas validadas: ${_getValidatedSeats()}');
 
       final url = Uri.parse('${AppConfig.baseUrl}/api/rides/');
       final response = await http.post(url, headers: headers, body: body);
@@ -970,8 +966,8 @@ Interessados podem entrar em contato!
         }
 
         // VALIDAÇÃO CRÍTICA: Verificar se o rideId foi obtido
-        if (rideId == null) {
-          print(
+        if (rideId == null && mounted) {
+          debugPrint(
             'CreateRidePage: ERRO - RideId ainda é null após todas as tentativas',
           );
           ScaffoldMessenger.of(context).showSnackBar(
@@ -985,10 +981,10 @@ Interessados podem entrar em contato!
           return;
         }
 
-        print('CreateRidePage: RideId final validado: $rideId');
+        debugPrint('CreateRidePage: RideId final validado: $rideId');
 
-        if (_selectedGroupObj != null && rideId != null) {
-          final int nonNullRideId = rideId;
+        if (_selectedGroupObj != null) {
+          final int nonNullRideId = rideId!;
           try {
             final members = await GroupService.getGroupMembers(
               _selectedGroupObj!.id,
@@ -1017,10 +1013,10 @@ Interessados podem entrar em contato!
         }
         if (mounted) {
           final validatedSeats = _getValidatedSeats();
-          print(
+          debugPrint(
             'CreateRidePage: Vagas validadas antes de criar rideData: $validatedSeats',
           );
-          print(
+          debugPrint(
             'CreateRidePage: Texto do campo de vagas: "${_seatsController.text}"',
           );
 
@@ -1040,7 +1036,7 @@ Interessados podem entrar em contato!
             'status': 'PENDING', // Adicionar status explícito
           };
 
-          print(
+          debugPrint(
             'CreateRidePage: Navegando para /ride_start com dados: $rideData',
           );
           Navigator.pushNamed(context, '/ride_start', arguments: rideData);
@@ -1063,52 +1059,29 @@ Interessados podem entrar em contato!
   }
 
   int _getValidatedSeats() {
-    print('CreateRidePage: _getValidatedSeats() chamada');
-    print(
+    debugPrint('CreateRidePage: _getValidatedSeats() chamada');
+    debugPrint(
       'CreateRidePage: Texto do _seatsController: "${_seatsController.text}"',
     );
-    print('CreateRidePage: _isValidSeats: $_isValidSeats');
+    debugPrint('CreateRidePage: _isValidSeats: $_isValidSeats');
 
     final seats = int.tryParse(_seatsController.text);
-    print('CreateRidePage: Seats parseado: $seats, tipo: ${seats.runtimeType}');
+    debugPrint(
+      'CreateRidePage: Seats parseado: $seats, tipo: ${seats.runtimeType}',
+    );
 
     if (seats == null || seats < 1) {
-      print('CreateRidePage: ERRO - Seats inválido: $seats');
+      debugPrint('CreateRidePage: ERRO - Seats inválido: $seats');
       throw Exception('Número de vagas inválido');
     }
 
     // Verificação adicional para garantir que o valor é válido
     if (!_isValidSeats) {
-      print('CreateRidePage: ERRO - Validação em tempo real falhou');
+      debugPrint('CreateRidePage: ERRO - Validação em tempo real falhou');
       throw Exception('Validação de vagas falhou');
     }
 
-    print('CreateRidePage: Seats válido retornado: $seats');
-    return seats;
-  }
-
-  int _getValidatedSeats() {
-    print('CreateRidePage: _getValidatedSeats() chamada');
-    print(
-      'CreateRidePage: Texto do _seatsController: "${_seatsController.text}"',
-    );
-    print('CreateRidePage: _isValidSeats: $_isValidSeats');
-
-    final seats = int.tryParse(_seatsController.text);
-    print('CreateRidePage: Seats parseado: $seats, tipo: ${seats.runtimeType}');
-
-    if (seats == null || seats < 1) {
-      print('CreateRidePage: ERRO - Seats inválido: $seats');
-      throw Exception('Número de vagas inválido');
-    }
-
-    // Verificação adicional para garantir que o valor é válido
-    if (!_isValidSeats) {
-      print('CreateRidePage: ERRO - Validação em tempo real falhou');
-      throw Exception('Validação de vagas falhou');
-    }
-
-    print('CreateRidePage: Seats válido retornado: $seats');
+    debugPrint('CreateRidePage: Seats válido retornado: $seats');
     return seats;
   }
 

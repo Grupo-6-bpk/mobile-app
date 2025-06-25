@@ -28,7 +28,7 @@ class AvailablePassengerCard extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Padding(
@@ -41,7 +41,9 @@ class AvailablePassengerCard extends StatelessWidget {
                 // Avatar do passageiro
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
                   child: Text(
                     name.isNotEmpty ? name[0].toUpperCase() : 'P',
                     style: TextStyle(
@@ -52,7 +54,7 @@ class AvailablePassengerCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                
+
                 // Informações do passageiro
                 Expanded(
                   child: Column(
@@ -64,7 +66,9 @@ class AvailablePassengerCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               name,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
@@ -77,21 +81,25 @@ class AvailablePassengerCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      
+
                       // Localização
                       Row(
                         children: [
                           Icon(
                             Icons.location_on,
                             size: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               location,
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -106,9 +114,9 @@ class AvailablePassengerCard extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Botões de ação
             Row(
               children: [

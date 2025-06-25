@@ -57,13 +57,13 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      print('📱 PassengerHomeScreen: App retomado, retomando timer');
+      debugPrint('📱 PassengerHomeScreen: App retomado, retomando timer');
       _startAutoRefreshTimer(); // Retomar timer
     } else if (state == AppLifecycleState.paused) {
-      print('📱 PassengerHomeScreen: App pausado, pausando timer');
+      debugPrint('📱 PassengerHomeScreen: App pausado, pausando timer');
       _autoRefreshTimer?.cancel(); // Pausar timer
     } else if (state == AppLifecycleState.detached) {
-      print('📱 PassengerHomeScreen: App fechado, cancelando timer');
+      debugPrint('📱 PassengerHomeScreen: App fechado, cancelando timer');
       _autoRefreshTimer?.cancel(); // Cancelar timer
     }
   }
@@ -74,7 +74,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
 
     // Iniciar novo timer que atualiza a cada 30 segundos
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      print('🔄 PassengerHomeScreen: Atualização automática iniciada');
+      debugPrint('🔄 PassengerHomeScreen: Atualização automática iniciada');
       if (mounted) {
         _performAutoRefresh();
       } else {
@@ -82,18 +82,20 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
       }
     });
 
-    print(
+    debugPrint(
       '⏰ PassengerHomeScreen: Timer de atualização automática iniciado (30s)',
     );
   }
 
   Future<void> _performAutoRefresh() async {
     if (_isRefreshing) {
-      print('⏳ PassengerHomeScreen: Atualização já em andamento, pulando...');
+      debugPrint(
+        '⏳ PassengerHomeScreen: Atualização já em andamento, pulando...',
+      );
       return;
     }
 
-    print('🔄 PassengerHomeScreen: Executando atualização automática...');
+    debugPrint('🔄 PassengerHomeScreen: Executando atualização automática...');
     setState(() {
       _isRefreshing = true;
     });
@@ -110,11 +112,11 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
         _ridesFuture = RideService.getRides();
       });
 
-      print(
+      debugPrint(
         '✅ PassengerHomeScreen: Atualização automática concluída com sucesso',
       );
     } catch (e) {
-      print('❌ PassengerHomeScreen: Erro na atualização automática: $e');
+      debugPrint('❌ PassengerHomeScreen: Erro na atualização automática: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -125,7 +127,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   }
 
   void _manualRefresh() {
-    print('🔄 PassengerHomeScreen: Atualização manual solicitada');
+    debugPrint('🔄 PassengerHomeScreen: Atualização manual solicitada');
     _performAutoRefresh();
   }
 
@@ -195,48 +197,56 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 final driverName =
                     rideDetails['driver']?['name'] ?? 'Motorista';
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Sua solicitação foi aceita por $driverName! 🎉',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.white,
+                            size: 20,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Sua solicitação foi aceita por $driverName! 🎉',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 5),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                      action: SnackBarAction(
+                        label: 'Ver',
+                        textColor: Colors.white,
+                        onPressed: () {
+                          // Aqui você pode navegar para uma tela de detalhes da viagem aceita
+                          debugPrint(
+                            'Navegar para detalhes da viagem aceita: $rideId',
+                          );
+                        },
+                      ),
                     ),
-                    backgroundColor: Colors.green,
-                    duration: const Duration(seconds: 5),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    margin: const EdgeInsets.all(16),
-                    action: SnackBarAction(
-                      label: 'Ver',
-                      textColor: Colors.white,
-                      onPressed: () {
-                        // Aqui você pode navegar para uma tela de detalhes da viagem aceita
-                        print(
-                          'Navegar para detalhes da viagem aceita: $rideId',
-                        );
-                      },
-                    ),
-                  ),
-                );
+                  );
+                }
               }
             } catch (e) {
-              print('Erro ao buscar detalhes da viagem: $e');
+              debugPrint('Erro ao buscar detalhes da viagem: $e');
             }
           }
         }
       }
     } catch (e) {
-      print('Erro ao verificar solicitações aceitas: $e');
+      debugPrint('Erro ao verificar solicitações aceitas: $e');
     }
   }
 
@@ -336,7 +346,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                       fontSize: 14,
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.7),
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -406,7 +416,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             style: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.7),
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                               fontSize: 14,
                             ),
                           ),
@@ -423,7 +433,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             size: 48,
                             color: Theme.of(
                               context,
-                            ).colorScheme.error.withOpacity(0.7),
+                            ).colorScheme.error.withValues(alpha: 0.7),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -440,7 +450,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             style: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.7),
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                               fontSize: 12,
                             ),
                             textAlign: TextAlign.center,
@@ -458,7 +468,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             size: 48,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.4),
+                            ).colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -466,7 +476,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             style: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.7),
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
@@ -477,7 +487,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             style: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.5),
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
                               fontSize: 12,
                             ),
                           ),
@@ -494,7 +504,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                         final status = ride.status.toUpperCase();
                         final isAvailable = status == 'PENDING';
                         if (!isAvailable) {
-                          print(
+                          debugPrint(
                             'PassengerHomeScreen: Ocultando viagem ${ride.id} - status: $status',
                           );
                         }
@@ -511,7 +521,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             size: 48,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.4),
+                            ).colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -519,7 +529,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             style: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.7),
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
@@ -530,7 +540,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                             style: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.5),
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
                               fontSize: 12,
                             ),
                           ),
@@ -605,7 +615,7 @@ class _CaronaCardState extends State<CaronaCard> {
         }
       }
     } catch (e) {
-      print('Erro ao verificar solicitações: $e');
+      debugPrint('Erro ao verificar solicitações: $e');
     }
   }
 
@@ -623,7 +633,7 @@ class _CaronaCardState extends State<CaronaCard> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Padding(
@@ -641,7 +651,7 @@ class _CaronaCardState extends State<CaronaCard> {
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Icon(
@@ -690,7 +700,7 @@ class _CaronaCardState extends State<CaronaCard> {
                           fontSize: 12,
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -704,7 +714,7 @@ class _CaronaCardState extends State<CaronaCard> {
                     size: 16,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   onPressed: widget.onTap,
                 ),
@@ -816,10 +826,12 @@ class _CaronaCardState extends State<CaronaCard> {
         width: 100,
         height: 36,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+          color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.secondary.withValues(alpha: 0.3),
           ),
         ),
         child: Center(
@@ -889,7 +901,7 @@ class _CaronaCardState extends State<CaronaCard> {
                   fontSize: 11,
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -958,7 +970,7 @@ class _CaronaCardState extends State<CaronaCard> {
       final authService = AuthService();
       final passengerId = authService.currentUser?.passenger?.id;
 
-      if (passengerId == null) {
+      if (passengerId == null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Usuário não autenticado ou não é passageiro!'),
@@ -969,7 +981,7 @@ class _CaronaCardState extends State<CaronaCard> {
 
       // Verificar se já existe solicitação pendente/aprovada para o passageiro nesta viagem
       final requests = await RideService.getRideRequestsByPassenger(
-        passengerId,
+        passengerId!,
       );
       final alreadyRequested = requests.any(
         (req) =>
@@ -978,7 +990,7 @@ class _CaronaCardState extends State<CaronaCard> {
                 req['status'].toString().toUpperCase() == 'PENDING' ||
                 req['status'].toString().toUpperCase() == 'APPROVED'),
       );
-      if (alreadyRequested) {
+      if (alreadyRequested && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -1000,7 +1012,7 @@ class _CaronaCardState extends State<CaronaCard> {
         passengerId,
       );
 
-      if (mounted) {
+      if (context.mounted) {
         setState(() {
           _isLoading = false;
           _isRequested = true;
@@ -1026,7 +1038,7 @@ class _CaronaCardState extends State<CaronaCard> {
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         setState(() {
           _isLoading = false;
         });

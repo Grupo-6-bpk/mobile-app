@@ -56,7 +56,7 @@ class _DriverHomePageState extends State<DriverHomePage>
 
     // Iniciar novo timer que atualiza a cada 30 segundos
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      print('🔄 DriverHomePage: Atualização automática iniciada');
+      debugPrint('🔄 DriverHomePage: Atualização automática iniciada');
       if (mounted) {
         _performAutoRefresh();
       } else {
@@ -64,11 +64,13 @@ class _DriverHomePageState extends State<DriverHomePage>
       }
     });
 
-    print('⏰ DriverHomePage: Timer de atualização automática iniciado (30s)');
+    debugPrint(
+      '⏰ DriverHomePage: Timer de atualização automática iniciado (30s)',
+    );
   }
 
   Future<void> _performAutoRefresh() async {
-    print('🔄 DriverHomePage: Executando atualização automática...');
+    debugPrint('🔄 DriverHomePage: Executando atualização automática...');
 
     try {
       // Verificar viagem ativa
@@ -78,7 +80,7 @@ class _DriverHomePageState extends State<DriverHomePage>
       if (_activeRide != null) {
         final rideId = RideService.extractRideId(_activeRide);
         if (RideService.isValidRideId(rideId)) {
-          print(
+          debugPrint(
             '🔄 DriverHomePage: Verificando solicitações pendentes para viagem $rideId',
           );
           // Aqui você pode adicionar lógica para verificar solicitações pendentes
@@ -86,9 +88,11 @@ class _DriverHomePageState extends State<DriverHomePage>
         }
       }
 
-      print('✅ DriverHomePage: Atualização automática concluída com sucesso');
+      debugPrint(
+        '✅ DriverHomePage: Atualização automática concluída com sucesso',
+      );
     } catch (e) {
-      print('❌ DriverHomePage: Erro na atualização automática: $e');
+      debugPrint('❌ DriverHomePage: Erro na atualização automática: $e');
     }
   }
 
@@ -97,14 +101,14 @@ class _DriverHomePageState extends State<DriverHomePage>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       // Quando o app volta ao foco, verificar se há mudanças na viagem ativa
-      print('📱 DriverHomePage: App retomado, verificando viagem ativa');
+      debugPrint('📱 DriverHomePage: App retomado, verificando viagem ativa');
       _checkForActiveRide();
       _startAutoRefreshTimer(); // Retomar timer
     } else if (state == AppLifecycleState.paused) {
-      print('📱 DriverHomePage: App pausado, pausando timer');
+      debugPrint('📱 DriverHomePage: App pausado, pausando timer');
       _autoRefreshTimer?.cancel(); // Pausar timer
     } else if (state == AppLifecycleState.detached) {
-      print('📱 DriverHomePage: App fechado, cancelando timer');
+      debugPrint('📱 DriverHomePage: App fechado, cancelando timer');
       _autoRefreshTimer?.cancel(); // Cancelar timer
     }
   }
@@ -127,7 +131,7 @@ class _DriverHomePageState extends State<DriverHomePage>
 
         // Verificar se a corrida foi iniciada
         if (args.containsKey('rideStarted') && args['rideStarted'] == true) {
-          print('🚀 Processando corrida iniciada...');
+          debugPrint('🚀 Processando corrida iniciada...');
 
           final acceptedPassengers =
               args['acceptedPassengers'] as List<Map<String, dynamic>>? ?? [];
@@ -135,10 +139,10 @@ class _DriverHomePageState extends State<DriverHomePage>
               args['startLocation'] as String? ?? 'Não informado';
           final endLocation = args['endLocation'] as String? ?? 'Não informado';
 
-          print('📊 Dados recebidos:');
-          print('  - Passageiros: ${acceptedPassengers.length}');
-          print('  - Início: $startLocation');
-          print('  - Fim: $endLocation');
+          debugPrint('📊 Dados recebidos:');
+          debugPrint('  - Passageiros: ${acceptedPassengers.length}');
+          debugPrint('  - Início: $startLocation');
+          debugPrint('  - Fim: $endLocation');
 
           setState(() {
             _acceptedPassengers = acceptedPassengers;
@@ -160,29 +164,29 @@ class _DriverHomePageState extends State<DriverHomePage>
           });
 
           // Print das coordenadas no console
-          print('=== CORRIDA INICIADA - TELA HOME ===');
-          print('📍 Ponto inicial: $startLocation');
-          print('🎯 Ponto final: $endLocation');
-          print('👥 Total de passageiros: ${acceptedPassengers.length}');
+          debugPrint('=== CORRIDA INICIADA - TELA HOME ===');
+          debugPrint('📍 Ponto inicial: $startLocation');
+          debugPrint('🎯 Ponto final: $endLocation');
+          debugPrint('👥 Total de passageiros: ${acceptedPassengers.length}');
 
           if (acceptedPassengers.isNotEmpty) {
-            print('📋 DETALHES DOS PASSAGEIROS:');
+            debugPrint('📋 DETALHES DOS PASSAGEIROS:');
             for (int i = 0; i < acceptedPassengers.length; i++) {
               final passenger = acceptedPassengers[i];
-              print('${i + 1}. ${passenger['name'] ?? 'Sem nome'}:');
-              print(
+              debugPrint('${i + 1}. ${passenger['name'] ?? 'Sem nome'}:');
+              debugPrint(
                 '   📍 Início: ${passenger['startLocation'] ?? 'Não informado'}',
               );
-              print(
+              debugPrint(
                 '   🎯 Fim: ${passenger['endLocation'] ?? 'Não informado'}',
               );
-              print('   📞 Tel: ${passenger['phone'] ?? 'Não informado'}');
+              debugPrint('   📞 Tel: ${passenger['phone'] ?? 'Não informado'}');
             }
           }
-          print('=== FIM DOS DETALHES ===');
+          debugPrint('=== FIM DOS DETALHES ===');
         }
       } catch (e) {
-        print('❌ ERRO ao processar argumentos: $e');
+        debugPrint('❌ ERRO ao processar argumentos: $e');
         // Mostrar erro após o build
         SchedulerBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -206,20 +210,20 @@ class _DriverHomePageState extends State<DriverHomePage>
   Future<void> _checkForActiveRide() async {
     final currentUser = _authService.currentUser;
     if (currentUser?.userId == null) {
-      print(
+      debugPrint(
         'DriverHomePage: Usuário não autenticado, pulando verificação de viagem ativa',
       );
       setState(() => _isLoadingRide = false);
       return;
     }
 
-    print(
+    debugPrint(
       'DriverHomePage: Verificando viagem ativa para usuário ${currentUser!.userId}',
     );
 
     try {
       final activeRide = await RideService.getActiveRideForDriver(
-        currentUser!.userId!,
+        currentUser.userId!,
       );
       if (mounted) {
         final hadActiveRide = _activeRide != null;
@@ -232,25 +236,27 @@ class _DriverHomePageState extends State<DriverHomePage>
 
         // Log das mudanças
         if (!hadActiveRide && hasActiveRide) {
-          print(
-            '✅ DriverHomePage: Nova viagem ativa encontrada: ${activeRide!['id']}',
+          debugPrint(
+            '✅ DriverHomePage: Nova viagem ativa encontrada: ${activeRide['id']}',
           );
         } else if (hadActiveRide && !hasActiveRide) {
-          print('❌ DriverHomePage: Viagem ativa foi removida');
+          debugPrint('❌ DriverHomePage: Viagem ativa foi removida');
         } else if (hadActiveRide && hasActiveRide) {
           final oldId = _activeRide?['id'];
-          final newId = activeRide?['id'];
+          final newId = activeRide['id'];
           if (oldId != newId) {
-            print('🔄 DriverHomePage: Viagem ativa alterada: $oldId -> $newId');
+            debugPrint(
+              '🔄 DriverHomePage: Viagem ativa alterada: $oldId -> $newId',
+            );
           } else {
-            print('✅ DriverHomePage: Viagem ativa mantida: $newId');
+            debugPrint('✅ DriverHomePage: Viagem ativa mantida: $newId');
           }
         } else {
-          print('ℹ️ DriverHomePage: Nenhuma viagem ativa encontrada');
+          debugPrint('ℹ️ DriverHomePage: Nenhuma viagem ativa encontrada');
         }
       }
     } catch (e) {
-      print('Erro ao verificar viagem ativa: $e');
+      debugPrint('Erro ao verificar viagem ativa: $e');
       if (mounted) {
         setState(() => _isLoadingRide = false);
       }
@@ -345,17 +351,19 @@ class _DriverHomePageState extends State<DriverHomePage>
                           RideService.extractRideId(_activeRide) ??
                           RideService.extractRideId(args);
                       if (RideService.isValidRideId(rideId)) {
-                        print(
+                        debugPrint(
                           'DriverHomePage: RideId para cancelamento: $rideId',
                         );
                         final int rideIdInt = rideId!;
-                        print(
+                        debugPrint(
                           'DriverHomePage: RideId convertido para int: $rideIdInt',
                         );
 
                         final success = await RideService.cancelRide(rideIdInt);
                         if (success && mounted) {
-                          print('DriverHomePage: Viagem cancelada com sucesso');
+                          debugPrint(
+                            'DriverHomePage: Viagem cancelada com sucesso',
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Corrida cancelada com sucesso!'),
@@ -373,8 +381,8 @@ class _DriverHomePageState extends State<DriverHomePage>
                             '/driverHome',
                             (route) => false,
                           );
-                        } else {
-                          print('DriverHomePage: Erro ao cancelar viagem');
+                        } else if (mounted) {
+                          debugPrint('DriverHomePage: Erro ao cancelar viagem');
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Erro ao cancelar corrida'),
@@ -383,11 +391,11 @@ class _DriverHomePageState extends State<DriverHomePage>
                           );
                         }
                       } else {
-                        print(
+                        debugPrint(
                           'DriverHomePage: ERRO - RideId não encontrado ou inválido para cancelamento',
                         );
-                        print('DriverHomePage: _activeRide: $_activeRide');
-                        print('DriverHomePage: args: $args');
+                        debugPrint('DriverHomePage: _activeRide: $_activeRide');
+                        debugPrint('DriverHomePage: args: $args');
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
@@ -490,10 +498,12 @@ class _DriverHomePageState extends State<DriverHomePage>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.primaryContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -572,7 +582,7 @@ class _DriverHomePageState extends State<DriverHomePage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: Colors.green.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -608,7 +618,7 @@ class _DriverHomePageState extends State<DriverHomePage>
     if (_activeRide != null) {
       // Verificar se a viagem já partiu (status diferente de PENDING)
       final rideStatus =
-          _activeRide!['status']?.toString()?.toUpperCase() ?? 'PENDING';
+          _activeRide!['status']?.toString().toUpperCase() ?? 'PENDING';
       final statusesQueIndicamPartida = [
         'IN_PROGRESS',
         'COMPLETED',
@@ -617,7 +627,7 @@ class _DriverHomePageState extends State<DriverHomePage>
       ];
 
       if (statusesQueIndicamPartida.contains(rideStatus)) {
-        print(
+        debugPrint(
           'DriverHomePage: Viagem já partiu ou foi finalizada (status: $rideStatus), ocultando botão Gerenciar Viagem',
         );
 
@@ -625,9 +635,9 @@ class _DriverHomePageState extends State<DriverHomePage>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
+            color: Colors.orange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -654,7 +664,7 @@ class _DriverHomePageState extends State<DriverHomePage>
         onPressed: () {
           final extractedRideId = RideService.extractRideId(_activeRide);
           if (!RideService.isValidRideId(extractedRideId)) {
-            print(
+            debugPrint(
               'DriverHomePage: ERRO - RideId inválido para gerenciar viagem',
             );
             ScaffoldMessenger.of(context).showSnackBar(
@@ -760,7 +770,7 @@ class _DriverHomePageState extends State<DriverHomePage>
             icon: const Icon(Icons.refresh),
             tooltip: 'Atualizar agora',
             onPressed: () {
-              print('🔄 DriverHomePage: Atualização manual solicitada');
+              debugPrint('🔄 DriverHomePage: Atualização manual solicitada');
               setState(() {
                 _isLoadingRide = true;
               });

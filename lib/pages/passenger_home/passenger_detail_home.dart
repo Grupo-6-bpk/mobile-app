@@ -35,16 +35,19 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
     try {
       final authService = AuthService();
       final passengerId = authService.currentUser?.passenger?.id;
-      
+
       if (passengerId != null) {
-        final requests = await RideService.getRideRequestsByPassenger(passengerId);
-        final alreadyRequested = requests.any((req) => 
-          (req['rideId'] == widget.ride.id) && 
-          (req['status'] == null || 
-           req['status'].toString().toUpperCase() == 'PENDING' || 
-           req['status'].toString().toUpperCase() == 'APPROVED')
+        final requests = await RideService.getRideRequestsByPassenger(
+          passengerId,
         );
-        
+        final alreadyRequested = requests.any(
+          (req) =>
+              (req['rideId'] == widget.ride.id) &&
+              (req['status'] == null ||
+                  req['status'].toString().toUpperCase() == 'PENDING' ||
+                  req['status'].toString().toUpperCase() == 'APPROVED'),
+        );
+
         if (mounted) {
           setState(() {
             _isRequested = alreadyRequested;
@@ -52,7 +55,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         }
       }
     } catch (e) {
-      print('Erro ao verificar solicitações: $e');
+      debugPrint('Erro ao verificar solicitações: $e');
     }
   }
 
@@ -70,7 +73,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         children: [
           // Header com botão de fechar
           _buildHeader(context, theme),
-          
+
           // Conteúdo principal
           Flexible(
             child: SingleChildScrollView(
@@ -81,19 +84,19 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
                   // Informações do motorista
                   _buildMotoristaInfo(theme),
                   const SizedBox(height: 20),
-                  
+
                   // Avaliação
                   _buildAvaliacao(theme),
                   const SizedBox(height: 20),
-                  
+
                   // Mapa placeholder
                   _buildMapaPlaceholder(theme),
                   const SizedBox(height: 20),
-                  
+
                   // Informações da viagem
                   _buildInformacoesViagem(theme),
                   const SizedBox(height: 20),
-                  
+
                   // Botões de ação
                   _buildBotoesAcao(context, theme),
                 ],
@@ -116,7 +119,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         ),
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outline.withOpacity(0.2),
+            color: theme.colorScheme.outline.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -134,7 +137,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
           IconButton(
             icon: Icon(
               Icons.close,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               size: 20,
             ),
             onPressed: () => Navigator.pop(context),
@@ -148,14 +151,15 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
     return FutureBuilder<User>(
       future: UserService.getUserById(widget.ride.driver.userId),
       builder: (context, snapshot) {
-        final userName = snapshot.hasData ? snapshot.data!.name : 'Carregando...';
+        final userName =
+            snapshot.hasData ? snapshot.data!.name : 'Carregando...';
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: theme.colorScheme.primary.withOpacity(0.2),
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
@@ -165,7 +169,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: Icon(
@@ -175,7 +179,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
                 ),
               ),
               const SizedBox(width: 16),
-              
+
               // Informações do motorista
               Expanded(
                 child: Column(
@@ -193,7 +197,9 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
                     Text(
                       'Motorista',
                       style: TextStyle(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -210,7 +216,9 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
                         Text(
                           '${widget.ride.vehicle.brand} ${widget.ride.vehicle.model}',
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.8),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.8,
+                            ),
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -225,7 +233,9 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
                         Text(
                           widget.ride.vehicle.plate,
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.8),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.8,
+                            ),
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -249,16 +259,12 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.star,
-            color: const Color(0xFFFFD700),
-            size: 20,
-          ),
+          Icon(Icons.star, color: const Color(0xFFFFD700), size: 20),
           const SizedBox(width: 8),
           Text(
             'Avaliação do motorista',
@@ -291,7 +297,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Stack(
@@ -301,7 +307,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -311,13 +317,13 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
                   Icon(
                     Icons.map_outlined,
                     size: 32,
-                    color: theme.colorScheme.primary.withOpacity(0.6),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Rota da Viagem',
                     style: TextStyle(
-                      color: theme.colorScheme.primary.withOpacity(0.8),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -326,7 +332,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
               ),
             ),
           ),
-          
+
           // Indicadores de origem e destino
           Positioned(
             top: 16,
@@ -347,7 +353,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
               ),
             ),
           ),
-          
+
           Positioned(
             bottom: 16,
             right: 16,
@@ -374,8 +380,10 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
 
   Widget _buildInformacoesViagem(ThemeData theme) {
     final formattedTime = DateFormat('HH:mm').format(widget.ride.departureTime);
-    final formattedPrice = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
-        .format(widget.ride.pricePerMember ?? 0);
+    final formattedPrice = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+    ).format(widget.ride.pricePerMember ?? 0);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -383,7 +391,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -398,24 +406,46 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
             ),
           ),
           const SizedBox(height: 16),
-          
-          _buildInfoRow(theme, Icons.location_on, 'Origem', widget.ride.startLocation),
+
+          _buildInfoRow(
+            theme,
+            Icons.location_on,
+            'Origem',
+            widget.ride.startLocation,
+          ),
           const SizedBox(height: 12),
-          _buildInfoRow(theme, Icons.location_on_outlined, 'Destino', widget.ride.endLocation),
+          _buildInfoRow(
+            theme,
+            Icons.location_on_outlined,
+            'Destino',
+            widget.ride.endLocation,
+          ),
           const SizedBox(height: 12),
-          _buildInfoRow(theme, Icons.access_time, 'Horário de Saída', formattedTime),
+          _buildInfoRow(
+            theme,
+            Icons.access_time,
+            'Horário de Saída',
+            formattedTime,
+          ),
           const SizedBox(height: 12),
-          _buildInfoRow(theme, Icons.event_seat, 'Assentos Disponíveis', '${widget.ride.availableSeats}/${widget.ride.totalSeats}'),
-          
+          _buildInfoRow(
+            theme,
+            Icons.event_seat,
+            'Assentos Disponíveis',
+            '${widget.ride.availableSeats}/${widget.ride.totalSeats}',
+          ),
+
           if (widget.ride.pricePerMember != null) ...[
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                color: theme.colorScheme.primaryContainer.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.2),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
                 ),
               ),
               child: Row(
@@ -452,14 +482,15 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
     );
   }
 
-  Widget _buildInfoRow(ThemeData theme, IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    ThemeData theme,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: theme.colorScheme.primary,
-        ),
+        Icon(icon, size: 16, color: theme.colorScheme.primary),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -468,7 +499,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
               Text(
                 label,
                 style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -502,9 +533,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
-          child: _buildRequestButton(context, theme),
-        ),
+        Expanded(child: _buildRequestButton(context, theme)),
       ],
     );
   }
@@ -514,10 +543,10 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
       return Container(
         height: 48,
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withOpacity(0.1),
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: theme.colorScheme.primary.withOpacity(0.3),
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Center(
@@ -537,10 +566,10 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
       return Container(
         height: 48,
         decoration: BoxDecoration(
-          color: theme.colorScheme.secondary.withOpacity(0.1),
+          color: theme.colorScheme.secondary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: theme.colorScheme.secondary.withOpacity(0.3),
+            color: theme.colorScheme.secondary.withValues(alpha: 0.3),
           ),
         ),
         child: Center(
@@ -585,7 +614,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+        if (permission == LocationPermission.denied && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Permissão de localização negada.')),
           );
@@ -595,9 +624,11 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
           return;
         }
       }
-      if (permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.deniedForever && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permissão de localização permanentemente negada.')),
+          const SnackBar(
+            content: Text('Permissão de localização permanentemente negada.'),
+          ),
         );
         setState(() {
           _isLoading = false;
@@ -617,9 +648,11 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
       final authService = AuthService();
       final passengerId = authService.currentUser?.passenger?.id;
 
-      if (passengerId == null) {
+      if (passengerId == null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuário não autenticado ou não é passageiro!')),
+          const SnackBar(
+            content: Text('Usuário não autenticado ou não é passageiro!'),
+          ),
         );
         setState(() {
           _isLoading = false;
@@ -629,22 +662,25 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
 
       // Buscar status da viagem e vagas disponíveis antes de solicitar
       final rideDetails = await RideService.getRideById(widget.ride.id);
-      if (rideDetails == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Viagem não encontrada.')),
-        );
+      if (rideDetails == null && context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Viagem não encontrada.')));
         setState(() {
           _isLoading = false;
         });
         return;
       }
-      
+
       // Verificar status da viagem
-      final status = rideDetails['status']?.toString()?.toUpperCase() ?? 'PENDING';
-      if (status != 'PENDING') {
+      final status =
+          rideDetails!['status']?.toString().toUpperCase() ?? 'PENDING';
+      if (status != 'PENDING' && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Não é possível solicitar carona para uma viagem já iniciada, finalizada ou cancelada (status: $status).'),
+            content: Text(
+              'Não é possível solicitar carona para uma viagem já iniciada, finalizada ou cancelada (status: $status).',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -653,13 +689,25 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         });
         return;
       }
-      
+
       // Verificar se já existe solicitação pendente/aprovada para o passageiro nesta viagem
-      final requests = await RideService.getRideRequestsByPassenger(passengerId);
-      final alreadyRequested = requests.any((req) => (req['rideId'] == widget.ride.id) && (req['status'] == null || req['status'].toString().toUpperCase() == 'PENDING' || req['status'].toString().toUpperCase() == 'APPROVED'));
-      if (alreadyRequested) {
+      final requests = await RideService.getRideRequestsByPassenger(
+        passengerId!,
+      );
+      final alreadyRequested = requests.any(
+        (req) =>
+            (req['rideId'] == widget.ride.id) &&
+            (req['status'] == null ||
+                req['status'].toString().toUpperCase() == 'PENDING' ||
+                req['status'].toString().toUpperCase() == 'APPROVED'),
+      );
+      if (alreadyRequested && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você já possui uma solicitação pendente ou aprovada para esta viagem.')),
+          const SnackBar(
+            content: Text(
+              'Você já possui uma solicitação pendente ou aprovada para esta viagem.',
+            ),
+          ),
         );
         setState(() {
           _isLoading = false;
@@ -668,23 +716,24 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
         return;
       }
 
-      await criarSolicitacaoCarona(startLocation, endLocation, widget.ride.id, passengerId);
+      await criarSolicitacaoCarona(
+        startLocation,
+        endLocation,
+        widget.ride.id,
+        passengerId,
+      );
 
-      if (mounted) {
+      if (context.mounted) {
         setState(() {
           _isLoading = false;
           _isRequested = true;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                Icon(
-                  Icons.check_circle,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -698,20 +747,20 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
             duration: const Duration(seconds: 3),
           ),
         );
-        
+
         // Fechar o diálogo após alguns segundos
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
+          if (context.mounted) {
             Navigator.of(context).pop();
           }
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         setState(() {
           _isLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao enviar solicitação: $e'),
@@ -726,22 +775,32 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
 class RoutePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.blue
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = Colors.blue
+          ..strokeWidth = 3
+          ..style = PaintingStyle.stroke;
 
-    final path = Path()
-      ..moveTo(size.width * 0.1, size.height * 0.5)
-      ..lineTo(size.width * 0.3, size.height * 0.3)
-      ..lineTo(size.width * 0.5, size.height * 0.6)
-      ..lineTo(size.width * 0.7, size.height * 0.2)
-      ..lineTo(size.width * 0.9, size.height * 0.4);
+    final path =
+        Path()
+          ..moveTo(size.width * 0.1, size.height * 0.5)
+          ..lineTo(size.width * 0.3, size.height * 0.3)
+          ..lineTo(size.width * 0.5, size.height * 0.6)
+          ..lineTo(size.width * 0.7, size.height * 0.2)
+          ..lineTo(size.width * 0.9, size.height * 0.4);
 
     canvas.drawPath(path, paint);
 
-    canvas.drawCircle(Offset(size.width * 0.1, size.height * 0.5), 5, Paint()..color = Colors.green);
-    canvas.drawCircle(Offset(size.width * 0.9, size.height * 0.4), 5, Paint()..color = Colors.red);
+    canvas.drawCircle(
+      Offset(size.width * 0.1, size.height * 0.5),
+      5,
+      Paint()..color = Colors.green,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.9, size.height * 0.4),
+      5,
+      Paint()..color = Colors.red,
+    );
 
     for (double i = 0.2; i < 0.9; i += 0.2) {
       canvas.drawCircle(
@@ -757,7 +816,11 @@ class RoutePainter extends CustomPainter {
 }
 
 Future<void> criarSolicitacaoCarona(
-    String startLocation, String endLocation, int rideId, int passengerId) async {
+  String startLocation,
+  String endLocation,
+  int rideId,
+  int passengerId,
+) async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString(AppConfig.tokenKey);
 
@@ -776,8 +839,8 @@ Future<void> criarSolicitacaoCarona(
   final url = Uri.parse('${AppConfig.baseUrl}/api/ride-requests/');
   final response = await http.post(url, headers: headers, body: body);
 
-  print('Status: ${response.statusCode}');
-  print('Response: ${response.body}');
+  debugPrint('Status: ${response.statusCode}');
+  debugPrint('Response: ${response.body}');
 
   if (response.statusCode == 201 || response.statusCode == 200) {
     // sucesso

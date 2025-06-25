@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class Ride {
   final int id;
   final String startLocation;
@@ -35,11 +37,11 @@ class Ride {
     final totalSeats = json['totalSeats'] ?? 0;
     final availableSeats = json['availableSeats'] ?? 0;
     final status = json['status'] ?? 'PENDING';
-    
-    print('Ride.fromJson: totalSeats do JSON: $totalSeats');
-    print('Ride.fromJson: availableSeats do JSON: $availableSeats');
-    print('Ride.fromJson: status do JSON: $status');
-    
+
+    debugPrint('Ride.fromJson: totalSeats do JSON: $totalSeats');
+    debugPrint('Ride.fromJson: availableSeats do JSON: $availableSeats');
+    debugPrint('Ride.fromJson: status do JSON: $status');
+
     return Ride(
       id: json['id'],
       startLocation: json['startLocation'],
@@ -53,8 +55,10 @@ class Ride {
       status: status,
       driver: Driver.fromJson(json['driver']),
       vehicle: Vehicle.fromJson(json['vehicle']),
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     );
   }
 }
@@ -67,11 +71,7 @@ class Driver {
   Driver({required this.id, required this.userId, this.name});
 
   factory Driver.fromJson(Map<String, dynamic> json) {
-    return Driver(
-      id: json['id'],
-      userId: json['userId'],
-      name: json['name'],
-    );
+    return Driver(id: json['id'], userId: json['userId'], name: json['name']);
   }
 }
 
@@ -81,11 +81,12 @@ class Vehicle {
   final String brand;
   final String plate;
 
-  Vehicle(
-      {required this.id,
-      required this.model,
-      required this.brand,
-      required this.plate});
+  Vehicle({
+    required this.id,
+    required this.model,
+    required this.brand,
+    required this.plate,
+  });
 
   factory Vehicle.fromJson(Map<String, dynamic> json) {
     return Vehicle(
@@ -95,4 +96,4 @@ class Vehicle {
       plate: json['plate'],
     );
   }
-} 
+}
