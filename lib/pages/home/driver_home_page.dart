@@ -340,7 +340,15 @@ class _DriverHomePageState extends State<DriverHomePage>
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     ...passageiros.map((p) => _buildAcceptedPassengerCard(p)),
-                  ],
+                  ] else
+                    Expanded(
+                      child: const Center(
+                        child: Text(
+                          'Nenhum passageiro aceito ainda',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   CustomButton(
                     text: 'Cancelar Corrida',
@@ -408,6 +416,16 @@ class _DriverHomePageState extends State<DriverHomePage>
                     },
                   ),
                 ],
+              ),
+            ),
+          ] else ...[
+            // Se não há corrida iniciada, mostrar mensagem
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Nenhuma corrida iniciada no momento',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
             ),
           ],

@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/components/custom_button.dart';
+import 'package:mobile_app/components/custom_map.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
-import 'package:mobile_app/components/map_placeholder.dart';
 import 'package:mobile_app/config/app_config.dart';
 import 'package:mobile_app/models/vehicle.dart';
 import 'package:mobile_app/services/auth_service.dart';
@@ -31,6 +32,11 @@ class _CreateRidePageState extends State<CreateRidePage> {
   List<Group> _groups = [];
   Group? _selectedGroupObj;
   bool _isLoadingGroups = false;
+
+  final double endLatitude = -24.617581018219294;
+  final double endLongitude = -53.71040973288294;
+
+  Position? position;
 
   final TextEditingController _originController = TextEditingController(
     text: "Carregando localização...",
@@ -183,23 +189,21 @@ class _CreateRidePageState extends State<CreateRidePage> {
         debugPrint('🎯 Obtendo posição atual...');
       }
 
-      final position = await Geolocator.getCurrentPosition(
+      position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
       if (kDebugMode) {
         debugPrint(
-          '📍 Posição obtida: ${position.latitude}, ${position.longitude}',
+          '📍 Posição obtida: ${position!.latitude}, ${position!.longitude}',
         );
       }
 
       if (!mounted) return;
 
-      const double endLatitude = -24.617581018219294;
-      const double endLongitude = -53.71040973288294;
       final double distanceInMeters = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
+        position!.latitude,
+        position!.longitude,
         endLatitude,
         endLongitude,
       );
@@ -214,8 +218,8 @@ class _CreateRidePageState extends State<CreateRidePage> {
       // Usar apenas as coordenadas por enquanto
       // final coordinates = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
       final coordinates = await mapsService.getAddressFromLatLng(
-        position.latitude,
-        position.longitude,
+        position!.latitude,
+        position!.longitude,
       );
 
       if (kDebugMode) {
@@ -333,9 +337,12 @@ class _CreateRidePageState extends State<CreateRidePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Expanded(
+            Expanded(
               flex: 4,
-              child: MapPlaceholder(height: double.infinity),
+              child: CustomMap(
+                height: double.infinity,
+                destinationPosition: LatLng(endLatitude, endLongitude),
+              ),
             ),
             Expanded(
               flex: 10,
@@ -800,6 +807,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
 
     // Verificar se já existe carona ativa para o motorista
     final userId = authService.currentUser!.userId;
+    //TODO: Usar driverID ao inves do userId
     final int driverId = userId is int ? userId : int.parse(userId.toString());
     final activeRide = await RideService.getActiveRideForDriver(driverId);
     if (activeRide != null) {
