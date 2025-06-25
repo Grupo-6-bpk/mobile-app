@@ -9,6 +9,7 @@ import 'package:mobile_app/config/app_config.dart';
 import 'package:mobile_app/models/vehicle.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/group_service.dart';
+import 'package:mobile_app/services/maps_service.dart';
 import 'package:mobile_app/services/vehicle_service.dart';
 import 'package:mobile_app/services/ride_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,17 +32,24 @@ class _CreateRidePageState extends State<CreateRidePage> {
   Group? _selectedGroupObj;
   bool _isLoadingGroups = false;
 
-  final TextEditingController _originController = TextEditingController();
-  final TextEditingController _departureTimeController =
-      TextEditingController(text: "18:30");
+  final TextEditingController _originController = TextEditingController(
+    text: "Carregando localização...",
+  );
+  final TextEditingController _departureTimeController = TextEditingController(
+    text: "18:30",
+  );
   final TextEditingController _estimatedArrivalController =
       TextEditingController(text: "18:55");
-  final TextEditingController _seatsController = TextEditingController(text: "4");
+  final TextEditingController _seatsController = TextEditingController(
+    text: "4",
+  );
 
   DateTime _selectedDate = DateTime.now();
   String get formattedDate {
     return "${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}";
   }
+
+  MapsService mapsService = MapsService();
 
   @override
   void initState() {
@@ -69,14 +77,16 @@ class _CreateRidePageState extends State<CreateRidePage> {
 
     try {
       if (kDebugMode) {
-        print('🔍 Verificando se o serviço de localização está habilitado...');
+        debugPrint(
+          '🔍 Verificando se o serviço de localização está habilitado...',
+        );
       }
-      
+
       serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (kDebugMode) {
-        print('📍 Serviço de localização habilitado: $serviceEnabled');
+        debugPrint('📍 Serviço de localização habilitado: $serviceEnabled');
       }
-      
+
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -87,21 +97,21 @@ class _CreateRidePageState extends State<CreateRidePage> {
       }
 
       if (kDebugMode) {
-        print('🔐 Verificando permissões de localização...');
+        debugPrint('🔐 Verificando permissões de localização...');
       }
-      
+
       permission = await Geolocator.checkPermission();
       if (kDebugMode) {
-        print('📋 Permissão atual: $permission');
+        debugPrint('📋 Permissão atual: $permission');
       }
-      
+
       if (permission == LocationPermission.denied) {
         if (kDebugMode) {
-          print('❌ Permissão negada, solicitando permissão...');
+          debugPrint('❌ Permissão negada, solicitando permissão...');
         }
         permission = await Geolocator.requestPermission();
         if (kDebugMode) {
-          print('📋 Nova permissão após solicitação: $permission');
+          debugPrint('📋 Nova permissão após solicitação: $permission');
         }
         if (permission == LocationPermission.denied) {
           if (mounted) {
@@ -115,7 +125,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
 
       if (permission == LocationPermission.deniedForever) {
         if (kDebugMode) {
-          print('🚫 Permissão permanentemente negada');
+          debugPrint('🚫 Permissão permanentemente negada');
         }
         if (mounted) {
           setState(() {
@@ -123,21 +133,25 @@ class _CreateRidePageState extends State<CreateRidePage> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('Permissão de localização permanentemente negada.')),
+              content: Text('Permissão de localização permanentemente negada.'),
+            ),
           );
         }
         return;
       }
 
       if (kDebugMode) {
-        print('🎯 Obtendo posição atual...');
+        debugPrint('🎯 Obtendo posição atual...');
       }
-      
+
       final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
       if (kDebugMode) {
-        print('📍 Posição obtida: ${position.latitude}, ${position.longitude}');
+        debugPrint(
+          '📍 Posição obtida: ${position.latitude}, ${position.longitude}',
+        );
       }
 
       if (!mounted) return;
@@ -153,24 +167,29 @@ class _CreateRidePageState extends State<CreateRidePage> {
       _calculatedDistance = distanceInMeters / 1000;
 
       if (kDebugMode) {
-        print('📏 Distância calculada: ${_calculatedDistance.toStringAsFixed(2)} km');
+        debugPrint(
+          '📏 Distância calculada: ${_calculatedDistance.toStringAsFixed(2)} km',
+        );
       }
 
       // Usar apenas as coordenadas por enquanto
-      final coordinates = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
-      
+      // final coordinates = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+      final coordinates = await mapsService.getAddressFromLatLng(
+        position.latitude,
+        position.longitude,
+      );
+
       if (kDebugMode) {
-        print('📍 Usando coordenadas: $coordinates');
+        debugPrint('📍 Usando coordenadas: $coordinates');
       }
 
       setState(() {
-        _originController.text = coordinates;
+        _originController.text = coordinates!;
         _distanceInKm = '${_calculatedDistance.toStringAsFixed(2)} km';
       });
-      
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Erro geral na obtenção de localização: $e');
+        debugPrint('❌ Erro geral na obtenção de localização: $e');
       }
       if (mounted) {
         setState(() {
@@ -233,8 +252,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
         return;
       }
 
-      final groups =
-          await GroupService.getGroupsByUser(currentUser!.userId!, 'driver');
+      final groups = await GroupService.getGroupsByUser(
+        currentUser!.userId!,
+        'driver',
+      );
 
       if (mounted) {
         setState(() {
@@ -247,9 +268,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
         setState(() {
           _isLoadingGroups = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar grupos: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao carregar grupos: $e')));
       }
     }
   }
@@ -283,8 +304,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
                 ),
                 child: Stack(
                   children: [
@@ -310,10 +332,15 @@ class _CreateRidePageState extends State<CreateRidePage> {
                               "Horário de saída:",
                               _departureTimeController,
                               icon: IconButton(
-                                icon: Icon(Icons.access_time,
-                                    color: colorScheme.primary),
-                                onPressed: () =>
-                                    _selectTime(context, _departureTimeController),
+                                icon: Icon(
+                                  Icons.access_time,
+                                  color: colorScheme.primary,
+                                ),
+                                onPressed:
+                                    () => _selectTime(
+                                      context,
+                                      _departureTimeController,
+                                    ),
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -331,10 +358,15 @@ class _CreateRidePageState extends State<CreateRidePage> {
                               "Horário estimado de chegada:",
                               _estimatedArrivalController,
                               icon: IconButton(
-                                icon: Icon(Icons.access_time,
-                                    color: colorScheme.primary),
-                                onPressed: () => _selectTime(
-                                    context, _estimatedArrivalController),
+                                icon: Icon(
+                                  Icons.access_time,
+                                  color: colorScheme.primary,
+                                ),
+                                onPressed:
+                                    () => _selectTime(
+                                      context,
+                                      _estimatedArrivalController,
+                                    ),
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -344,10 +376,13 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             ),
                             const SizedBox(height: 14),
                             _buildInfoSection(
-                                colorScheme, "Distância:", _distanceInKm, null),
+                              colorScheme,
+                              "Distância:",
+                              _distanceInKm,
+                              null,
+                            ),
                             const SizedBox(height: 14),
-                            
-                            
+
                             const SizedBox(height: 18),
                             _buildActionButtons(colorScheme),
                             const SizedBox(height: 18),
@@ -395,8 +430,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
                     Text(
                       formattedDate,
                       style: TextStyle(
-                        color:
-                            Theme.of(context).colorScheme.onSurface.withAlpha(80),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(80),
                         fontSize: 14,
                       ),
                     ),
@@ -416,9 +452,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
             child: CustomButton(
               text: _selectedGroup ?? "Grupos",
               variant: ButtonVariant.primary,
-              icon: _showGroupSelection
-                  ? Icons.keyboard_arrow_up
-                  : Icons.keyboard_arrow_down,
+              icon:
+                  _showGroupSelection
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
               onPressed: () {
                 setState(() {
                   _showGroupSelection = !_showGroupSelection;
@@ -451,12 +488,16 @@ class _CreateRidePageState extends State<CreateRidePage> {
   }
 
   Future<void> _selectTime(
-      BuildContext context, TextEditingController controller) async {
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
     TimeOfDay initialTime;
     try {
       final parts = controller.text.split(':');
-      initialTime =
-          TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      initialTime = TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      );
     } catch (e) {
       initialTime = TimeOfDay.now();
     }
@@ -473,8 +514,11 @@ class _CreateRidePageState extends State<CreateRidePage> {
     }
   }
 
-  Widget _buildTextField(String label, TextEditingController controller,
-      {IconButton? icon}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    IconButton? icon,
+  }) {
     return CustomTextfield(
       label: label,
       controller: controller,
@@ -484,7 +528,11 @@ class _CreateRidePageState extends State<CreateRidePage> {
   }
 
   Widget _buildInfoSection(
-      ColorScheme colorScheme, String title, String value, String? subtitle) {
+    ColorScheme colorScheme,
+    String title,
+    String value,
+    String? subtitle,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -593,9 +641,13 @@ class _CreateRidePageState extends State<CreateRidePage> {
       return;
     }
 
-    if (_getDepartureDateTime().isBefore(DateTime.now().add(const Duration(minutes: 5)))) {
+    if (_getDepartureDateTime().isBefore(
+      DateTime.now().add(const Duration(minutes: 5)),
+    )) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A partida deve ser em pelo menos 5 minutos.')),
+        const SnackBar(
+          content: Text('A partida deve ser em pelo menos 5 minutos.'),
+        ),
       );
       return;
     }
@@ -604,8 +656,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Nenhum veículo selecionado. Cadastre um veículo primeiro.')),
+          content: Text(
+            'Nenhum veículo selecionado. Cadastre um veículo primeiro.',
+          ),
+        ),
       );
       return;
     }
@@ -616,14 +670,16 @@ class _CreateRidePageState extends State<CreateRidePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Não foi possível obter a localização de partida.')),
+          content: Text('Não foi possível obter a localização de partida.'),
+        ),
       );
       return;
     }
 
     if (_selectedGroupObj != null) {
       try {
-        final messageContent = '''
+        final messageContent =
+            '''
 🚗 **Nova carona criada!**
 
 📍 **De:** \\${_originController.text}
@@ -635,15 +691,16 @@ class _CreateRidePageState extends State<CreateRidePage> {
 📏 **Distância:** $_distanceInKm
 
 Interessados podem entrar em contato!
-        '''
-            .trim();
+        '''.trim();
 
         if (kDebugMode) {
-          print('Mensagem para grupo \\${_selectedGroupObj!.name}: $messageContent');
+          debugPrint(
+            'Mensagem para grupo \\${_selectedGroupObj!.name}: $messageContent',
+          );
         }
       } catch (e) {
         if (kDebugMode) {
-          print('Erro ao enviar mensagem para o grupo: $e');
+          debugPrint('Erro ao enviar mensagem para o grupo: $e');
         }
       }
     }
@@ -667,67 +724,78 @@ Interessados podem entrar em contato!
         'vehicleId': _selectedVehicle!.id,
       });
 
-      print('CreateRidePage: Enviando requisição para criar viagem');
-      print('CreateRidePage: URL: ${AppConfig.baseUrl}/api/rides/');
-      print('CreateRidePage: Headers: $headers');
-      print('CreateRidePage: Body: $body');
+      debugPrint('CreateRidePage: Enviando requisição para criar viagem');
+      debugPrint('CreateRidePage: URL: ${AppConfig.baseUrl}/api/rides/');
+      debugPrint('CreateRidePage: Headers: $headers');
+      debugPrint('CreateRidePage: Body: $body');
 
       final url = Uri.parse('${AppConfig.baseUrl}/api/rides/');
       final response = await http.post(url, headers: headers, body: body);
 
-      print('CreateRidePage: Requisição concluída');
-      print('CreateRidePage: Status code: ${response.statusCode}');
-      print('CreateRidePage: Response body: ${response.body}');
+      debugPrint('CreateRidePage: Requisição concluída');
+      debugPrint('CreateRidePage: Status code: ${response.statusCode}');
+      debugPrint('CreateRidePage: Response body: ${response.body}');
 
       if (!mounted) return;
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        print('CreateRidePage: Status code OK, processando resposta');
+        debugPrint('CreateRidePage: Status code OK, processando resposta');
         int? rideId;
 
         // Verifica se o corpo da resposta não está vazio antes de decodificar
         if (response.body.isNotEmpty) {
           try {
             final responseData = jsonDecode(response.body);
-            print('CreateRidePage: Response data completo: $responseData');
-            print('CreateRidePage: Response data tipo: ${responseData.runtimeType}');
+            debugPrint('CreateRidePage: Response data completo: $responseData');
+            debugPrint(
+              'CreateRidePage: Response data tipo: ${responseData.runtimeType}',
+            );
 
             // Tentar todas as possíveis chaves para o rideId
-            rideId = responseData['id'] ??
-                     responseData['rideId'] ??
-                     responseData['ride_id'] ??
-                     responseData['ride']?['id'] ??
-                     responseData['data']?['id'] ??
-                     responseData['data']?['rideId'];
+            rideId =
+                responseData['id'] ??
+                responseData['rideId'] ??
+                responseData['ride_id'] ??
+                responseData['ride']?['id'] ??
+                responseData['data']?['id'] ??
+                responseData['data']?['rideId'];
 
-            print('CreateRidePage: RideId extraído: $rideId');
+            debugPrint('CreateRidePage: RideId extraído: $rideId');
           } catch (e) {
-            print('CreateRidePage: Erro ao decodificar JSON ou extrair rideId: $e');
+            debugPrint(
+              'CreateRidePage: Erro ao decodificar JSON ou extrair rideId: $e',
+            );
           }
         } else {
-          print('CreateRidePage: Corpo da resposta está vazio.');
+          debugPrint('CreateRidePage: Corpo da resposta está vazio.');
         }
 
         // Se o rideId ainda for nulo, buscar a última viagem
         if (rideId == null) {
-          print('CreateRidePage: RideId é null, buscando última viagem do motorista');
+          debugPrint(
+            'CreateRidePage: RideId é null, buscando última viagem do motorista',
+          );
           try {
             final driverId = authService.currentUser!.userId;
             if (driverId != null) {
               rideId = await RideService.getLatestRideByDriver(driverId);
-              print('CreateRidePage: RideId da última viagem: $rideId');
+              debugPrint('CreateRidePage: RideId da última viagem: $rideId');
             } else {
-              print('CreateRidePage: driverId é null, não é possível buscar última viagem');
+              debugPrint(
+                'CreateRidePage: driverId é null, não é possível buscar última viagem',
+              );
             }
           } catch (e) {
-            print('CreateRidePage: Erro ao buscar última viagem: $e');
+            debugPrint('CreateRidePage: Erro ao buscar última viagem: $e');
           }
         }
 
         if (_selectedGroupObj != null && rideId != null) {
           final int nonNullRideId = rideId;
           try {
-            final members = await GroupService.getGroupMembers(_selectedGroupObj!.id);
+            final members = await GroupService.getGroupMembers(
+              _selectedGroupObj!.id,
+            );
             for (final member in members) {
               if (member.userId == null ||
                   member.userId == authService.currentUser!.userId) {
@@ -737,17 +805,19 @@ Interessados podem entrar em contato!
             }
           } catch (e) {
             if (kDebugMode) {
-              print('Erro ao criar requests para membros do grupo: $e');
+              debugPrint('Erro ao criar requests para membros do grupo: $e');
             }
           }
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Viagem criada com sucesso!'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Viagem criada com sucesso!'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+          );
+        }
         if (mounted) {
           final rideData = {
             'driverId': authService.currentUser!.userId,
@@ -761,22 +831,26 @@ Interessados podem entrar em contato!
             'vehicleBrand': _selectedVehicle?.brand,
             'vehicleModel': _selectedVehicle?.model,
           };
-          
-          print('CreateRidePage: Navegando para /ride_start com dados: $rideData');
+
+          debugPrint(
+            'CreateRidePage: Navegando para /ride_start com dados: $rideData',
+          );
           Navigator.pushNamed(context, '/ride_start', arguments: rideData);
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
-                  'Erro ao criar viagem: \\${response.statusCode} - \\${response.body}')),
+            content: Text(
+              'Erro ao criar viagem: \\${response.statusCode} - \\${response.body}',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao criar viagem: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao criar viagem: $e')));
     }
   }
 
@@ -824,7 +898,9 @@ Interessados podem entrar em contato!
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 16),
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -832,19 +908,23 @@ Interessados podem entrar em contato!
                           child: Text(
                             group.name,
                             style: TextStyle(
-                              color: _selectedGroupObj?.id == group.id
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurface,
-                              fontWeight: _selectedGroupObj?.id == group.id
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                              color:
+                                  _selectedGroupObj?.id == group.id
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.onSurface,
+                              fontWeight:
+                                  _selectedGroupObj?.id == group.id
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                             ),
                           ),
                         ),
                         if (_selectedGroupObj?.id == group.id)
-                          Icon(Icons.check,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 18),
+                          Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 18,
+                          ),
                       ],
                     ),
                   ),

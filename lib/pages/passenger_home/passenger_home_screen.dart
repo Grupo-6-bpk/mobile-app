@@ -13,7 +13,6 @@ import 'package:mobile_app/services/user_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 import 'package:mobile_app/config/app_config.dart';
 
 class PassengerHomeScreen extends StatefulWidget {
@@ -23,7 +22,8 @@ class PassengerHomeScreen extends StatefulWidget {
   State<PassengerHomeScreen> createState() => _PassengerHomeScreenState();
 }
 
-class _PassengerHomeScreenState extends State<PassengerHomeScreen> with AutomaticKeepAliveClientMixin<PassengerHomeScreen> {
+class _PassengerHomeScreenState extends State<PassengerHomeScreen>
+    with AutomaticKeepAliveClientMixin<PassengerHomeScreen> {
   late Future<List<Ride>> _ridesFuture;
   final authService = AuthService();
   int? passengerId;
@@ -46,19 +46,20 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> with Automati
       barrierDismissible: true,
       // Use a slightly transparent barrier color
       barrierColor: theme.colorScheme.onSurface.withAlpha((255 * 0.8).toInt()),
-      builder: (_) => Center(
-        child: Material(
-          color: Colors.transparent, // Make material transparent
-          elevation: 12,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+      builder:
+          (_) => Center(
+            child: Material(
+              color: Colors.transparent, // Make material transparent
+              elevation: 12,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.9,
+                child: PassengerDetailHome(ride: ride),
+              ),
+            ),
           ),
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.9,
-            child: PassengerDetailHome(ride: ride),
-          ),
-        ),
-      ),
     );
   }
 
@@ -86,10 +87,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> with Automati
                 'Caronas Disponíveis:',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withAlpha((255 * 0.7).toInt()),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withAlpha((255 * 0.7).toInt()),
                 ),
               ),
               const SizedBox(height: 12),
@@ -101,9 +101,14 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> with Automati
                       return const Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
                       return Center(
-                          child: Text('Erro ao carregar corridas: ${snapshot.error}'));
+                        child: Text(
+                          'Erro ao carregar corridas: ${snapshot.error}',
+                        ),
+                      );
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(child: Text('Nenhuma carona encontrada.'));
+                      return const Center(
+                        child: Text('Nenhuma carona encontrada.'),
+                      );
                     }
 
                     final rides = snapshot.data!;
@@ -138,8 +143,10 @@ class CaronaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedTime = DateFormat('HH:mm').format(ride.departureTime);
-    final formattedPrice = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
-        .format(ride.pricePerMember ?? 0);
+    final formattedPrice = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+    ).format(ride.pricePerMember ?? 0);
 
     return Card(
       color: Theme.of(context).cardColor,
@@ -166,13 +173,18 @@ class CaronaCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: FutureBuilder<User>(
-                              future: UserService.getUserById(ride.driver.userId),
+                              future: UserService.getUserById(
+                                ride.driver.userId,
+                              ),
                               builder: (context, userSnapshot) {
                                 String displayName;
-                                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                                if (userSnapshot.connectionState ==
+                                    ConnectionState.waiting) {
                                   displayName = 'Carregando...';
-                                } else if (userSnapshot.hasError || !userSnapshot.hasData) {
-                                  displayName = '${ride.vehicle.brand} ${ride.vehicle.model}';
+                                } else if (userSnapshot.hasError ||
+                                    !userSnapshot.hasData) {
+                                  displayName =
+                                      '${ride.vehicle.brand} ${ride.vehicle.model}';
                                 } else {
                                   displayName = userSnapshot.data!.name;
                                 }
@@ -181,7 +193,8 @@ class CaronaCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
                                   ),
                                 );
                               },
@@ -230,9 +243,7 @@ class CaronaCard extends StatelessWidget {
                             children: List.generate(
                               5,
                               (i) => Icon(
-                                i < 4
-                                    ? Icons.star
-                                    : Icons.star_border,
+                                i < 4 ? Icons.star : Icons.star_border,
                                 color: Colors.amber,
                                 size: 16,
                               ),
@@ -263,7 +274,7 @@ class CaronaCard extends StatelessWidget {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+        if (permission == LocationPermission.denied && context.mounted) {
           // Permissão negada
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Permissão de localização negada.')),
@@ -271,9 +282,11 @@ class CaronaCard extends StatelessWidget {
           return;
         }
       }
-      if (permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.deniedForever && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permissão de localização permanentemente negada.')),
+          const SnackBar(
+            content: Text('Permissão de localização permanentemente negada.'),
+          ),
         );
         return;
       }
@@ -290,28 +303,43 @@ class CaronaCard extends StatelessWidget {
       final authService = AuthService();
       final passengerId = authService.currentUser?.passenger?.id;
 
-      if (passengerId == null) {
+      if (passengerId == null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuário não autenticado ou não é passageiro!')),
+          const SnackBar(
+            content: Text('Usuário não autenticado ou não é passageiro!'),
+          ),
         );
         return;
       }
 
-      await criarSolicitacaoCarona(startLocation, endLocation, ride.id, passengerId);
+      await criarSolicitacaoCarona(
+        startLocation,
+        endLocation,
+        ride.id,
+        passengerId!,
+      );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitação enviada!')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Solicitação enviada!')));
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao obter localização: $e')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao solicitar carona: $e')));
+      }
     }
   }
 }
 
 Future<void> criarSolicitacaoCarona(
-    String startLocation, String endLocation, int rideId, int passengerId) async {
+  String startLocation,
+  String endLocation,
+  int rideId,
+  int passengerId,
+) async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString(AppConfig.tokenKey);
 
@@ -330,8 +358,8 @@ Future<void> criarSolicitacaoCarona(
   final url = Uri.parse('${AppConfig.baseUrl}/api/ride-requests/');
   final response = await http.post(url, headers: headers, body: body);
 
-  print('Status: ${response.statusCode}');
-  print('Response: ${response.body}');
+  debugPrint('Status: ${response.statusCode}');
+  debugPrint('Response: ${response.body}');
 
   if (response.statusCode == 201 || response.statusCode == 200) {
     // sucesso

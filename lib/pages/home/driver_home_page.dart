@@ -63,7 +63,9 @@ class _DriverHomePageState extends State<DriverHomePage> {
       return;
     }
     try {
-      final activeRide = await RideService.getActiveRideForDriver(currentUser!.userId!);
+      final activeRide = await RideService.getActiveRideForDriver(
+        currentUser!.userId!,
+      );
       if (mounted) {
         setState(() {
           _activeRide = activeRide;
@@ -71,7 +73,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
         });
       }
     } catch (e) {
-      print('Erro ao verificar viagem ativa: $e');
+      debugPrint('Erro ao verificar viagem ativa: $e');
       if (mounted) {
         setState(() => _isLoadingRide = false);
       }
@@ -95,9 +97,9 @@ class _DriverHomePageState extends State<DriverHomePage> {
                   children: [
                     Text(
                       'Boa tarde, Gabriel',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -173,8 +175,11 @@ class _DriverHomePageState extends State<DriverHomePage> {
             'vehicleBrand': _activeRide!['vehicle']?['brand'],
             'vehicleModel': _activeRide!['vehicle']?['model'],
           };
-          Navigator.pushNamed(context, '/ride_start', arguments: rideData)
-              .then((_) => _checkForActiveRide());
+          Navigator.pushNamed(
+            context,
+            '/ride_start',
+            arguments: rideData,
+          ).then((_) => _checkForActiveRide());
         },
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
         height: 40,
@@ -185,8 +190,10 @@ class _DriverHomePageState extends State<DriverHomePage> {
         variant: ButtonVariant.primary,
         icon: Icons.add,
         onPressed: () {
-          Navigator.pushNamed(context, '/createRide')
-              .then((_) => _checkForActiveRide());
+          Navigator.pushNamed(
+            context,
+            '/createRide',
+          ).then((_) => _checkForActiveRide());
         },
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
         height: 40,
@@ -220,7 +227,11 @@ class _DriverHomePageState extends State<DriverHomePage> {
     );
   }
 
-  Future<void> criarSolicitacaoCarona(String startLocation, String endLocation, int rideId) async {
+  Future<void> criarSolicitacaoCarona(
+    String startLocation,
+    String endLocation,
+    int rideId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(AppConfig.tokenKey);
 
@@ -236,11 +247,13 @@ class _DriverHomePageState extends State<DriverHomePage> {
       // outros campos necessários
     });
 
-    print('Enviando solicitação: $body para ${AppConfig.baseUrl}/api/ride-requests/');
+    debugPrint(
+      'Enviando solicitação: $body para ${AppConfig.baseUrl}/api/ride-requests/',
+    );
     final url = Uri.parse('${AppConfig.baseUrl}/api/ride-requests/');
     final response = await http.post(url, headers: headers, body: body);
-    print('Status: ${response.statusCode}');
-    print('Body: ${response.body}');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       // sucesso

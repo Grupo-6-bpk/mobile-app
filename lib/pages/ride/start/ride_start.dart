@@ -23,21 +23,23 @@ class _RideStartPageState extends State<RideStartPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments;
-      print('RideStartPage: Args recebidos: $args');
-      print('RideStartPage: Tipo dos args: ${args.runtimeType}');
-      
+      debugPrint('RideStartPage: Args recebidos: $args');
+      debugPrint('RideStartPage: Tipo dos args: ${args.runtimeType}');
+
       if (args is Map<String, dynamic>) {
-        print('RideStartPage: RideData completo: $args');
-        print('RideStartPage: DriverId: ${args['driverId']}');
-        print('RideStartPage: Tipo do driverId: ${args['driverId']?.runtimeType}');
-        
+        debugPrint('RideStartPage: RideData completo: $args');
+        debugPrint('RideStartPage: DriverId: ${args['driverId']}');
+        debugPrint(
+          'RideStartPage: Tipo do driverId: ${args['driverId']?.runtimeType}',
+        );
+
         setState(() {
           _rideData = args;
         });
         _loadRideRequests();
         _startRefreshTimer();
       } else {
-        print('RideStartPage: Args não é um Map<String, dynamic>');
+        debugPrint('RideStartPage: Args não é um Map<String, dynamic>');
         setState(() {
           _errorMessage = 'Dados da viagem inválidos';
           _isLoadingRequests = false;
@@ -54,17 +56,17 @@ class _RideStartPageState extends State<RideStartPage> {
 
   void _startRefreshTimer() {
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      print('Timer: Atualizando solicitações de carona...');
+      debugPrint('Timer: Atualizando solicitações de carona...');
       _loadRideRequests(showLoading: false);
     });
   }
 
   Future<void> _loadRideRequests({bool showLoading = true}) async {
-    print('RideStartPage: _loadRideRequests chamado');
-    print('RideStartPage: _rideData: $_rideData');
-    
+    debugPrint('RideStartPage: _loadRideRequests chamado');
+    debugPrint('RideStartPage: _rideData: $_rideData');
+
     if (_rideData == null) {
-      print('RideStartPage: _rideData é null');
+      debugPrint('RideStartPage: _rideData é null');
       setState(() {
         _isLoadingRequests = false;
         _errorMessage = 'Dados da viagem não encontrados';
@@ -73,11 +75,11 @@ class _RideStartPageState extends State<RideStartPage> {
     }
 
     final driverId = _rideData!['driverId'];
-    print('RideStartPage: driverId extraído: $driverId');
-    print('RideStartPage: tipo do driverId: ${driverId.runtimeType}');
-    
+    debugPrint('RideStartPage: driverId extraído: $driverId');
+    debugPrint('RideStartPage: tipo do driverId: ${driverId.runtimeType}');
+
     if (driverId == null) {
-      print('RideStartPage: driverId é null');
+      debugPrint('RideStartPage: driverId é null');
       setState(() {
         _isLoadingRequests = false;
         _errorMessage = 'ID do motorista não encontrado';
@@ -94,11 +96,12 @@ class _RideStartPageState extends State<RideStartPage> {
       }
 
       // Converter para int se necessário
-      final int driverIdInt = driverId is int ? driverId : int.parse(driverId.toString());
-      print('RideStartPage: driverId convertido para int: $driverIdInt');
-      
+      final int driverIdInt =
+          driverId is int ? driverId : int.parse(driverId.toString());
+      debugPrint('RideStartPage: driverId convertido para int: $driverIdInt');
+
       final requests = await RideService.getRideRequestsByDriver(driverIdInt);
-      
+
       if (mounted) {
         setState(() {
           _rideRequests = requests;
@@ -108,7 +111,7 @@ class _RideStartPageState extends State<RideStartPage> {
         });
       }
     } catch (e) {
-      print('RideStartPage: Erro ao carregar solicitações: $e');
+      debugPrint('RideStartPage: Erro ao carregar solicitações: $e');
       if (mounted) {
         setState(() {
           if (showLoading) {
@@ -131,9 +134,9 @@ class _RideStartPageState extends State<RideStartPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pushNamedAndRemoveUntil(
-              context, 
-              '/driverHome', 
-              (route) => false
+              context,
+              '/driverHome',
+              (route) => false,
             );
           },
         ),
@@ -163,7 +166,10 @@ class _RideStartPageState extends State<RideStartPage> {
                     const SizedBox(height: 8),
                     _buildInfoRow('📍 De:', _rideData!['startLocation']),
                     _buildInfoRow('🎯 Para:', _rideData!['endLocation']),
-                    _buildInfoRow('⏰ Saída:', '${_rideData!['date']} às ${_rideData!['departureTime']}'),
+                    _buildInfoRow(
+                      '⏰ Saída:',
+                      '${_rideData!['date']} às ${_rideData!['departureTime']}',
+                    ),
                     _buildInfoRow('💺 Vagas:', _rideData!['seats']),
                     _buildInfoRow('📏 Distância:', _rideData!['distance']),
                   ],
@@ -171,7 +177,7 @@ class _RideStartPageState extends State<RideStartPage> {
               ),
               const SizedBox(height: 16),
             ],
-            
+
             // Timer
             Container(
               padding: const EdgeInsets.all(16),
@@ -182,7 +188,10 @@ class _RideStartPageState extends State<RideStartPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.timer_outlined, color: Theme.of(context).colorScheme.onSecondaryContainer),
+                  Icon(
+                    Icons.timer_outlined,
+                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Tempo restante: 04:59',
@@ -200,9 +209,7 @@ class _RideStartPageState extends State<RideStartPage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: _buildRequestsList(),
-            ),
+            Expanded(child: _buildRequestsList()),
           ],
         ),
       ),
@@ -215,7 +222,7 @@ class _RideStartPageState extends State<RideStartPage> {
                 text: 'Cancelar',
                 onPressed: () {
                   // Logic to cancel the ride
-                  Navigator.pop(context); 
+                  Navigator.pop(context);
                 },
                 variant: ButtonVariant.secondary,
               ),
@@ -296,36 +303,40 @@ class _RideStartPageState extends State<RideStartPage> {
       itemCount: _rideRequests.length,
       itemBuilder: (context, index) {
         final request = _rideRequests[index];
-        
+
         // Log todas as informações do card
-        print('=== CARD DE SOLICITAÇÃO $index ===');
-        print('Dados completos: $request');
-        print('Chaves disponíveis: ${request.keys.toList()}');
-        
+        debugPrint('=== CARD DE SOLICITAÇÃO $index ===');
+        debugPrint('Dados completos: $request');
+        debugPrint('Chaves disponíveis: ${request.keys.toList()}');
+
         // Log informações específicas
-        print('ID: ${request['id']}');
-        print('RequestId: ${request['requestId']}');
-        print('RideRequestId: ${request['rideRequestId']}');
-        print('PassengerName: ${request['passengerName']}');
-        print('UserName: ${request['userName']}');
-        print('PickupLocation: ${request['pickupLocation']}');
-        print('StartLocation: ${request['startLocation']}');
-        print('PhoneNumber: ${request['phoneNumber']}');
-        print('Phone: ${request['phone']}');
-        print('ProfileImage: ${request['profileImage']}');
-        print('Rating: ${request['rating']}');
-        print('Status: ${request['status']}');
-        print('RideId: ${request['rideId']}');
-        print('UserId: ${request['userId']}');
-        print('CreatedAt: ${request['createdAt']}');
-        print('================================');
-        
+        debugPrint('ID: ${request['id']}');
+        debugPrint('RequestId: ${request['requestId']}');
+        debugPrint('RideRequestId: ${request['rideRequestId']}');
+        debugPrint('PassengerName: ${request['passengerName']}');
+        debugPrint('UserName: ${request['userName']}');
+        debugPrint('PickupLocation: ${request['pickupLocation']}');
+        debugPrint('StartLocation: ${request['startLocation']}');
+        debugPrint('PhoneNumber: ${request['phoneNumber']}');
+        debugPrint('Phone: ${request['phone']}');
+        debugPrint('ProfileImage: ${request['profileImage']}');
+        debugPrint('Rating: ${request['rating']}');
+        debugPrint('Status: ${request['status']}');
+        debugPrint('RideId: ${request['rideId']}');
+        debugPrint('UserId: ${request['userId']}');
+        debugPrint('CreatedAt: ${request['createdAt']}');
+        debugPrint('================================');
+
         // Extrair dados do passageiro de forma segura
         final passenger = request['passenger'] as Map<String, dynamic>? ?? {};
         final user = passenger['user'] as Map<String, dynamic>? ?? {};
         final name = user['name'] ?? passenger['name'] ?? 'Passageiro';
-        final phoneNumber = user['phone'] ?? passenger['phone'] ?? 'Não informado';
-        final imageUrl = user['profileImageUrl'] ?? passenger['profileImageUrl'] ?? 'assets/images/profile1.png';
+        final phoneNumber =
+            user['phone'] ?? passenger['phone'] ?? 'Não informado';
+        final imageUrl =
+            user['profileImageUrl'] ??
+            passenger['profileImageUrl'] ??
+            'assets/images/profile1.png';
 
         return AvailablePassengerCard(
           name: name,
@@ -344,10 +355,11 @@ class _RideStartPageState extends State<RideStartPage> {
   Future<void> _acceptRequest(Map<String, dynamic> request) async {
     try {
       // Extrair o ID da solicitação
-      final requestId = request['id'] ?? request['requestId'] ?? request['rideRequestId'];
-      
+      final requestId =
+          request['id'] ?? request['requestId'] ?? request['rideRequestId'];
+
       if (requestId == null) {
-        print('RideStartPage: ID da solicitação não encontrado');
+        debugPrint('RideStartPage: ID da solicitação não encontrado');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Erro: ID da solicitação não encontrado'),
@@ -357,22 +369,28 @@ class _RideStartPageState extends State<RideStartPage> {
         return;
       }
 
-      print('RideStartPage: Aceitando solicitação com ID: $requestId');
-      
+      debugPrint('RideStartPage: Aceitando solicitação com ID: $requestId');
+
       // Converter para int se necessário
-      final int requestIdInt = requestId is int ? requestId : int.parse(requestId.toString());
-      
+      final int requestIdInt =
+          requestId is int ? requestId : int.parse(requestId.toString());
+
       // Enviar requisição PATCH para aceitar a solicitação
-      final success = await RideService.updateRideRequestStatus(requestIdInt, 'APPROVED');
-      
-      if (success) {
+      final success = await RideService.updateRideRequestStatus(
+        requestIdInt,
+        'APPROVED',
+      );
+
+      if (success && mounted) {
         // Remover a solicitação da lista ou marcar como aceita
         setState(() {
-          _rideRequests.removeWhere((req) => 
-            (req['id'] ?? req['requestId'] ?? req['rideRequestId']) == requestId
+          _rideRequests.removeWhere(
+            (req) =>
+                (req['id'] ?? req['requestId'] ?? req['rideRequestId']) ==
+                requestId,
           );
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -383,13 +401,15 @@ class _RideStartPageState extends State<RideStartPage> {
         );
       }
     } catch (e) {
-      print('RideStartPage: Erro ao aceitar solicitação: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao aceitar solicitação: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint('RideStartPage: Erro ao aceitar solicitação: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao aceitar solicitação: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -427,12 +447,13 @@ class _RideStartPageState extends State<RideStartPage> {
     // Por exemplo, construir uma URL do Google Maps com origem e destino
     final startLocation = _rideData!['startLocation'];
     final endLocation = _rideData!['endLocation'];
-    
+
     // Exemplo de URL do Google Maps (você precisará implementar a abertura)
-    final mapsUrl = 'https://www.google.com/maps/dir/$startLocation/$endLocation';
-    
-    print('Abrindo mapa com URL: $mapsUrl');
-    
+    final mapsUrl =
+        'https://www.google.com/maps/dir/$startLocation/$endLocation';
+
+    debugPrint('Abrindo mapa com URL: $mapsUrl');
+
     // TODO: Implementar abertura do mapa
     // TODO: Navegar para tela de "Corrida em Andamento"
   }
