@@ -4,9 +4,15 @@ class Ride {
   final String endLocation;
   final DateTime departureTime;
   final double? pricePerMember;
+  final double? totalCost;
+  final double? fuelPrice;
+  final int totalSeats;
   final int availableSeats;
+  final String status;
   final Driver driver;
   final Vehicle vehicle;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   Ride({
     required this.id,
@@ -14,21 +20,41 @@ class Ride {
     required this.endLocation,
     required this.departureTime,
     this.pricePerMember,
+    this.totalCost,
+    this.fuelPrice,
+    required this.totalSeats,
     required this.availableSeats,
+    required this.status,
     required this.driver,
     required this.vehicle,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory Ride.fromJson(Map<String, dynamic> json) {
+    final totalSeats = json['totalSeats'] ?? 0;
+    final availableSeats = json['availableSeats'] ?? 0;
+    final status = json['status'] ?? 'PENDING';
+    
+    print('Ride.fromJson: totalSeats do JSON: $totalSeats');
+    print('Ride.fromJson: availableSeats do JSON: $availableSeats');
+    print('Ride.fromJson: status do JSON: $status');
+    
     return Ride(
       id: json['id'],
       startLocation: json['startLocation'],
       endLocation: json['endLocation'],
       departureTime: DateTime.parse(json['departureTime']),
       pricePerMember: (json['pricePerMember'] as num?)?.toDouble(),
-      availableSeats: json['availableSeats'],
+      totalCost: (json['totalCost'] as num?)?.toDouble(),
+      fuelPrice: (json['fuelPrice'] as num?)?.toDouble(),
+      totalSeats: totalSeats,
+      availableSeats: availableSeats,
+      status: status,
       driver: Driver.fromJson(json['driver']),
       vehicle: Vehicle.fromJson(json['vehicle']),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     );
   }
 }

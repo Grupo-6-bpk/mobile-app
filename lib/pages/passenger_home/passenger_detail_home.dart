@@ -3,11 +3,58 @@ import 'package:intl/intl.dart';
 import 'package:mobile_app/models/ride.dart';
 import 'package:mobile_app/models/user.dart';
 import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/components/custom_button.dart';
+import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/services/ride_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:mobile_app/config/app_config.dart';
 
-class PassengerDetailHome extends StatelessWidget {
+class PassengerDetailHome extends StatefulWidget {
   final Ride ride;
 
   const PassengerDetailHome({super.key, required this.ride});
+
+  @override
+  State<PassengerDetailHome> createState() => _PassengerDetailHomeState();
+}
+
+class _PassengerDetailHomeState extends State<PassengerDetailHome> {
+  bool _isRequested = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfAlreadyRequested();
+  }
+
+  Future<void> _checkIfAlreadyRequested() async {
+    try {
+      final authService = AuthService();
+      final passengerId = authService.currentUser?.passenger?.id;
+      
+      if (passengerId != null) {
+        final requests = await RideService.getRideRequestsByPassenger(passengerId);
+        final alreadyRequested = requests.any((req) => 
+          (req['rideId'] == widget.ride.id) && 
+          (req['status'] == null || 
+           req['status'].toString().toUpperCase() == 'PENDING' || 
+           req['status'].toString().toUpperCase() == 'APPROVED')
+        );
+        
+        if (mounted) {
+          setState(() {
+            _isRequested = alreadyRequested;
+          });
+        }
+      }
+    } catch (e) {
+      print('Erro ao verificar solicitações: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,52 +62,121 @@ class PassengerDetailHome extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.all(16.0),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCloseButton(context, theme),
-            _buildMotoristaInfo(theme),
-            const SizedBox(height: 8),
-            _buildAvaliacao(theme),
-            _buildMapaPlaceholder(theme),
-            _buildInformacoesViagem(theme),
-            const SizedBox(height: 16),
-            _buildBotoesAcao(context, theme),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header com botão de fechar
+          _buildHeader(context, theme),
+          
+          // Conteúdo principal
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Informações do motorista
+                  _buildMotoristaInfo(theme),
+                  const SizedBox(height: 20),
+                  
+                  // Avaliação
+                  _buildAvaliacao(theme),
+                  const SizedBox(height: 20),
+                  
+                  // Mapa placeholder
+                  _buildMapaPlaceholder(theme),
+                  const SizedBox(height: 20),
+                  
+                  // Informações da viagem
+                  _buildInformacoesViagem(theme),
+                  const SizedBox(height: 20),
+                  
+                  // Botões de ação
+                  _buildBotoesAcao(context, theme),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCloseButton(BuildContext context, ThemeData theme) {
-    return Align(
-      alignment: Alignment.topRight,
-      child: IconButton(
-        icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
-        onPressed: () => Navigator.pop(context),
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withOpacity(0.2),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Detalhes da Carona',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: Icon(
+              Icons.close,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildMotoristaInfo(ThemeData theme) {
     return FutureBuilder<User>(
-        future: UserService.getUserById(ride.driver.userId),
-        builder: (context, snapshot) {
-          final userName = snapshot.hasData ? snapshot.data!.name : 'Carregando...';
-          return Row(
+      future: UserService.getUserById(widget.ride.driver.userId),
+      builder: (context, snapshot) {
+        final userName = snapshot.hasData ? snapshot.data!.name : 'Carregando...';
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.primary.withOpacity(0.2),
+            ),
+          ),
+          child: Row(
             children: [
-              CircleAvatar(
-                backgroundColor: Colors.grey.shade800,
-                radius: 25,
-                child: const Icon(Icons.person),
+              // Avatar do motorista
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Icon(
+                  Icons.person,
+                  color: theme.colorScheme.primary,
+                  size: 28,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
+              
+              // Informações do motorista
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,46 +185,97 @@ class PassengerDetailHome extends StatelessWidget {
                       userName,
                       style: TextStyle(
                         color: theme.colorScheme.onSurface,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
-                      'Veículo: ${ride.vehicle.brand} ${ride.vehicle.model}',
+                      'Motorista',
                       style: TextStyle(
-                          color: theme.colorScheme.onSurface, fontSize: 12),
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    Text(
-                      'Placa: ${ride.vehicle.plate}',
-                      style: TextStyle(
-                          color: theme.colorScheme.onSurface, fontSize: 12),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.directions_car,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${widget.ride.vehicle.brand} ${widget.ride.vehicle.model}',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withOpacity(0.8),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.confirmation_number,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          widget.ride.vehicle.plate,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withOpacity(0.8),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ],
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildAvaliacao(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
       child: Row(
         children: [
-          Flexible(
-            child: Text(
-              'Avaliação do motorista: ',
-              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
+          Icon(
+            Icons.star,
+            color: const Color(0xFFFFD700),
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Avaliação do motorista',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
+          const Spacer(),
           Row(
             children: List.generate(
               5,
               (i) => Icon(
-                i < 4 ? Icons.star : Icons.star_border, // Placeholder
-                color: Colors.amber,
-                size: 16,
+                i < 4 ? Icons.star : Icons.star_border,
+                color: const Color(0xFFFFD700),
+                size: 18,
               ),
             ),
           ),
@@ -118,91 +285,441 @@ class PassengerDetailHome extends StatelessWidget {
   }
 
   Widget _buildMapaPlaceholder(ThemeData theme) {
-    // This can be replaced with a real map later
     return Container(
-      height: 130,
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      height: 140,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
         color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
       ),
-      child: const Center(child: Text('Placeholder para o Mapa da Rota')),
+      child: Stack(
+        children: [
+          // Placeholder do mapa
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.map_outlined,
+                    size: 32,
+                    color: theme.colorScheme.primary.withOpacity(0.6),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Rota da Viagem',
+                    style: TextStyle(
+                      color: theme.colorScheme.primary.withOpacity(0.8),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Indicadores de origem e destino
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Origem',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Destino',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildInformacoesViagem(ThemeData theme) {
-    final formattedTime = DateFormat('HH:mm').format(ride.departureTime);
+    final formattedTime = DateFormat('HH:mm').format(widget.ride.departureTime);
     final formattedPrice = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
-        .format(ride.pricePerMember ?? 0);
+        .format(widget.ride.pricePerMember ?? 0);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildInfoLine('Saída', ride.startLocation, theme),
-        _buildInfoLine('Destino', ride.endLocation, theme),
-        _buildInfoLine('Horário de saída', formattedTime, theme),
-        _buildInfoLine('Assentos disponíveis', ride.availableSeats.toString(), theme),
-        if (ride.pricePerMember != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              'Valor por pessoa: $formattedPrice',
-              style: TextStyle(
-                color: theme.colorScheme.secondary,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Informações da Viagem',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildInfoLine(String label, String value, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+          const SizedBox(height: 16),
+          
+          _buildInfoRow(theme, Icons.location_on, 'Origem', widget.ride.startLocation),
+          const SizedBox(height: 12),
+          _buildInfoRow(theme, Icons.location_on_outlined, 'Destino', widget.ride.endLocation),
+          const SizedBox(height: 12),
+          _buildInfoRow(theme, Icons.access_time, 'Horário de Saída', formattedTime),
+          const SizedBox(height: 12),
+          _buildInfoRow(theme, Icons.event_seat, 'Assentos Disponíveis', '${widget.ride.availableSeats}/${widget.ride.totalSeats}'),
+          
+          if (widget.ride.pricePerMember != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.attach_money,
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Valor por pessoa:',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    formattedPrice,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _buildBotoesAcao(BuildContext context, ThemeData theme) {
-    // The logic for these buttons can be implemented similarly to the request button.
+  Widget _buildInfoRow(ThemeData theme, IconData icon, String label, String value) {
     return Row(
       children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            child: const Text('Enviar Mensagem'),
-          ),
+        Icon(
+          icon,
+          size: 16,
+          color: theme.colorScheme.primary,
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
         Expanded(
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.secondary,
-              foregroundColor: theme.colorScheme.onSecondary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            child: const Text('Solicitar'),
+              Text(
+                value,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildBotoesAcao(BuildContext context, ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(
+          child: CustomButton(
+            text: 'Enviar Mensagem',
+            onPressed: () {},
+            variant: ButtonVariant.secondary,
+            height: 48,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildRequestButton(context, theme),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRequestButton(BuildContext context, ThemeData theme) {
+    if (_isLoading) {
+      return Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.primary.withOpacity(0.3),
+          ),
+        ),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_isRequested) {
+      return Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.secondary.withOpacity(0.3),
+          ),
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 20,
+                color: theme.colorScheme.secondary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Solicitado',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return CustomButton(
+      text: 'Solicitar',
+      onPressed: () => _onSolicitarPressed(context),
+      variant: ButtonVariant.primary,
+      height: 48,
+    );
+  }
+
+  Future<void> _onSolicitarPressed(BuildContext context) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Verifica e solicita permissão de localização, se necessário
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permissão de localização negada.')),
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permissão de localização permanentemente negada.')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Obtém a localização atual
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      String startLocation = '${position.latitude},${position.longitude}';
+      String endLocation = 'bpkedu';
+
+      // Pegue o id do passageiro autenticado
+      final authService = AuthService();
+      final passengerId = authService.currentUser?.passenger?.id;
+
+      if (passengerId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuário não autenticado ou não é passageiro!')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Buscar status da viagem e vagas disponíveis antes de solicitar
+      final rideDetails = await RideService.getRideById(widget.ride.id);
+      if (rideDetails == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Viagem não encontrada.')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      // Verificar status da viagem
+      final status = rideDetails['status']?.toString()?.toUpperCase() ?? 'PENDING';
+      if (status != 'PENDING') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Não é possível solicitar carona para uma viagem já iniciada, finalizada ou cancelada (status: $status).'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      // Verificar se já existe solicitação pendente/aprovada para o passageiro nesta viagem
+      final requests = await RideService.getRideRequestsByPassenger(passengerId);
+      final alreadyRequested = requests.any((req) => (req['rideId'] == widget.ride.id) && (req['status'] == null || req['status'].toString().toUpperCase() == 'PENDING' || req['status'].toString().toUpperCase() == 'APPROVED'));
+      if (alreadyRequested) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você já possui uma solicitação pendente ou aprovada para esta viagem.')),
+        );
+        setState(() {
+          _isLoading = false;
+          _isRequested = true;
+        });
+        return;
+      }
+
+      await criarSolicitacaoCarona(startLocation, endLocation, widget.ride.id, passengerId);
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isRequested = true;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Solicitação enviada com sucesso!',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // Fechar o diálogo após alguns segundos
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao enviar solicitação: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -237,4 +754,34 @@ class RoutePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+Future<void> criarSolicitacaoCarona(
+    String startLocation, String endLocation, int rideId, int passengerId) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString(AppConfig.tokenKey);
+
+  final headers = {
+    'Content-Type': 'application/json',
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
+
+  final body = jsonEncode({
+    'rideId': rideId,
+    'startLocation': startLocation,
+    'endLocation': endLocation,
+    'passengerId': passengerId,
+  });
+
+  final url = Uri.parse('${AppConfig.baseUrl}/api/ride-requests/');
+  final response = await http.post(url, headers: headers, body: body);
+
+  print('Status: ${response.statusCode}');
+  print('Response: ${response.body}');
+
+  if (response.statusCode == 201 || response.statusCode == 200) {
+    // sucesso
+  } else {
+    // erro
+  }
 }
