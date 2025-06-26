@@ -160,10 +160,31 @@ class _DriverHomePageState extends State<DriverHomePage>
               _activeRide = rideData;
             });
             
-            // Mostrar informações da carona criada
+            // Mostrar SnackBar de sucesso ao invés do modal
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                _showRideCreatedDialog(rideData);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text('Carona criada com sucesso! ID: ${rideData['id'] ?? rideData['rideId'] ?? 'N/A'}'),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 4),
+                    action: SnackBarAction(
+                      label: 'Gerenciar',
+                      textColor: Colors.white,
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/ride_start', arguments: rideData);
+                      },
+                    ),
+                  ),
+                );
               }
             });
             
@@ -568,7 +589,8 @@ class _DriverHomePageState extends State<DriverHomePage>
         return 'Corrida em andamento';
       case 'COMPLETED':
         return 'Corrida concluída';
-      case 'CANCELLED':
+      case 'CANCELED':
+      case 'canceled':
         return 'Corrida cancelada';
       case 'FINISHED':
         return 'Corrida finalizada';
@@ -606,111 +628,7 @@ class _DriverHomePageState extends State<DriverHomePage>
     );
   }
 
-  void _showRideCreatedDialog(Map<String, dynamic> rideData) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 28),
-              SizedBox(width: 8),
-              Text('Carona Criada!'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ID da Carona
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.tag, color: Colors.blue, size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'ID da Carona: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '${rideData['id'] ?? rideData['rideId'] ?? 'N/A'}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Informações da Carona
-                _buildRideInfoRow(Icons.location_on, 'Origem', rideData['startLocation'] ?? 'N/A'),
-                const SizedBox(height: 8),
-                _buildRideInfoRow(Icons.location_on, 'Destino', rideData['endLocation'] ?? 'N/A'),
-                const SizedBox(height: 8),
-                _buildRideInfoRow(Icons.access_time, 'Horário', rideData['departureTime'] ?? 'N/A'),
-                const SizedBox(height: 8),
-                _buildRideInfoRow(Icons.calendar_today, 'Data', rideData['date'] ?? 'N/A'),
-                const SizedBox(height: 8),
-                _buildRideInfoRow(Icons.people, 'Vagas', '${rideData['totalSeats'] ?? 'N/A'}'),
-                const SizedBox(height: 8),
-                _buildRideInfoRow(Icons.route, 'Distância', '${rideData['distance'] ?? 'N/A'} km'),
-                if (rideData['vehicleBrand'] != null && rideData['vehicleModel'] != null) ...[
-                  const SizedBox(height: 8),
-                  _buildRideInfoRow(Icons.directions_car, 'Veículo', '${rideData['vehicleBrand']} ${rideData['vehicleModel']}'),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Fechar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Navegar para a tela de gerenciamento da carona
-                Navigator.pushNamed(context, '/ride_start', arguments: rideData);
-              },
-              child: const Text('Gerenciar Carona'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
-  Widget _buildRideInfoRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: TextStyle(color: Colors.grey[700]),
-          ),
-        ),
-      ],
-    );
-  }
 
   Future<void> criarSolicitacaoCarona(
     String startLocation,

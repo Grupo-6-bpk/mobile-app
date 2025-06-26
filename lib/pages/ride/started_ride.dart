@@ -32,6 +32,21 @@ class _StartedRidePageState extends State<StartedRidePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map<String, dynamic>) {
+        // Validar se temos dados válidos da corrida
+        final driverId = args['driverId'];
+        final rideId = RideService.safeExtractRideId(args);
+        
+        if (driverId == null || rideId == null) {
+          setState(() {
+            _errorMessage = 'Dados da viagem incompletos ou inválidos:\n'
+                'DriverId: $driverId\n'
+                'RideId: $rideId\n'
+                'Dados: $args';
+            _isLoadingRequests = false;
+          });
+          return;
+        }
+        
         setState(() {
           _rideData = args;
         });
@@ -41,7 +56,7 @@ class _StartedRidePageState extends State<StartedRidePage> {
         _startRefreshTimer();
       } else {
         setState(() {
-          _errorMessage = 'Dados da viagem inválidos';
+          _errorMessage = 'Dados da viagem inválidos ou não encontrados';
           _isLoadingRequests = false;
         });
       }

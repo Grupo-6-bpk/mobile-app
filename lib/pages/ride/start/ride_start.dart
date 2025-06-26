@@ -22,8 +22,9 @@ class _RideStartPageState extends State<RideStartPage> {
   String? _errorMessage;
   Timer? _refreshTimer;
   DateTime? _lastUpdate;
-  String _rideStatus = 'PENDING'; // PENDING, STARTED, COMPLETED, CANCELLED
+  String _rideStatus = 'PENDING'; // PENDING, STARTED, COMPLETED, CANCELED
   bool _isUpdatingRideStatus = false;
+  bool _isCancelling = false;
 
   @override
   void initState() {
@@ -31,10 +32,11 @@ class _RideStartPageState extends State<RideStartPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map<String, dynamic>) {
-        final rideId = args['rideId'];
-        if (rideId == null) {
+        // Usar o método utilitário para validar se temos um rideId válido
+        final extractedRideId = RideService.safeExtractRideId(args);
+        if (extractedRideId == null) {
           setState(() {
-            _errorMessage = 'ID da viagem não encontrado ou inválido';
+            _errorMessage = 'ID da viagem não encontrado ou inválido nos dados: $args';
             _isLoadingRequests = false;
           });
           return;
@@ -87,6 +89,19 @@ class _RideStartPageState extends State<RideStartPage> {
     bool isAutoRefresh = false,
     bool forceRefresh = false
   }) async {
+    
+    // Durante auto-refresh, sincronizar status da corrida
+    if (isAutoRefresh) {
+      await _syncRideStatusFromBackend();
+      
+      // Se a corrida foi cancelada/finalizada, não precisamos carregar mais requests
+      if (['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase())) {
+        if (kDebugMode) {
+          debugPrint('🛑 Corrida em estado final ($_rideStatus), parando carregamento de requests');
+        }
+        return;
+      }
+    }
     if (_rideData == null) {
       if (kDebugMode) {
         debugPrint('❌ _rideData é null');
@@ -162,6 +177,29 @@ class _RideStartPageState extends State<RideStartPage> {
         if (kDebugMode) {
           debugPrint('📊 Pendentes: ${pendingRequests.length}, Aprovadas: ${approvedRequests.length}');
         }
+        
+        // Sincronizar passageiros aprovados que podem não estar na lista local
+        for (final approvedRequest in approvedRequests) {
+          final requestId = approvedRequest['id'];
+          final alreadyInAccepted = _acceptedPassengers.any((p) => p['id'] == requestId);
+          
+          if (!alreadyInAccepted) {
+            if (kDebugMode) {
+              debugPrint('🔄 Adicionando passageiro aprovado à lista local: $requestId');
+            }
+            
+            final passenger = approvedRequest['passenger'] as Map<String, dynamic>? ?? {};
+            _acceptedPassengers.add({
+              'id': approvedRequest['id'],
+              'userId': passenger['userId'] ?? approvedRequest['passengerId'],
+              'name': passenger['name'] ?? 'Passageiro $requestId',
+              'phone': passenger['phone'] ?? 'Não informado',
+              'startLocation': approvedRequest['startLocation'] ?? 'Não informado',
+              'endLocation': approvedRequest['endLocation'] ?? 'Não informado',
+              'status': 'APPROVED',
+            });
+          }
+        }
 
         final hasChanges = _hasDataChanged(pendingRequests, approvedRequests);
         
@@ -188,6 +226,7 @@ class _RideStartPageState extends State<RideStartPage> {
 
           if (kDebugMode && hasChanges) {
             debugPrint('✅ Dados atualizados - Pendentes: ${pendingRequests.length}, Aprovados: ${approvedRequests.length}');
+            debugPrint('🔄 Lista de passageiros aceitos atual: ${_acceptedPassengers.map((p) => 'ID:${p['id']} Nome:${p['name']}').join(', ')}');
           }
         } else {
           setState(() {
@@ -235,22 +274,52 @@ class _RideStartPageState extends State<RideStartPage> {
   }
 
   bool _hasDataChanged(List<Map<String, dynamic>> newPending, List<Map<String, dynamic>> newApproved) {
+    if (kDebugMode) {
+      debugPrint('🔍 === VERIFICANDO MUDANÇAS ===');
+      debugPrint('🔍 Pendentes: local ${_rideRequests.length} vs novo ${newPending.length}');
+      debugPrint('🔍 Aprovados: local ${_acceptedPassengers.length} vs novo ${newApproved.length}');
+    }
+    
     if (_rideRequests.length != newPending.length || _acceptedPassengers.length != newApproved.length) {
+      if (kDebugMode) {
+        debugPrint('✅ Mudança detectada: diferença de tamanho');
+      }
       return true;
     }
 
     final currentPendingIds = _rideRequests.map((r) => r['id']).toSet();
     final newPendingIds = newPending.map((r) => r['id']).toSet();
+    
+    if (kDebugMode) {
+      debugPrint('🔍 IDs Pendentes atuais: $currentPendingIds');
+      debugPrint('🔍 IDs Pendentes novos: $newPendingIds');
+    }
+    
     if (!currentPendingIds.containsAll(newPendingIds) || !newPendingIds.containsAll(currentPendingIds)) {
+      if (kDebugMode) {
+        debugPrint('✅ Mudança detectada nas solicitações pendentes');
+      }
       return true;
     }
 
     final currentApprovedIds = _acceptedPassengers.map((r) => r['id']).toSet();
     final newApprovedIds = newApproved.map((r) => r['id']).toSet();
+    
+    if (kDebugMode) {
+      debugPrint('🔍 IDs Aprovados atuais: $currentApprovedIds');
+      debugPrint('🔍 IDs Aprovados novos: $newApprovedIds');
+    }
+    
     if (!currentApprovedIds.containsAll(newApprovedIds) || !newApprovedIds.containsAll(currentApprovedIds)) {
+      if (kDebugMode) {
+        debugPrint('✅ Mudança detectada nos passageiros aprovados');
+      }
       return true;
     }
 
+    if (kDebugMode) {
+      debugPrint('📊 Nenhuma mudança detectada');
+    }
     return false;
   }
 
@@ -366,14 +435,15 @@ class _RideStartPageState extends State<RideStartPage> {
     });
 
     try {
-      final rideId = _rideData!['id'];
-      final success = await RideService.startRide(rideId);
+      final success = await RideService.startRideFlexible(_rideData);
       
       if (success && mounted) {
         setState(() {
           _rideStatus = 'STARTED';
           _isUpdatingRideStatus = false;
         });
+
+        _clearRelatedCaches(); // Limpar cache após mudança de status
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -460,6 +530,32 @@ class _RideStartPageState extends State<RideStartPage> {
       return;
     }
 
+    // Evitar cancelamentos duplicados
+    if (_isCancelling) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Cancelamento já em andamento, ignorando nova tentativa');
+      }
+      return;
+    }
+
+    // Sincronizar status com backend antes de tentar cancelar
+    final wasSynced = await _syncRideStatusFromBackend();
+    if (wasSynced) {
+      // Se o status foi sincronizado, verificar se a corrida já está cancelada
+      if (['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase())) {
+        if (kDebugMode) {
+          debugPrint('✅ Corrida já está em estado final: $_rideStatus');
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Corrida já está ${_rideStatus.toLowerCase()}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    }
+
     // Confirmar ação
     final confirm = await showDialog<bool>(
       context: context,
@@ -487,22 +583,17 @@ class _RideStartPageState extends State<RideStartPage> {
 
     setState(() {
       _isUpdatingRideStatus = true;
+      _isCancelling = true;
     });
 
     try {
-      final rideId = _rideData!['id'];
-      
       if (kDebugMode) {
         debugPrint('🚫 === INICIANDO CANCELAMENTO ===');
-        debugPrint('🚫 RideId: $rideId');
         debugPrint('🚫 RideData: $_rideData');
+        debugPrint('🚫 Status atual: $_rideStatus');
       }
       
-      if (rideId == null) {
-        throw Exception('ID da corrida não encontrado nos dados da viagem');
-      }
-      
-      final success = await RideService.cancelRide(rideId);
+      final success = await RideService.cancelRideFlexible(_rideData);
       
       if (kDebugMode) {
         debugPrint('🚫 Resultado do cancelamento: $success');
@@ -510,9 +601,12 @@ class _RideStartPageState extends State<RideStartPage> {
       
       if (success && mounted) {
         setState(() {
-          _rideStatus = 'CANCELLED';
+          _rideStatus = 'CANCELED';
           _isUpdatingRideStatus = false;
+          _isCancelling = false;
         });
+
+        _clearRelatedCaches(); // Limpar cache após cancelamento
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -528,15 +622,16 @@ class _RideStartPageState extends State<RideStartPage> {
           ),
         );
 
-        // Voltar para a tela inicial do motorista após alguns segundos
-        Future.delayed(const Duration(seconds: 3), () {
+        // Voltar para a tela inicial do motorista imediatamente após cancelamento
+        Future.delayed(const Duration(seconds: 2), () {
           if (mounted) {
-            _safeNavigateToDriverHome();
+            _safeNavigateToDriverHome(clearActiveRide: true);
           }
         });
       } else if (mounted) {
         setState(() {
           _isUpdatingRideStatus = false;
+          _isCancelling = false;
         });
         
         if (kDebugMode) {
@@ -562,6 +657,7 @@ class _RideStartPageState extends State<RideStartPage> {
       if (mounted) {
         setState(() {
           _isUpdatingRideStatus = false;
+          _isCancelling = false;
         });
         
         String errorMessage = 'Erro desconhecido ao cancelar corrida';
@@ -595,11 +691,10 @@ class _RideStartPageState extends State<RideStartPage> {
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 8),
             action: SnackBarAction(
-              label: 'Tentar Novamente',
+              label: 'OK',
               textColor: Colors.white,
               onPressed: () {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                _cancelRide();
               },
             ),
           ),
@@ -620,6 +715,45 @@ class _RideStartPageState extends State<RideStartPage> {
 
   Future<void> _completeRide() async {
     if (_rideData == null) return;
+    
+    // Verificar se a corrida foi iniciada
+    if (!['STARTED', 'IN_PROGRESS'].contains(_rideStatus.toUpperCase())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('A corrida deve estar em andamento para ser finalizada. Status atual: $_rideStatus'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+    
+    // Verificar se há passageiros aceitos
+    if (_acceptedPassengers.isEmpty) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Finalizar sem Passageiros'),
+          content: const Text(
+            'Esta viagem não tem passageiros aceitos.\n\n'
+            'Deseja realmente finalizar a viagem vazia?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              child: const Text('Finalizar Mesmo Assim'),
+            ),
+          ],
+        ),
+      );
+      
+      if (confirm != true) return;
+    }
 
     // Confirmar ação
     final confirm = await showDialog<bool>(
@@ -652,14 +786,15 @@ class _RideStartPageState extends State<RideStartPage> {
     });
 
     try {
-      final rideId = _rideData!['id'];
-      final success = await RideService.updateRideStatus(rideId, 'COMPLETED');
+      final success = await RideService.updateRideStatusFlexible(_rideData, 'COMPLETED');
       
       if (success && mounted) {
         setState(() {
-          _rideStatus = 'COMPLETED';
+          _rideStatus = 'COMPLETED'; // Normalizar para uppercase no frontend
           _isUpdatingRideStatus = false;
         });
+
+        _clearRelatedCaches(); // Limpar cache após finalização
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -693,6 +828,13 @@ class _RideStartPageState extends State<RideStartPage> {
         );
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ === ERRO AO FINALIZAR ===');
+        debugPrint('❌ Erro: $e');
+        debugPrint('❌ Tipo do erro: ${e.runtimeType}');
+        debugPrint('❌ Stack trace: ${StackTrace.current}');
+      }
+      
       if (mounted) {
         setState(() {
           _isUpdatingRideStatus = false;
@@ -721,9 +863,47 @@ class _RideStartPageState extends State<RideStartPage> {
       }
 
       final status = request['status']?.toString().toUpperCase();
+      
+      if (kDebugMode) {
+        debugPrint('👥 === ACEITANDO SOLICITAÇÃO ===');
+        debugPrint('👥 Request ID: $requestId');
+        debugPrint('👥 Status atual: $status');
+        debugPrint('👥 Request completo: $request');
+      }
+      
+      // Verificar se já está aprovada
+      if (status == 'APPROVED') {
+        if (kDebugMode) {
+          debugPrint('✅ Solicitação já está aprovada, apenas atualizando UI local');
+        }
+        
+        // Adicionar à lista de aceitos se não estiver lá
+        final alreadyAccepted = _acceptedPassengers.any((p) => p['id'] == requestId);
+        if (!alreadyAccepted) {
+          final passenger = request['passenger'] as Map<String, dynamic>? ?? {};
+          setState(() {
+            _acceptedPassengers.add({
+              'id': request['id'],
+              'userId': passenger['userId'] ?? request['passengerId'],
+              'name': passenger['name'] ?? 'Passageiro ${requestId}',
+              'phone': passenger['phone'] ?? 'Não informado',
+              'startLocation': request['startLocation'] ?? 'Não informado',
+              'endLocation': request['endLocation'] ?? 'Não informado',
+              'status': 'APPROVED',
+            });
+            _rideRequests.removeWhere((req) => req['id'] == requestId);
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Solicitação já aprovada, adicionada à lista')),
+          );
+        }
+        return;
+      }
+      
       if (status != 'PENDING') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Esta solicitação já foi processada.')),
+          SnackBar(content: Text('Esta solicitação já foi processada (status: $status).')),
         );
         return;
       }
@@ -741,10 +921,15 @@ class _RideStartPageState extends State<RideStartPage> {
         return;
       }
 
+      if (kDebugMode) {
+        debugPrint('👥 Tentando aprovar solicitação...');
+      }
+
       final success = await RideService.updateRideRequestStatus(
         requestId,
         'APPROVED',
       );
+      
       if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Erro ao aceitar solicitação')),
@@ -752,12 +937,18 @@ class _RideStartPageState extends State<RideStartPage> {
         return;
       }
 
+      if (kDebugMode) {
+        debugPrint('✅ Solicitação aprovada com sucesso');
+      }
+
+      // Atualizar UI local
+      final passenger = request['passenger'] as Map<String, dynamic>? ?? {};
       setState(() {
         _acceptedPassengers.add({
           'id': request['id'],
-          'userId': request['passenger']['userId'],
-          'name': request['passenger']['name'] ?? 'Passageiro',
-          'phone': request['passenger']['phone'] ?? 'Não informado',
+          'userId': passenger['userId'] ?? request['passengerId'],
+          'name': passenger['name'] ?? 'Passageiro ${requestId}',
+          'phone': passenger['phone'] ?? 'Não informado',
           'startLocation': request['startLocation'] ?? 'Não informado',
           'endLocation': request['endLocation'] ?? 'Não informado',
           'status': 'APPROVED',
@@ -771,9 +962,23 @@ class _RideStartPageState extends State<RideStartPage> {
         ).showSnackBar(const SnackBar(content: Text('Solicitação aceita')));
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ === ERRO AO ACEITAR SOLICITAÇÃO ===');
+        debugPrint('❌ Erro: $e');
+      }
+      
       if (mounted) {
+        String errorMessage = 'Erro ao aceitar solicitação: $e';
+        
+        // Tratar erro específico de status já definido
+        if (e.toString().contains('já está definido como APPROVED')) {
+          errorMessage = 'Solicitação já foi aprovada anteriormente';
+          // Força um refresh para sincronizar o estado
+          _loadRideRequests(showLoading: false, forceRefresh: true);
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao aceitar solicitação: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     }
@@ -792,9 +997,30 @@ class _RideStartPageState extends State<RideStartPage> {
       }
 
       final status = request['status']?.toString().toUpperCase();
+      
+      if (kDebugMode) {
+        debugPrint('❌ === REJEITANDO SOLICITAÇÃO ===');
+        debugPrint('❌ Request ID: $requestId');
+        debugPrint('❌ Status atual: $status');
+      }
+      
+      // Verificar se já está rejeitada
+      if (status == 'REJECTED') {
+        if (kDebugMode) {
+          debugPrint('✅ Solicitação já está rejeitada, apenas removendo da UI');
+        }
+        setState(() {
+          _rideRequests.removeWhere((req) => req['id'] == requestId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Solicitação já foi rejeitada anteriormente')),
+        );
+        return;
+      }
+      
       if (status != 'PENDING') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Esta solicitação já foi processada.')),
+          SnackBar(content: Text('Esta solicitação já foi processada (status: $status).')),
         );
         return;
       }
@@ -821,11 +1047,233 @@ class _RideStartPageState extends State<RideStartPage> {
         );
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ === ERRO AO REJEITAR SOLICITAÇÃO ===');
+        debugPrint('❌ Erro: $e');
+      }
+      
       if (mounted) {
+        String errorMessage = 'Erro ao rejeitar solicitação: $e';
+        
+        // Tratar erro específico de status já definido
+        if (e.toString().contains('já está definido como REJECTED')) {
+          errorMessage = 'Solicitação já foi rejeitada anteriormente';
+          // Força um refresh para sincronizar o estado
+          _loadRideRequests(showLoading: false, forceRefresh: true);
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao rejeitar solicitação: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
+    }
+  }
+
+  /// Sincroniza o status da corrida com o backend para evitar inconsistências
+  Future<bool> _syncRideStatusFromBackend() async {
+    if (_rideData == null) return false;
+    
+    try {
+      final rideId = RideService.safeExtractRideId(_rideData);
+      if (rideId == null) return false;
+      
+      if (kDebugMode) {
+        debugPrint('🔄 === SINCRONIZANDO STATUS ===');
+        debugPrint('🔄 RideId: $rideId');
+        debugPrint('🔄 Status local atual: $_rideStatus');
+      }
+      
+      // Buscar dados atualizados da corrida do backend
+      final driverId = _rideData!['driverId'];
+      if (driverId == null) return false;
+      
+      final activeRide = await RideService.getActiveRideForDriver(driverId);
+      
+      if (activeRide != null) {
+        final backendStatus = activeRide['status']?.toString().toUpperCase() ?? 'PENDING';
+        final backendRideId = RideService.safeExtractRideId(activeRide);
+        
+        if (kDebugMode) {
+          debugPrint('🔄 Status do backend: $backendStatus');
+          debugPrint('🔄 RideId do backend: $backendRideId');
+        }
+        
+        // Verificar se é a mesma corrida
+        if (backendRideId == rideId) {
+          if (backendStatus != _rideStatus) {
+            if (kDebugMode) {
+              debugPrint('⚠️ Status desincronizado! Local: $_rideStatus, Backend: $backendStatus');
+            }
+            
+            setState(() {
+              _rideStatus = backendStatus;
+              // Atualizar também os dados locais
+              if (_rideData != null) {
+                _rideData!['status'] = backendStatus;
+              }
+            });
+            
+            return true; // Indica que houve sincronização
+          }
+        } else {
+          // A corrida ativa no backend é diferente - redirecionar para a corrida correta
+          if (kDebugMode) {
+            debugPrint('🚨 CORRIDA DIFERENTE DETECTADA!');
+            debugPrint('🚨 Local: $rideId, Backend: $backendRideId');
+            debugPrint('🚨 Redirecionando para corrida ativa...');
+          }
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Redirecionando para a corrida ativa mais recente...'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            
+            // Aguardar um pouco para mostrar a mensagem
+            await Future.delayed(const Duration(seconds: 1));
+            
+            if (mounted) {
+              // Redirecionar para a corrida ativa do backend
+              final newRideData = {
+                'driverId': activeRide['driverId'] ?? driverId,
+                'rideId': backendRideId,
+                'id': backendRideId,
+                'startLocation': activeRide['startLocation'] ?? 'Não informado',
+                'endLocation': activeRide['endLocation'] ?? 'Não informado',
+                'departureTime': activeRide['departureTime'] ?? 'Não informado',
+                'date': 'Hoje',
+                'totalSeats': activeRide['totalSeats'] ?? 4,
+                'distance': activeRide['distance']?.toString() ?? 'N/A',
+                'vehicleBrand': activeRide['vehicle']?['brand'] ?? 'N/A',
+                'vehicleModel': activeRide['vehicle']?['model'] ?? 'N/A',
+                'acceptedPassengers': [],
+                'status': backendStatus,
+              };
+              
+              Navigator.pushReplacementNamed(
+                context, 
+                '/ride_start', 
+                arguments: newRideData,
+              );
+            }
+          }
+          
+          return false;
+        }
+      } else {
+        // Não há corrida ativa no backend - a corrida pode ter sido cancelada/finalizada
+        if (kDebugMode) {
+          debugPrint('⚠️ Nenhuma corrida ativa encontrada no backend');
+          debugPrint('⚠️ Corrida local $rideId pode ter sido cancelada/finalizada');
+        }
+        
+        // Verificar se a corrida local não está em um estado final
+        if (!['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase())) {
+          if (kDebugMode) {
+            debugPrint('🔄 Marcando corrida local como cancelada');
+          }
+          
+          setState(() {
+            _rideStatus = 'CANCELED';
+            if (_rideData != null) {
+              _rideData!['status'] = 'CANCELED';
+            }
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Esta corrida foi finalizada. Retornando ao início...'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            
+            // Voltar para home após alguns segundos
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) {
+                _safeNavigateToDriverHome(clearActiveRide: true);
+              }
+            });
+          }
+          
+          return true;
+        }
+      }
+      
+      return false; // Nenhuma sincronização necessária
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Erro ao sincronizar status: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Limpa caches relacionados quando há mudança de status
+  void _clearRelatedCaches() {
+    if (kDebugMode) {
+      debugPrint('🧹 Limpando caches relacionados à corrida');
+    }
+    RideService.clearRidesCache();
+  }
+
+  /// Verifica se a corrida já passou do horário de partida
+  bool _hasRideDeparted() {
+    if (_rideData == null) return false;
+    
+    final departureTimeStr = _rideData!['departureTime'];
+    if (departureTimeStr == null) return false;
+    
+    try {
+      DateTime? departureTime;
+      final now = DateTime.now();
+      
+      // Tentar converter diferentes formatos de data/hora
+      if (departureTimeStr.toString().contains('T')) {
+        // Formato ISO 8601 (ex: 2025-06-26T18:30:00.000Z)
+        departureTime = DateTime.tryParse(departureTimeStr.toString());
+      } else if (departureTimeStr.toString().contains(':')) {
+        // Formato HH:mm (ex: 18:30)
+        final timeParts = departureTimeStr.toString().split(':');
+        if (timeParts.length >= 2) {
+          final hour = int.tryParse(timeParts[0]);
+          final minute = int.tryParse(timeParts[1]);
+          if (hour != null && minute != null) {
+            departureTime = DateTime(
+              now.year, now.month, now.day,
+              hour, minute,
+            );
+          }
+        }
+      }
+      
+      if (departureTime == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Não foi possível converter horário de partida: $departureTimeStr');
+        }
+        return false;
+      }
+      
+      final hasDeparted = now.isAfter(departureTime);
+      
+      if (kDebugMode) {
+        debugPrint('🕒 === VERIFICAÇÃO DE HORÁRIO ===');
+        debugPrint('🕒 Horário atual: $now');
+        debugPrint('🕒 Horário de partida: $departureTime');
+        debugPrint('🕒 Já partiu: $hasDeparted');
+      }
+      
+      return hasDeparted;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Erro ao verificar horário de partida: $e');
+      }
+      return false;
     }
   }
 
@@ -837,13 +1285,13 @@ class _RideStartPageState extends State<RideStartPage> {
         centerTitle: true,
         actions: [
           // Botão Cancelar na AppBar - visível apenas quando aplicável
-          if (_rideStatus == 'PENDING' || _rideStatus == 'STARTED' || _rideStatus == 'IN_PROGRESS') ...[
+          if (!['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase()) && !_isCancelling) ...[
             IconButton(
               icon: Icon(
                 Icons.cancel_outlined,
                 color: Colors.red[600],
               ),
-              onPressed: _isUpdatingRideStatus ? null : _cancelRide,
+              onPressed: _isUpdatingRideStatus || _isCancelling ? null : _cancelRide,
               tooltip: 'Cancelar Corrida',
             ),
           ],
@@ -993,12 +1441,14 @@ class _RideStartPageState extends State<RideStartPage> {
         text = 'Em Andamento';
         break;
       case 'COMPLETED':
+      case 'completed':
         backgroundColor = Colors.blue.withOpacity(0.1);
         textColor = Colors.blue[700]!;
         icon = Icons.check_circle;
         text = 'Concluída';
         break;
-      case 'CANCELLED':
+      case 'CANCELED':
+      case 'canceled':
         backgroundColor = Colors.red.withOpacity(0.1);
         textColor = Colors.red[700]!;
         icon = Icons.cancel;
@@ -1086,7 +1536,7 @@ class _RideStartPageState extends State<RideStartPage> {
                 Expanded(
                   flex: 2,
                   child: ElevatedButton.icon(
-                    onPressed: _isUpdatingRideStatus ? null : _startRide,
+                    onPressed: (_isUpdatingRideStatus || _isCancelling) ? null : _startRide,
                     icon: _isUpdatingRideStatus
                         ? const SizedBox(
                             width: 16,
@@ -1096,6 +1546,8 @@ class _RideStartPageState extends State<RideStartPage> {
                         : const Icon(Icons.play_arrow),
                     label: Text(_isUpdatingRideStatus 
                         ? 'Iniciando...' 
+                        : _isCancelling 
+                        ? 'Aguarde...'
                         : 'Iniciar Corrida'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -1114,7 +1566,7 @@ class _RideStartPageState extends State<RideStartPage> {
               if (_rideStatus == 'STARTED' || _rideStatus == 'IN_PROGRESS') ...[
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isUpdatingRideStatus ? null : _completeRide,
+                    onPressed: (_isUpdatingRideStatus || _isCancelling) ? null : _completeRide,
                     icon: _isUpdatingRideStatus
                         ? const SizedBox(
                             width: 16,
@@ -1136,7 +1588,7 @@ class _RideStartPageState extends State<RideStartPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isUpdatingRideStatus ? null : _viewOnMap,
+                    onPressed: (_isUpdatingRideStatus || _isCancelling) ? null : _viewOnMap,
                     icon: const Icon(Icons.map),
                     label: const Text('Mapa'),
                     style: ElevatedButton.styleFrom(
@@ -1153,30 +1605,30 @@ class _RideStartPageState extends State<RideStartPage> {
               ],
               
               // Mensagem quando corrida foi cancelada ou concluída
-              if (_rideStatus == 'CANCELLED' || _rideStatus == 'COMPLETED') ...[
+              if (['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase())) ...[
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                     decoration: BoxDecoration(
-                      color: (_rideStatus == 'CANCELLED' ? Colors.red : Colors.blue).withOpacity(0.1),
+                      color: (['CANCELED', 'CANCELLED'].contains(_rideStatus.toUpperCase()) ? Colors.red : Colors.blue).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: (_rideStatus == 'CANCELLED' ? Colors.red : Colors.blue).withOpacity(0.3),
+                        color: (['CANCELED', 'CANCELLED'].contains(_rideStatus.toUpperCase()) ? Colors.red : Colors.blue).withOpacity(0.3),
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _rideStatus == 'CANCELLED' ? Icons.cancel : Icons.check_circle,
-                          color: _rideStatus == 'CANCELLED' ? Colors.red[700] : Colors.blue[700],
+                          ['CANCELED', 'CANCELLED'].contains(_rideStatus.toUpperCase()) ? Icons.cancel : Icons.check_circle,
+                          color: ['CANCELED', 'CANCELLED'].contains(_rideStatus.toUpperCase()) ? Colors.red[700] : Colors.blue[700],
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _rideStatus == 'CANCELLED' ? 'Corrida Cancelada' : 'Corrida Concluída',
+                          ['CANCELED', 'CANCELLED'].contains(_rideStatus.toUpperCase()) ? 'Corrida Cancelada' : 'Corrida Concluída',
                           style: TextStyle(
-                            color: _rideStatus == 'CANCELLED' ? Colors.red[700] : Colors.blue[700],
+                            color: ['CANCELED', 'CANCELLED'].contains(_rideStatus.toUpperCase()) ? Colors.red[700] : Colors.blue[700],
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1218,13 +1670,13 @@ class _RideStartPageState extends State<RideStartPage> {
           ],
           
           // Botão Cancelar - sempre visível na parte inferior quando aplicável
-          if (_rideStatus == 'PENDING' || _rideStatus == 'STARTED' || _rideStatus == 'IN_PROGRESS') ...[
+          if (!['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase())) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: _isUpdatingRideStatus ? null : _cancelRide,
-                icon: _isUpdatingRideStatus
+                onPressed: (_isUpdatingRideStatus || _isCancelling) ? null : _cancelRide,
+                icon: (_isUpdatingRideStatus || _isCancelling)
                     ? const SizedBox(
                         width: 18,
                         height: 18,
@@ -1232,7 +1684,7 @@ class _RideStartPageState extends State<RideStartPage> {
                       )
                     : const Icon(Icons.cancel_outlined, size: 20),
                 label: Text(
-                  _isUpdatingRideStatus ? 'Cancelando Corrida...' : 'Cancelar Corrida',
+                  (_isUpdatingRideStatus || _isCancelling) ? 'Cancelando Corrida...' : 'Cancelar Corrida',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -1534,14 +1986,19 @@ class _RideStartPageState extends State<RideStartPage> {
   }
 
   /// Função utilitária para navegação segura
-  void _safeNavigateToDriverHome() {
+  void _safeNavigateToDriverHome({bool clearActiveRide = false}) {
     if (!mounted) return;
     
     try {
+      final arguments = {
+        'refreshRides': true,
+        if (clearActiveRide) 'rideCancelled': true,
+      };
+      
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/driverHome',
         (route) => false,
-        arguments: {'refreshRides': true},
+        arguments: arguments,
       );
     } catch (e) {
       if (kDebugMode) {

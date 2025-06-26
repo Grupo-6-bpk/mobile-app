@@ -56,6 +56,7 @@ class RideService {
     if (response.statusCode == 201 || response.statusCode == 200) {
       // Limpar cache relacionado a rides
       _clearRideCache();
+      clearRidesCache(); // Limpar também o novo cache
       return true;
     } else {
       throw Exception('Erro ao criar carona: ${response.statusCode} - ${response.body}');
@@ -70,21 +71,46 @@ class RideService {
     }
   }
 
-  static Future<List<Ride>> getRides() async {
+  static Future<List<Ride>> getRides({
+    bool onlyRecent = true,
+    int limitDays = 7,
+    int limit = 50,
+    String sortBy = 'createdAt:desc',
+  }) async {
     if (!_authService.isAuthenticated) {
       throw Exception('Usuário não autenticado. Faça o login para ver as corridas.');
     }
 
-    final cacheKey = _getCacheKey('/api/rides', null);
+    // Construir parâmetros da URL
+    final params = <String, String>{};
+    
+    if (onlyRecent) {
+      // Filtrar corridas dos últimos 'limitDays' dias
+      final startDate = DateTime.now().subtract(Duration(days: limitDays));
+      params['startDate'] = startDate.toIso8601String();
+    }
+    
+    params['limit'] = limit.toString();
+    params['sort'] = sortBy;
+    params['status'] = 'PENDING'; // Apenas corridas pendentes (ativas)
+
+    final cacheKey = _getCacheKey('/api/rides', params);
     if (_isCacheValid(cacheKey)) {
       return _cache[cacheKey] as List<Ride>;
     }
 
-    final url = Uri.parse('$apiUrl/api/rides');
+    // Construir URL com parâmetros
+    final uri = Uri.parse('$apiUrl/api/rides').replace(queryParameters: params);
     final headers = _authService.getAuthHeaders();
 
+    if (kDebugMode) {
+      debugPrint('🔍 RideService.getRides: Buscando corridas recentes');
+      debugPrint('🔍 URL: $uri');
+      debugPrint('🔍 Parâmetros: $params');
+    }
+
     try {
-      final response = await http.get(url, headers: headers);
+      final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -94,11 +120,29 @@ class RideService {
           final List<dynamic> ridesJson = responseData['rides'];
           final rides = ridesJson.map((json) => Ride.fromJson(json)).toList();
           
+          // Filtro adicional no frontend para garantir apenas corridas recentes e ativas
+          final filteredRides = rides.where((ride) {
+            final now = DateTime.now();
+            final rideDate = ride.departureTime;
+            final statusUpper = ride.status.toUpperCase();
+            
+            // Apenas corridas PENDING ou que partem no futuro próximo (próximas 24h)
+            final isRecentOrFuture = rideDate.isAfter(now.subtract(const Duration(hours: 24)));
+            final isActiveStatus = statusUpper == 'PENDING' || statusUpper == 'STARTED';
+            
+            return isRecentOrFuture && isActiveStatus;
+          }).toList();
+          
+          if (kDebugMode) {
+            debugPrint('✅ Total de corridas retornadas pelo backend: ${rides.length}');
+            debugPrint('✅ Corridas após filtro local: ${filteredRides.length}');
+          }
+          
           // Armazenar no cache
-          _cache[cacheKey] = rides;
+          _cache[cacheKey] = filteredRides;
           _cacheTimestamps[cacheKey] = DateTime.now();
           
-          return rides;
+          return filteredRides;
         } else {
           return [];
         }
@@ -304,7 +348,7 @@ class RideService {
     }
 
     // Validar status permitidos
-    final allowedStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
+    final allowedStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELED'];
     final upperStatus = status.toUpperCase();
     if (!allowedStatuses.contains(upperStatus)) {
       throw Exception('Status inválido: $status. Permitidos: ${allowedStatuses.join(', ')}');
@@ -398,7 +442,9 @@ class RideService {
       return _cache[cacheKey] as int?;
     }
 
-    final url = Uri.parse('$apiUrl/api/rides?driverId=$driverId&limit=1&sort=createdAt:desc');
+    // Filtrar apenas corridas dos últimos 7 dias para evitar confusão
+    final startDate = DateTime.now().subtract(const Duration(days: 7));
+    final url = Uri.parse('$apiUrl/api/rides?driverId=$driverId&limit=1&sort=createdAt:desc&startDate=${startDate.toIso8601String()}');
     final headers = _authService.getAuthHeaders();
 
     try {
@@ -464,7 +510,9 @@ class RideService {
         }
       }
 
-      final url = Uri.parse('$apiUrl/api/rides?driverId=$driverId&status=$status&limit=1&sort=createdAt:desc');
+      // Adicionar filtro de data para corridas recentes (últimos 30 dias)
+      final startDate = DateTime.now().subtract(const Duration(days: 30));
+      final url = Uri.parse('$apiUrl/api/rides?driverId=$driverId&status=$status&limit=1&sort=createdAt:desc&startDate=${startDate.toIso8601String()}');
       final headers = _authService.getAuthHeaders();
 
       try {
@@ -553,24 +601,17 @@ class RideService {
     }
 
     try {
-      // Usar PUT para atualizar a corrida com status CANCELLED
-      final url = Uri.parse('$apiUrl/api/rides/$rideId');
+      // Usar o endpoint correto conforme documentação da API: PATCH /api/rides/{id}/cancel
+      final cancelUrl = Uri.parse('$apiUrl/api/rides/$rideId/cancel');
       final headers = _authService.getAuthHeaders();
       
-      if (!headers.containsKey('Content-Type')) {
-        headers['Content-Type'] = 'application/json';
-      }
-      
-      final body = jsonEncode({'status': 'CANCELLED'});
-      
       if (kDebugMode) {
-        debugPrint('🔍 URL: $url');
+        debugPrint('🔍 URL: $cancelUrl');
         debugPrint('🔍 Headers: $headers');
-        debugPrint('🔍 Body: $body');
-        debugPrint('🔍 Enviando PUT request...');
+        debugPrint('🔍 Enviando PATCH cancel request...');
       }
       
-      final response = await http.put(url, headers: headers, body: body);
+      final response = await http.patch(cancelUrl, headers: headers);
       
       if (kDebugMode) {
         debugPrint('🔍 Response Status: ${response.statusCode}');
@@ -584,6 +625,7 @@ class RideService {
         
         _clearRideCache();
         _clearRequestCache();
+        clearRidesCache(); // Limpar também o novo cache
         return true;
       } else {
         if (kDebugMode) {
@@ -740,40 +782,73 @@ class RideService {
     }
   }
 
-  /// Método utilitário para validar e extrair o rideId de forma consistente
-  static int? extractRideId(dynamic data) {
-    if (data == null) return null;
+  /// Método utilitário para extrair rideId de forma segura de qualquer estrutura
+  static int? safeExtractRideId(dynamic rideData) {
+    if (rideData == null) return null;
     
-    // Se data é um Map, tentar extrair rideId
-    if (data is Map<String, dynamic>) {
-      final rideId = data['rideId'] ?? data['id'] ?? data['ride_id'];
-      if (rideId != null) {
-        return rideId is int ? rideId : int.tryParse(rideId.toString());
+    // Se já é um int, retornar diretamente
+    if (rideData is int) return rideData > 0 ? rideData : null;
+    
+    // Se é uma string, tentar converter
+    if (rideData is String) {
+      final parsed = int.tryParse(rideData);
+      return parsed != null && parsed > 0 ? parsed : null;
+    }
+    
+    // Se é um Map, tentar extrair de várias chaves possíveis
+    if (rideData is Map<String, dynamic>) {
+      // Ordem de preferência: id, rideId, ride_id
+      for (final key in ['id', 'rideId', 'ride_id']) {
+        final value = rideData[key];
+        if (value != null) {
+          if (value is int) return value > 0 ? value : null;
+          if (value is String) {
+            final parsed = int.tryParse(value);
+            if (parsed != null && parsed > 0) return parsed;
+          }
+        }
       }
     }
     
-    // Se data é um número, retornar diretamente
-    if (data is int) return data;
-    
-    // Se data é uma string, tentar converter para int
-    if (data is String) {
-      return int.tryParse(data);
+    if (kDebugMode) {
+      debugPrint('❌ RideService.safeExtractRideId: Não foi possível extrair rideId de: $rideData');
+      debugPrint('❌ Tipo: ${rideData.runtimeType}');
     }
     
     return null;
   }
 
-  /// Método utilitário para validar se o rideId está presente e é válido
-  static bool isValidRideId(dynamic rideId) {
-    if (rideId == null) return false;
+  /// Versão melhorada do startRide que aceita diferentes tipos de entrada
+  static Future<bool> startRideFlexible(dynamic rideData) async {
+    final rideId = safeExtractRideId(rideData);
     
-    if (rideId is int) return rideId > 0;
-    if (rideId is String) {
-      final parsed = int.tryParse(rideId);
-      return parsed != null && parsed > 0;
+    if (rideId == null) {
+      throw Exception('ID da corrida inválido ou não encontrado: $rideData');
     }
     
-    return false;
+    return startRide(rideId);
+  }
+
+  /// Versão melhorada do cancelRide que aceita diferentes tipos de entrada
+  static Future<bool> cancelRideFlexible(dynamic rideData) async {
+    final rideId = safeExtractRideId(rideData);
+    
+    if (rideId == null) {
+      throw Exception('ID da corrida inválido ou não encontrado: $rideData');
+    }
+    
+    return cancelRide(rideId);
+  }
+
+  /// Versão melhorada do updateRideStatus que aceita diferentes tipos de entrada
+  static Future<bool> updateRideStatusFlexible(dynamic rideData, String status) async {
+    final rideId = safeExtractRideId(rideData);
+    
+    if (rideId == null) {
+      throw Exception('ID da corrida inválido ou não encontrado: $rideData');
+    }
+    
+    return updateRideStatus(rideId, status);
   }
 
   /// Atualiza o status de uma corrida
@@ -795,7 +870,7 @@ class RideService {
     }
 
     // Validar status permitidos
-    final allowedStatuses = ['PENDING', 'STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+    final allowedStatuses = ['PENDING', 'STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED'];
     final upperStatus = status.toUpperCase();
     if (!allowedStatuses.contains(upperStatus)) {
       throw Exception('Status inválido: $status. Permitidos: ${allowedStatuses.join(', ')}');
@@ -811,9 +886,9 @@ class RideService {
 
     try {
       // Para cancelamento, usar o endpoint DELETE que já existe
-      if (upperStatus == 'CANCELLED') {
+      if (upperStatus == 'CANCELED') {
         if (kDebugMode) {
-          debugPrint('🔍 Status é CANCELLED - usando DELETE');
+                      debugPrint('🔍 Status é CANCELED - usando DELETE');
         }
         final success = await cancelRide(rideId);
         if (success) {
@@ -984,5 +1059,214 @@ class RideService {
       }
       rethrow;
     }
+  }
+
+  static Future<List<Ride>> getAllRides({
+    int limit = 100,
+    String sortBy = 'createdAt:desc',
+  }) async {
+    if (!_authService.isAuthenticated) {
+      throw Exception('Usuário não autenticado. Faça o login para ver as corridas.');
+    }
+
+    // Construir parâmetros da URL (sem filtro de data para histórico completo)
+    final params = <String, String>{
+      'limit': limit.toString(),
+      'sort': sortBy,
+    };
+
+    final cacheKey = _getCacheKey('/api/rides/all', params);
+    if (_isCacheValid(cacheKey)) {
+      return _cache[cacheKey] as List<Ride>;
+    }
+
+    // Construir URL com parâmetros
+    final uri = Uri.parse('$apiUrl/api/rides').replace(queryParameters: params);
+    final headers = _authService.getAuthHeaders();
+
+    if (kDebugMode) {
+      debugPrint('🔍 RideService.getAllRides: Buscando todas as corridas');
+      debugPrint('🔍 URL: $uri');
+    }
+
+    try {
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData is Map<String, dynamic> &&
+            responseData.containsKey('rides') &&
+            responseData['rides'] is List) {
+          final List<dynamic> ridesJson = responseData['rides'];
+          final rides = ridesJson.map((json) => Ride.fromJson(json)).toList();
+          
+          if (kDebugMode) {
+            debugPrint('✅ Total de corridas (incluindo históricas): ${rides.length}');
+          }
+          
+          // Armazenar no cache
+          _cache[cacheKey] = rides;
+          _cacheTimestamps[cacheKey] = DateTime.now();
+          
+          return rides;
+        } else {
+          return [];
+        }
+      } else {
+        throw Exception('Falha ao carregar corridas. Código: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Erro ao buscar todas as corridas: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Limpa todo o cache do RideService
+  static void clearAllCache() {
+    _cache.clear();
+    _cacheTimestamps.clear();
+    if (kDebugMode) {
+      debugPrint('🧹 RideService: Cache completamente limpo');
+    }
+  }
+
+  /// Limpa apenas o cache de rides
+  static void clearRidesCache() {
+    final keysToRemove = _cache.keys.where((key) => key.contains('/api/rides')).toList();
+    for (final key in keysToRemove) {
+      _cache.remove(key);
+      _cacheTimestamps.remove(key);
+    }
+    if (kDebugMode) {
+      debugPrint('🧹 RideService: Cache de rides limpo');
+    }
+  }
+
+  /// Método utilitário para validar e extrair o rideId de forma consistente (compatibilidade)
+  static int? extractRideId(dynamic data) {
+    return safeExtractRideId(data);
+  }
+
+  /// Método utilitário para validar se o rideId está presente e é válido
+  static bool isValidRideId(dynamic rideId) {
+    final extracted = safeExtractRideId(rideId);
+    return extracted != null && extracted > 0;
+  }
+
+  /// Método de debug para diagnosticar estrutura de dados de corrida
+  static void debugRideDataStructure(dynamic rideData, {String? context}) {
+    if (!kDebugMode) return;
+    
+    debugPrint('🔍 === DEBUG RIDE DATA STRUCTURE ===');
+    if (context != null) {
+      debugPrint('🔍 Contexto: $context');
+    }
+    debugPrint('🔍 Tipo: ${rideData.runtimeType}');
+    debugPrint('🔍 Valor: $rideData');
+    
+    if (rideData is Map<String, dynamic>) {
+      debugPrint('🔍 Chaves disponíveis: ${rideData.keys.toList()}');
+      debugPrint('🔍 id: ${rideData['id']} (${rideData['id'].runtimeType})');
+      debugPrint('🔍 rideId: ${rideData['rideId']} (${rideData['rideId']?.runtimeType})');
+      debugPrint('🔍 driverId: ${rideData['driverId']} (${rideData['driverId']?.runtimeType})');
+      debugPrint('🔍 status: ${rideData['status']} (${rideData['status']?.runtimeType})');
+    }
+    
+    final extractedId = safeExtractRideId(rideData);
+    debugPrint('🔍 ID extraído: $extractedId');
+    debugPrint('🔍 ID válido: ${isValidRideId(rideData)}');
+    debugPrint('🔍 === FIM DEBUG ===');
+  }
+
+  /// Finaliza uma corrida usando a rota específica /api/rides/{id}/complete
+  static Future<bool> completeRide(int rideId) async {
+    if (kDebugMode) {
+      debugPrint('🏁 === INÍCIO completeRide ===');
+      debugPrint('🏁 RideId: $rideId');
+    }
+
+    if (!_authService.isAuthenticated) {
+      throw Exception('Usuário não autenticado.');
+    }
+
+    if (rideId <= 0) {
+      throw Exception('ID da corrida inválido: $rideId');
+    }
+
+    try {
+      final url = Uri.parse('$apiUrl/api/rides/$rideId/status');
+      final headers = _authService.getAuthHeaders();
+      
+      if (!headers.containsKey('Content-Type')) {
+        headers['Content-Type'] = 'application/json';
+      }
+      
+      final body = jsonEncode({'status': 'completed'});
+      
+      if (kDebugMode) {
+        debugPrint('🏁 URL: $url');
+        debugPrint('🏁 Headers: $headers');
+        debugPrint('🏁 Body: $body');
+        debugPrint('🏁 Enviando PATCH request...');
+      }
+      
+      final response = await http.patch(url, headers: headers, body: body);
+      
+      if (kDebugMode) {
+        debugPrint('🏁 Response Status: ${response.statusCode}');
+        debugPrint('🏁 Response Body: ${response.body}');
+      }
+      
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        
+        if (kDebugMode) {
+          debugPrint('✅ Corrida finalizada com sucesso!');
+          debugPrint('✅ Status: ${responseData['status']}');
+          debugPrint('✅ Message: ${responseData['message']}');
+          debugPrint('✅ CompletedAt: ${responseData['completedAt']}');
+        }
+        
+        // Limpar cache para forçar atualização
+        _clearRideCache();
+        return true;
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️ Endpoint /complete não disponível, tentando método alternativo...');
+        }
+        
+        // Se o endpoint específico não existir, usar método genérico
+        return await updateRideStatus(rideId, 'COMPLETED');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Erro no endpoint /complete: $e');
+        debugPrint('🔄 Tentando método alternativo...');
+      }
+      
+      try {
+        // Fallback para método genérico
+        return await updateRideStatus(rideId, 'COMPLETED');
+      } catch (fallbackError) {
+        if (kDebugMode) {
+          debugPrint('❌ Ambos os métodos falharam');
+          debugPrint('❌ Erro específico: $e');
+          debugPrint('❌ Erro genérico: $fallbackError');
+          debugPrint('🏁 === FIM completeRide (com erro) ===');
+        }
+        rethrow;
+      }
+    }
+  }
+
+  /// Versão flexível para finalizar corridas que aceita qualquer tipo de dados
+  static Future<bool> completeRideFlexible(dynamic rideData) async {
+    final rideId = safeExtractRideId(rideData);
+    if (rideId == null) {
+      throw Exception('Não foi possível extrair ID da corrida dos dados fornecidos');
+    }
+    return await completeRide(rideId);
   }
 } 
