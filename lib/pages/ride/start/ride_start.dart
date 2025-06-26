@@ -392,19 +392,7 @@ class _RideStartPageState extends State<RideStartPage> {
 
   Future<void> _startRide() async {
     if (_rideData == null) return;
-
-    // Verificar se há passageiros aceitos
-    if (_acceptedPassengers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Você precisa aceitar pelo menos um passageiro para iniciar a corrida.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    
+  
     // Confirmar ação
     final confirm = await showDialog<bool>(
       context: context,
@@ -716,17 +704,17 @@ class _RideStartPageState extends State<RideStartPage> {
   Future<void> _completeRide() async {
     if (_rideData == null) return;
     
-    // Verificar se a corrida foi iniciada
-    if (!['STARTED', 'IN_PROGRESS'].contains(_rideStatus.toUpperCase())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('A corrida deve estar em andamento para ser finalizada. Status atual: $_rideStatus'),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-      return;
-    }
+    // // Verificar se a corrida foi iniciada
+    // if (!['STARTED', 'IN_PROGRESS'].contains(_rideStatus.toUpperCase())) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text('A corrida deve estar em andamento para ser finalizada. Status atual: $_rideStatus'),
+    //       backgroundColor: Colors.orange,
+    //       duration: const Duration(seconds: 4),
+    //     ),
+    //   );
+    //   return;
+    // }
     
     // Verificar se há passageiros aceitos
     if (_acceptedPassengers.isEmpty) {
@@ -786,7 +774,13 @@ class _RideStartPageState extends State<RideStartPage> {
     });
 
     try {
-      final success = await RideService.updateRideStatusFlexible(_rideData, 'COMPLETED');
+      if (kDebugMode) {
+        debugPrint('🏁 === INICIANDO FINALIZAÇÃO ===');
+        debugPrint('🏁 RideData: $_rideData');
+        debugPrint('🏁 Status atual: $_rideStatus');
+      }
+      
+      final success = await RideService.completeRideFlexible(_rideData);
       
       if (success && mounted) {
         setState(() {
@@ -795,6 +789,12 @@ class _RideStartPageState extends State<RideStartPage> {
         });
 
         _clearRelatedCaches(); // Limpar cache após finalização
+
+        if (kDebugMode) {
+          debugPrint('✅ === FINALIZAÇÃO CONCLUÍDA ===');
+          debugPrint('✅ Status atualizado para: COMPLETED');
+          debugPrint('✅ Retornando para tela principal em 3 segundos...');
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1285,7 +1285,7 @@ class _RideStartPageState extends State<RideStartPage> {
         centerTitle: true,
         actions: [
           // Botão Cancelar na AppBar - visível apenas quando aplicável
-          if (!['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase()) && !_isCancelling) ...[
+          if (!['CANCELED', 'CANCELLED', 'COMPLETED', 'completed'].contains(_rideStatus.toUpperCase()) && !_isCancelling) ...[
             IconButton(
               icon: Icon(
                 Icons.cancel_outlined,
@@ -1426,7 +1426,7 @@ class _RideStartPageState extends State<RideStartPage> {
     IconData icon;
     String text;
 
-    switch (_rideStatus) {
+    switch (_rideStatus.toUpperCase()) {
       case 'PENDING':
         backgroundColor = Colors.orange.withOpacity(0.1);
         textColor = Colors.orange[700]!;
@@ -1441,24 +1441,35 @@ class _RideStartPageState extends State<RideStartPage> {
         text = 'Em Andamento';
         break;
       case 'COMPLETED':
-      case 'completed':
         backgroundColor = Colors.blue.withOpacity(0.1);
         textColor = Colors.blue[700]!;
         icon = Icons.check_circle;
         text = 'Concluída';
         break;
       case 'CANCELED':
-      case 'canceled':
         backgroundColor = Colors.red.withOpacity(0.1);
         textColor = Colors.red[700]!;
         icon = Icons.cancel;
         text = 'Cancelada';
         break;
       default:
-        backgroundColor = Colors.grey.withOpacity(0.1);
-        textColor = Colors.grey[700]!;
-        icon = Icons.help_outline;
-        text = 'Desconhecido';
+        // Para casos como "completed", "canceled" em lowercase
+        if (_rideStatus.toLowerCase() == 'completed') {
+          backgroundColor = Colors.blue.withOpacity(0.1);
+          textColor = Colors.blue[700]!;
+          icon = Icons.check_circle;
+          text = 'Concluída';
+        } else if (_rideStatus.toLowerCase() == 'canceled') {
+          backgroundColor = Colors.red.withOpacity(0.1);
+          textColor = Colors.red[700]!;
+          icon = Icons.cancel;
+          text = 'Cancelada';
+        } else {
+          backgroundColor = Colors.grey.withOpacity(0.1);
+          textColor = Colors.grey[700]!;
+          icon = Icons.help_outline;
+          text = 'Desconhecido';
+        }
     }
 
     return Container(
@@ -1605,7 +1616,7 @@ class _RideStartPageState extends State<RideStartPage> {
               ],
               
               // Mensagem quando corrida foi cancelada ou concluída
-              if (['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase())) ...[
+              if (['CANCELED', 'CANCELLED', 'COMPLETED', 'completed'].contains(_rideStatus.toUpperCase()) || _rideStatus.toLowerCase() == 'completed') ...[
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -1670,7 +1681,7 @@ class _RideStartPageState extends State<RideStartPage> {
           ],
           
           // Botão Cancelar - sempre visível na parte inferior quando aplicável
-          if (!['CANCELED', 'CANCELLED', 'COMPLETED'].contains(_rideStatus.toUpperCase())) ...[
+          if (!['CANCELED', 'CANCELLED', 'COMPLETED', 'completed'].contains(_rideStatus.toLowerCase())) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

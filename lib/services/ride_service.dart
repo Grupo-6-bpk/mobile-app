@@ -1207,7 +1207,7 @@ class RideService {
       
       if (kDebugMode) {
         debugPrint('🏁 URL: $url');
-        debugPrint('🏁 Headers: $headers');
+        debugPrint('🏁 Headers: $headers');                    
         debugPrint('🏁 Body: $body');
         debugPrint('🏁 Enviando PATCH request...');
       }
