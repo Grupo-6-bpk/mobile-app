@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/models/ride.dart';
 import 'package:mobile_app/models/user.dart';
 import 'package:mobile_app/services/user_service.dart';
 import 'package:mobile_app/components/custom_button.dart';
-import 'package:mobile_app/services/auth_service.dart';
-import 'package:mobile_app/services/ride_service.dart';
+import 'package:mobile_app/components/custom_map.dart';
+import 'package:mobile_app/services/maps_service.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:mobile_app/config/app_config.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class PassengerDetailHome extends StatefulWidget {
   final Ride ride;
@@ -22,40 +20,91 @@ class PassengerDetailHome extends StatefulWidget {
 }
 
 class _PassengerDetailHomeState extends State<PassengerDetailHome> {
-  bool _isRequested = false;
-  bool _isLoading = false;
+  LatLng? _currentLocation;
+  bool _isLoadingLocation = true;
+  String? _translatedStartLocation;
+  final MapsService _mapsService = MapsService();
 
   @override
   void initState() {
     super.initState();
-    _checkIfAlreadyRequested();
+    _getCurrentLocation();
+    _translateStartLocation();
   }
 
-  Future<void> _checkIfAlreadyRequested() async {
+  Future<void> _getCurrentLocation() async {
     try {
-      final authService = AuthService();
-      final passengerId = authService.currentUser?.passenger?.id;
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+        return;
+      }
 
-      if (passengerId != null) {
-        final requests = await RideService.getRideRequestsByPassenger(
-          passengerId,
-        );
-        final alreadyRequested = requests.any(
-          (req) =>
-              (req['rideId'] == widget.ride.id) &&
-              (req['status'] == null ||
-                  req['status'].toString().toUpperCase() == 'PENDING' ||
-                  req['status'].toString().toUpperCase() == 'APPROVED'),
-        );
-
-        if (mounted) {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
           setState(() {
-            _isRequested = alreadyRequested;
+            _isLoadingLocation = false;
           });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentLocation = LatLng(position.latitude, position.longitude);
+          _isLoadingLocation = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao obter localização: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _translateStartLocation() async {
+    try {
+      final startLocation = widget.ride.startLocation;
+      
+      // Verificar se startLocation contém coordenadas (formato: "lat,lng")
+      if (startLocation.contains(',')) {
+        final coords = startLocation.split(',');
+        if (coords.length == 2) {
+          final lat = double.tryParse(coords[0].trim());
+          final lng = double.tryParse(coords[1].trim());
+          
+          if (lat != null && lng != null) {
+            // Traduzir coordenadas para endereço
+            final address = await _mapsService.getAddressFromLatLng(lat, lng);
+            
+            if (mounted && address != null) {
+              setState(() {
+                _translatedStartLocation = address;
+              });
+            }
+          }
         }
       }
     } catch (e) {
-      debugPrint('Erro ao verificar solicitações: $e');
+      debugPrint('Erro ao traduzir localização de origem: $e');
     }
   }
 
@@ -291,8 +340,11 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
   }
 
   Widget _buildMapaPlaceholder(ThemeData theme) {
+    // Coordenadas do Biopark Educação (destino fixo)
+    const LatLng bioParkLocation = LatLng(-25.4284, -49.2733);
+    
     return Container(
-      height: 140,
+      height: 200,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
@@ -300,82 +352,77 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
           color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
-      child: Stack(
-        children: [
-          // Placeholder do mapa
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.map_outlined,
-                    size: 32,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: _isLoadingLocation || _currentLocation == null
+            ? Container(
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_isLoadingLocation) ...[
+                        CircularProgressIndicator(
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Obtendo localização...',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ] else ...[
+                        Icon(
+                          Icons.location_off,
+                          size: 32,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Localização não disponível',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Rota da Viagem',
-                    style: TextStyle(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Indicadores de origem e destino
-          Positioned(
-            top: 16,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Origem',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
                 ),
+              )
+            : CustomMap(
+                height: 200,
+                initialPosition: _currentLocation!,
+                destinationPosition: bioParkLocation,
+                waypoints: _parseWaypoints(),
               ),
-            ),
-          ),
-
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Destino',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
+  }
+
+  List<LatLng>? _parseWaypoints() {
+    try {
+      // Se houver coordenadas na localização de início, usar como waypoint
+      final startLocation = widget.ride.startLocation;
+      if (startLocation.contains(',')) {
+        final coords = startLocation.split(',');
+        if (coords.length == 2) {
+          final lat = double.tryParse(coords[0].trim());
+          final lng = double.tryParse(coords[1].trim());
+          if (lat != null && lng != null) {
+            return [LatLng(lat, lng)];
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Erro ao parsear waypoints: $e');
+      return null;
+    }
   }
 
   Widget _buildInformacoesViagem(ThemeData theme) {
@@ -411,7 +458,7 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
             theme,
             Icons.location_on,
             'Origem',
-            widget.ride.startLocation,
+            _translatedStartLocation ?? widget.ride.startLocation,
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
@@ -522,329 +569,16 @@ class _PassengerDetailHomeState extends State<PassengerDetailHome> {
   }
 
   Widget _buildBotoesAcao(BuildContext context, ThemeData theme) {
-    return Row(
-      children: [
-        Expanded(
-          child: CustomButton(
-            text: 'Enviar Mensagem',
-            onPressed: () {},
-            variant: ButtonVariant.secondary,
-            height: 48,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: _buildRequestButton(context, theme)),
-      ],
-    );
-  }
-
-  Widget _buildRequestButton(BuildContext context, ThemeData theme) {
-    if (_isLoading) {
-      return Container(
+    return SizedBox(
+      width: double.infinity,
+      child: CustomButton(
+        text: 'Enviar Mensagem',
+        onPressed: () {},
+        variant: ButtonVariant.secondary,
         height: 48,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_isRequested) {
-      return Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.secondary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: theme.colorScheme.secondary.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.check_circle,
-                size: 20,
-                color: theme.colorScheme.secondary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Solicitado',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.secondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return CustomButton(
-      text: 'Solicitar',
-      onPressed: () => _onSolicitarPressed(context),
-      variant: ButtonVariant.primary,
-      height: 48,
+      ),
     );
   }
 
-  Future<void> _onSolicitarPressed(BuildContext context) async {
-    setState(() {
-      _isLoading = true;
-    });
 
-    try {
-      // Verifica e solicita permissão de localização, se necessário
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permissão de localização negada.')),
-          );
-          setState(() {
-            _isLoading = false;
-          });
-          return;
-        }
-      }
-      if (permission == LocationPermission.deniedForever && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permissão de localização permanentemente negada.'),
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Obtém a localização atual
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      String startLocation = '${position.latitude},${position.longitude}';
-      String endLocation = 'bpkedu';
-
-      // Pegue o id do passageiro autenticado
-      final authService = AuthService();
-      final passengerId = authService.currentUser?.passenger?.id;
-
-      if (passengerId == null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Usuário não autenticado ou não é passageiro!'),
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Buscar status da viagem e vagas disponíveis antes de solicitar
-      final rideDetails = await RideService.getRideById(widget.ride.id);
-      if (rideDetails == null && context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Viagem não encontrada.')));
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Verificar status da viagem
-      final status =
-          rideDetails!['status']?.toString().toUpperCase() ?? 'PENDING';
-      if (status != 'PENDING' && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Não é possível solicitar carona para uma viagem já iniciada, finalizada ou cancelada (status: $status).',
-            ),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Verificar se já existe solicitação pendente/aprovada para o passageiro nesta viagem
-      final requests = await RideService.getRideRequestsByPassenger(
-        passengerId!,
-      );
-      final alreadyRequested = requests.any(
-        (req) =>
-            (req['rideId'] == widget.ride.id) &&
-            (req['status'] == null ||
-                req['status'].toString().toUpperCase() == 'PENDING' ||
-                req['status'].toString().toUpperCase() == 'APPROVED'),
-      );
-      if (alreadyRequested && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Você já possui uma solicitação pendente ou aprovada para esta viagem.',
-            ),
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-          _isRequested = true;
-        });
-        return;
-      }
-
-      await criarSolicitacaoCarona(
-        startLocation,
-        endLocation,
-        widget.ride.id,
-        passengerId,
-      );
-
-      if (context.mounted) {
-        setState(() {
-          _isLoading = false;
-          _isRequested = true;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Solicitação enviada com sucesso!',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-
-        // Fechar o diálogo após alguns segundos
-        Future.delayed(const Duration(seconds: 2), () {
-          if (context.mounted) {
-            Navigator.of(context).pop();
-          }
-        });
-      }
-    } catch (e) {
-      if (context.mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao enviar solicitação: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-}
-
-class RoutePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.blue
-          ..strokeWidth = 3
-          ..style = PaintingStyle.stroke;
-
-    final path =
-        Path()
-          ..moveTo(size.width * 0.1, size.height * 0.5)
-          ..lineTo(size.width * 0.3, size.height * 0.3)
-          ..lineTo(size.width * 0.5, size.height * 0.6)
-          ..lineTo(size.width * 0.7, size.height * 0.2)
-          ..lineTo(size.width * 0.9, size.height * 0.4);
-
-    canvas.drawPath(path, paint);
-
-    canvas.drawCircle(
-      Offset(size.width * 0.1, size.height * 0.5),
-      5,
-      Paint()..color = Colors.green,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.9, size.height * 0.4),
-      5,
-      Paint()..color = Colors.red,
-    );
-
-    for (double i = 0.2; i < 0.9; i += 0.2) {
-      canvas.drawCircle(
-        Offset(size.width * i, size.height * (i < 0.5 ? 0.4 : 0.3)),
-        3,
-        Paint()..color = Colors.blue,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-Future<void> criarSolicitacaoCarona(
-  String startLocation,
-  String endLocation,
-  int rideId,
-  int passengerId,
-) async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString(AppConfig.tokenKey);
-
-  final headers = {
-    'Content-Type': 'application/json',
-    if (token != null) 'Authorization': 'Bearer $token',
-  };
-
-  final body = jsonEncode({
-    'rideId': rideId,
-    'startLocation': startLocation,
-    'endLocation': endLocation,
-    'passengerId': passengerId,
-  });
-
-  final url = Uri.parse('${AppConfig.baseUrl}/api/ride-requests/');
-  final response = await http.post(url, headers: headers, body: body);
-
-  debugPrint('Status: ${response.statusCode}');
-  debugPrint('Response: ${response.body}');
-
-  if (response.statusCode == 201 || response.statusCode == 200) {
-    // sucesso
-  } else {
-    // erro
-  }
 }

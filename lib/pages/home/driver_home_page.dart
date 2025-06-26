@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile_app/components/available_passenger_card.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/components/custom_menu_bar.dart';
+import 'package:mobile_app/components/custom_map.dart';
 import 'package:mobile_app/pages/chat/chat_list_screen.dart';
 import 'package:mobile_app/pages/ride_history/ride_history_page.dart';
 import 'package:mobile_app/pages/settings/settings_page.dart';
@@ -13,6 +15,8 @@ import 'package:mobile_app/config/app_config.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/ride_service.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DriverHomePage extends StatefulWidget {
   const DriverHomePage({super.key});
@@ -25,595 +29,486 @@ class _DriverHomePageState extends State<DriverHomePage>
     with WidgetsBindingObserver {
   int _currentPageIndex = 0;
   Map<String, dynamic>? _activeRide;
-  bool _isLoadingRide = true;
+  bool _isLoadingRide = false;
   final AuthService _authService = AuthService();
-  Timer? _autoRefreshTimer;
-
+  
   // Lista de passageiros aceitos (paradas)
   List<Map<String, dynamic>> _acceptedPassengers = [];
 
   // Dados mocados dos passageiros disponíveis
   final List<Map<String, dynamic>> _availablePassengers = [];
 
+  // Variáveis para localização e mapa
+  Position? _currentPosition;
+  bool _isLoadingLocation = true;
+  String? _locationError;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkForActiveRide();
-    _startAutoRefreshTimer();
+    _getCurrentLocation();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _autoRefreshTimer?.cancel();
     super.dispose();
   }
 
-  void _startAutoRefreshTimer() {
-    // Cancelar timer anterior se existir
-    _autoRefreshTimer?.cancel();
-
-    // Iniciar novo timer que atualiza a cada 30 segundos
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      debugPrint('🔄 DriverHomePage: Atualização automática iniciada');
-      if (mounted) {
-        _performAutoRefresh();
-      } else {
-        timer.cancel();
-      }
-    });
-
-    debugPrint(
-      '⏰ DriverHomePage: Timer de atualização automática iniciado (30s)',
-    );
-  }
-
-  Future<void> _performAutoRefresh() async {
-    debugPrint('🔄 DriverHomePage: Executando atualização automática...');
-
+  Future<void> _getCurrentLocation() async {
     try {
-      // Verificar viagem ativa
-      await _checkForActiveRide();
+      setState(() {
+        _isLoadingLocation = true;
+        _locationError = null;
+      });
 
-      // Se há viagem ativa, verificar solicitações pendentes
-      if (_activeRide != null) {
-        final rideId = RideService.extractRideId(_activeRide);
-        if (RideService.isValidRideId(rideId)) {
-          debugPrint(
-            '🔄 DriverHomePage: Verificando solicitações pendentes para viagem $rideId',
-          );
-          // Aqui você pode adicionar lógica para verificar solicitações pendentes
-          // e atualizar a lista de passageiros aceitos se necessário
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Permissão de localização negada');
         }
       }
 
-      debugPrint(
-        '✅ DriverHomePage: Atualização automática concluída com sucesso',
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Permissão de localização negada permanentemente');
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
       );
+
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _isLoadingLocation = false;
+        });
+      }
     } catch (e) {
-      debugPrint('❌ DriverHomePage: Erro na atualização automática: $e');
+      if (mounted) {
+        setState(() {
+          _locationError = e.toString();
+          _isLoadingLocation = false;
+        });
+        if (kDebugMode) {
+          print('Erro ao obter localização: $e');
+        }
+      }
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      // Quando o app volta ao foco, verificar se há mudanças na viagem ativa
-      debugPrint('📱 DriverHomePage: App retomado, verificando viagem ativa');
-      _checkForActiveRide();
-      _startAutoRefreshTimer(); // Retomar timer
-    } else if (state == AppLifecycleState.paused) {
-      debugPrint('📱 DriverHomePage: App pausado, pausando timer');
-      _autoRefreshTimer?.cancel(); // Pausar timer
-    } else if (state == AppLifecycleState.detached) {
-      debugPrint('📱 DriverHomePage: App fechado, cancelando timer');
-      _autoRefreshTimer?.cancel(); // Cancelar timer
-    }
+    // Removido: verificações automáticas de corrida ativa
+    // A verificação só acontecerá quando o usuário pressionar o botão criar carona
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Verificar se há dados de passageiro aceito passados como argumentos
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
     if (args != null) {
       try {
         if (args.containsKey('acceptedPassenger')) {
-          final acceptedPassenger =
-              args['acceptedPassenger'] as Map<String, dynamic>;
+          final acceptedPassenger = args['acceptedPassenger'] as Map<String, dynamic>;
           setState(() {
             _acceptedPassengers.add(acceptedPassenger);
           });
         }
 
-        // Verificar se a corrida foi iniciada
         if (args.containsKey('rideStarted') && args['rideStarted'] == true) {
-          debugPrint('🚀 Processando corrida iniciada...');
-
-          final acceptedPassengers =
-              args['acceptedPassengers'] as List<Map<String, dynamic>>? ?? [];
-          final startLocation =
-              args['startLocation'] as String? ?? 'Não informado';
-          final endLocation = args['endLocation'] as String? ?? 'Não informado';
-
-          debugPrint('📊 Dados recebidos:');
-          debugPrint('  - Passageiros: ${acceptedPassengers.length}');
-          debugPrint('  - Início: $startLocation');
-          debugPrint('  - Fim: $endLocation');
-
+          final acceptedPassengers = args['acceptedPassengers'] as List<Map<String, dynamic>>? ?? [];
           setState(() {
             _acceptedPassengers = acceptedPassengers;
           });
 
-          // Mostrar mensagem de sucesso após o build
           SchedulerBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(
-                    'Corrida iniciada com ${acceptedPassengers.length} passageiro(s)!',
-                  ),
+                  content: Text('Corrida iniciada com ${acceptedPassengers.length} passageiro(s)!'),
                   backgroundColor: Colors.green,
                   duration: const Duration(seconds: 3),
                 ),
               );
             }
           });
+        }
 
-          // Print das coordenadas no console
-          debugPrint('=== CORRIDA INICIADA - TELA HOME ===');
-          debugPrint('📍 Ponto inicial: $startLocation');
-          debugPrint('🎯 Ponto final: $endLocation');
-          debugPrint('👥 Total de passageiros: ${acceptedPassengers.length}');
+        // Verificar se voltamos de uma tela onde uma corrida foi cancelada/finalizada
+        if (args.containsKey('refreshRides') && args['refreshRides'] == true) {
+          // Limpar imediatamente a corrida ativa do estado local
+          setState(() {
+            _activeRide = null;
+            _acceptedPassengers.clear();
+          });
+          
+          if (kDebugMode) {
+            debugPrint('🔄 DriverHomePage: Detectado retorno de tela de corrida, limpando estado local...');
+          }
+        }
 
-          if (acceptedPassengers.isNotEmpty) {
-            debugPrint('📋 DETALHES DOS PASSAGEIROS:');
-            for (int i = 0; i < acceptedPassengers.length; i++) {
-              final passenger = acceptedPassengers[i];
-              debugPrint('${i + 1}. ${passenger['name'] ?? 'Sem nome'}:');
-              debugPrint(
-                '   📍 Início: ${passenger['startLocation'] ?? 'Não informado'}',
-              );
-              debugPrint(
-                '   🎯 Fim: ${passenger['endLocation'] ?? 'Não informado'}',
-              );
-              debugPrint('   📞 Tel: ${passenger['phone'] ?? 'Não informado'}');
+        // Verificar se uma carona foi criada
+        if (args.containsKey('rideCreated') && args['rideCreated'] == true) {
+          final rideData = args['rideData'] as Map<String, dynamic>?;
+          if (rideData != null) {
+            setState(() {
+              _activeRide = rideData;
+            });
+            
+            // Mostrar informações da carona criada
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _showRideCreatedDialog(rideData);
+              }
+            });
+            
+            if (kDebugMode) {
+              debugPrint('✅ DriverHomePage: Carona criada detectada - ID: ${rideData['id']}');
             }
           }
-          debugPrint('=== FIM DOS DETALHES ===');
         }
       } catch (e) {
-        debugPrint('❌ ERRO ao processar argumentos: $e');
-        // Mostrar erro após o build
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Erro ao processar dados da corrida: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        });
+        if (kDebugMode) {
+          print('Erro ao processar argumentos: $e');
+        }
       }
     }
 
-    // Verificar viagem ativa quando a tela volta ao foco
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForActiveRide();
-    });
+    // Removido: verificação automática de corrida ativa
+    // A verificação só acontecerá quando o usuário pressionar o botão criar carona
   }
 
-  Future<void> _checkForActiveRide() async {
+  Future<void> _checkForActiveRide({bool forceRefresh = false}) async {
     final currentUser = _authService.currentUser;
     if (currentUser?.userId == null) {
-      debugPrint(
-        'DriverHomePage: Usuário não autenticado, pulando verificação de viagem ativa',
-      );
       setState(() => _isLoadingRide = false);
       return;
     }
 
-    debugPrint(
-      'DriverHomePage: Verificando viagem ativa para usuário ${currentUser!.userId}',
-    );
-
     try {
-      final activeRide = await RideService.getActiveRideForDriver(
-        currentUser.userId!,
-      );
+      if (kDebugMode) {
+        debugPrint('🔍 DriverHomePage: Verificando corrida ativa para motorista ${currentUser!.userId}');
+        debugPrint('🔍 ForceRefresh: $forceRefresh');
+      }
+
+      final activeRide = await RideService.getActiveRideForDriver(currentUser!.userId!);
+      
       if (mounted) {
-        final hadActiveRide = _activeRide != null;
-        final hasActiveRide = activeRide != null;
+        if (kDebugMode) {
+          debugPrint('🔍 DriverHomePage: Corrida ativa encontrada: ${activeRide != null}');
+          if (activeRide != null) {
+            debugPrint('🔍 Detalhes da corrida: ID=${activeRide['id']}, Status=${activeRide['status']}');
+          }
+        }
 
         setState(() {
           _activeRide = activeRide;
           _isLoadingRide = false;
+          
+          // Se não há corrida ativa, limpar também os passageiros aceitos
+          if (activeRide == null) {
+            _acceptedPassengers.clear();
+          }
         });
 
-        // Log das mudanças
-        if (!hadActiveRide && hasActiveRide) {
-          debugPrint(
-            '✅ DriverHomePage: Nova viagem ativa encontrada: ${activeRide['id']}',
-          );
-        } else if (hadActiveRide && !hasActiveRide) {
-          debugPrint('❌ DriverHomePage: Viagem ativa foi removida');
-        } else if (hadActiveRide && hasActiveRide) {
-          final oldId = _activeRide?['id'];
-          final newId = activeRide['id'];
-          if (oldId != newId) {
-            debugPrint(
-              '🔄 DriverHomePage: Viagem ativa alterada: $oldId -> $newId',
-            );
-          } else {
-            debugPrint('✅ DriverHomePage: Viagem ativa mantida: $newId');
-          }
-        } else {
-          debugPrint('ℹ️ DriverHomePage: Nenhuma viagem ativa encontrada');
+        // Se há uma corrida ativa, redirecionar para tela de gerenciamento
+        if (activeRide != null) {
+          _redirectToActiveRide(activeRide);
         }
       }
     } catch (e) {
-      debugPrint('Erro ao verificar viagem ativa: $e');
+      if (kDebugMode) {
+        debugPrint('❌ DriverHomePage: Erro ao verificar corrida ativa: $e');
+      }
       if (mounted) {
         setState(() => _isLoadingRide = false);
       }
     }
   }
 
-  // Widget da página inicial do motorista
-  Widget _buildDriverHomePage() {
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final bool corridaIniciada = args != null && args['rideStarted'] == true;
-    final List<Map<String, dynamic>> passageiros =
-        args?['acceptedPassengers'] as List<Map<String, dynamic>>? ??
-        _acceptedPassengers;
-    final motorista = args?['driver'];
-    final String startLocation =
-        args?['startLocation'] ??
-        _activeRide?['startLocation'] ??
-        'Não informado';
-    final String endLocation =
-        args?['endLocation'] ?? _activeRide?['endLocation'] ?? 'Não informado';
+  void _redirectToActiveRide(Map<String, dynamic> activeRide) {
+    // Verificar se já estamos na tela de gerenciamento para evitar redirecionamento em loop
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == '/ride_start') {
+      return; // Já estamos na tela de gerenciamento
+    }
 
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Cabeçalho com saudação e botão criar viagem
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+    final extractedRideId = RideService.extractRideId(activeRide);
+    if (!RideService.isValidRideId(extractedRideId)) {
+      return; // ID inválido, não redirecionar
+    }
+
+    final rideData = {
+      'driverId': activeRide['driverId'],
+      'rideId': extractedRideId,
+      'id': extractedRideId,
+      'startLocation': activeRide['startLocation'],
+      'endLocation': activeRide['endLocation'],
+      'departureTime': activeRide['departureTime'],
+      'date': 'Hoje',
+      'totalSeats': activeRide['totalSeats'],
+      'distance': activeRide['distance'].toString(),
+      'vehicleBrand': activeRide['vehicle']?['brand'],
+      'vehicleModel': activeRide['vehicle']?['model'],
+      'acceptedPassengers': _acceptedPassengers,
+      'status': activeRide['status'] ?? 'PENDING',
+    };
+
+    // Aguardar um pouco para garantir que a tela foi totalmente carregada
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/ride_start', arguments: rideData);
+      }
+    });
+  }
+
+  Widget _buildDriverHomePage() {
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final bool corridaIniciada = args != null && args['rideStarted'] == true;
+    final List<Map<String, dynamic>> passageiros = args?['acceptedPassengers'] as List<Map<String, dynamic>>? ?? _acceptedPassengers;
+
+    return Stack(
+      children: [
+        // Mapa ocupando toda a tela
+        _buildMapSection(),
+        
+        // Cabeçalho com informações
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _buildHeader(passageiros),
+        ),
+        
+        // Botão de criar corrida na parte inferior
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: _buildBottomSection(corridaIniciada, passageiros, args),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMapSection() {
+    if (_isLoadingLocation) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Theme.of(context).colorScheme.surface,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Obtendo localização...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_locationError != null) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Theme.of(context).colorScheme.surface,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.location_off,
+                size: 64,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Erro ao obter localização',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  _locationError!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _getCurrentLocation,
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_currentPosition == null) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Theme.of(context).colorScheme.surface,
+        child: const Center(
+          child: Text('Localização não disponível'),
+        ),
+      );
+    }
+
+    final currentLatLng = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      child: GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: currentLatLng,
+          zoom: 15,
+        ),
+        markers: {
+          Marker(
+            markerId: const MarkerId('current_location'),
+            position: currentLatLng,
+            infoWindow: const InfoWindow(title: 'Sua localização'),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          ),
+        },
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        zoomControlsEnabled: true,
+        mapToolbarEnabled: false,
+      ),
+    );
+  }
+
+  Widget _buildHeader(List<Map<String, dynamic>> passageiros) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Theme.of(context).colorScheme.surface,
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Boa tarde, Gabriel',
                       style: Theme.of(context).textTheme.titleLarge!.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       passageiros.isNotEmpty
                           ? 'Paradas confirmadas: ${passageiros.length}'
-                          : 'Passageiros disponíveis:',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ],
-                ),
-                _buildActionButton(),
-              ],
-            ),
-          ),
-
-          // Seção de informações da corrida iniciada
-          if (corridaIniciada) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Corrida em andamento',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (motorista != null) ...[
-                    Text('Motorista: ${motorista['name']}'),
-                    Text('Telefone: ${motorista['phone'] ?? 'Não informado'}'),
-                    Text('Email: ${motorista['email'] ?? 'Não informado'}'),
-                  ],
-                  Text('Origem: $startLocation'),
-                  Text('Destino: $endLocation'),
-                  const SizedBox(height: 12),
-                  if (passageiros.isNotEmpty) ...[
-                    Text(
-                      'Passageiros:',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    ...passageiros.map((p) => _buildAcceptedPassengerCard(p)),
-                  ] else
-                    Expanded(
-                      child: const Center(
-                        child: Text(
-                          'Nenhum passageiro aceito ainda',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
+                          : 'Sua localização atual',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
-                  const SizedBox(height: 16),
-                  CustomButton(
-                    text: 'Cancelar Corrida',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async {
-                      // Chamar cancelamento da viagem ativa com validação robusta
-                      final rideId =
-                          RideService.extractRideId(_activeRide) ??
-                          RideService.extractRideId(args);
-                      if (RideService.isValidRideId(rideId)) {
-                        debugPrint(
-                          'DriverHomePage: RideId para cancelamento: $rideId',
-                        );
-                        final int rideIdInt = rideId!;
-                        debugPrint(
-                          'DriverHomePage: RideId convertido para int: $rideIdInt',
-                        );
-
-                        final success = await RideService.cancelRide(rideIdInt);
-                        if (success && mounted) {
-                          debugPrint(
-                            'DriverHomePage: Viagem cancelada com sucesso',
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Corrida cancelada com sucesso!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          // Resetar estado
-                          setState(() {
-                            _activeRide = null;
-                            _acceptedPassengers.clear();
-                          });
-                          // Remover argumentos da rota
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/driverHome',
-                            (route) => false,
-                          );
-                        } else if (mounted) {
-                          debugPrint('DriverHomePage: Erro ao cancelar viagem');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Erro ao cancelar corrida'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      } else {
-                        debugPrint(
-                          'DriverHomePage: ERRO - RideId não encontrado ou inválido para cancelamento',
-                        );
-                        debugPrint('DriverHomePage: _activeRide: $_activeRide');
-                        debugPrint('DriverHomePage: args: $args');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Erro: ID da viagem não encontrado ou inválido',
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            // Se não há corrida iniciada, mostrar mensagem
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Nenhuma corrida iniciada no momento',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  ],
                 ),
               ),
-            ),
-          ],
-
-          // Seção de paradas (passageiros aceitos)
-          if (!corridaIniciada && _acceptedPassengers.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Paradas Confirmadas',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...(_acceptedPassengers.map(
-                    (passenger) => _buildAcceptedPassengerCard(passenger),
-                  )),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ],
-
-          // Lista de passageiros disponíveis
-          if (!corridaIniciada)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child:
-                    _acceptedPassengers.isNotEmpty
-                        ? const Center(
-                          child: Text(
-                            'Não há mais solicitações pendentes',
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
-                        )
-                        : ListView.builder(
-                          itemCount: _availablePassengers.length,
-                          itemBuilder: (context, index) {
-                            final passenger = _availablePassengers[index];
-                            if ((passenger['user']?['name'] ??
-                                        passenger['name']) !=
-                                    null &&
-                                (passenger['user']?['phone'] ??
-                                        passenger['phone']) !=
-                                    null) {
-                              return AvailablePassengerCard(
-                                name:
-                                    passenger['user']?['name'] ??
-                                    passenger['name'] ??
-                                    'Passageiro',
-                                location: passenger['location'],
-                                phoneNumber:
-                                    passenger['user']?['phone'] ??
-                                    passenger['phone'] ??
-                                    'Não informado',
-                                imageUrl: passenger['imageUrl'],
-                                rating: passenger['rating'],
-                                onAccept: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Passageiro ${passenger['user']?['name'] ?? passenger['name']} aceito!',
-                                      ),
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
-                                  );
-                                },
-                              );
-                            }
-                            return Container();
-                          },
-                        ),
-              ),
-            ),
-        ],
+              if (_activeRide != null) _buildActionButton(),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildAcceptedPassengerCard(Map<String, dynamic> passenger) {
+  Widget _buildBottomSection(bool corridaIniciada, List<Map<String, dynamic>> passageiros, Map<String, dynamic>? args) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-          width: 1,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+            Theme.of(context).colorScheme.surface,
+          ],
         ),
       ),
-      child: Row(
-        children: [
-          // Avatar do passageiro
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: Icon(
-              Icons.person,
-              color: Theme.of(context).colorScheme.onPrimary,
-              size: 30,
-            ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildMainActionButton(corridaIniciada, args),
+            ],
           ),
-          const SizedBox(width: 12),
-
-          // Informações do passageiro
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  passenger['name'] ?? 'Passageiro',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.phone,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      passenger['phone'] ?? 'Não informado',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        '${passenger['startLocation']} → ${passenger['endLocation']}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Status de aceito
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              'Aceito',
-              style: TextStyle(
-                color: Colors.green[700],
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildMainActionButton(bool corridaIniciada, Map<String, dynamic>? args) {
+    return CustomButton(
+      text: 'Criar Carona',
+      variant: ButtonVariant.primary,
+      icon: Icons.add_circle,
+      onPressed: () async {
+        // Verificar se há corrida ativa apenas quando o botão for pressionado
+        setState(() => _isLoadingRide = true);
+        
+        try {
+          final currentUser = _authService.currentUser;
+          if (currentUser?.userId != null) {
+            final activeRide = await RideService.getActiveRideForDriver(currentUser!.userId!);
+            
+            if (activeRide != null) {
+              // Se há corrida ativa, redirecionar para gerenciamento
+              setState(() {
+                _activeRide = activeRide;
+                _isLoadingRide = false;
+              });
+              _redirectToActiveRide(activeRide);
+              return;
+            }
+          }
+          
+          // Se não há corrida ativa, ir para tela de criação
+          setState(() => _isLoadingRide = false);
+          Navigator.pushNamed(context, '/createRide');
+        } catch (e) {
+          setState(() => _isLoadingRide = false);
+          if (kDebugMode) {
+            debugPrint('Erro ao verificar corrida ativa: $e');
+          }
+          // Em caso de erro, permitir ir para tela de criação
+          Navigator.pushNamed(context, '/createRide');
+        }
+      },
     );
   }
 
@@ -626,112 +521,59 @@ class _DriverHomePageState extends State<DriverHomePage>
       );
     }
 
-    // Se a corrida foi iniciada, não mostrar botão de gerenciar
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args['rideStarted'] == true) {
-      return const SizedBox.shrink();
-    }
-
-    if (_activeRide != null) {
-      // Verificar se a viagem já partiu (status diferente de PENDING)
-      final rideStatus =
-          _activeRide!['status']?.toString().toUpperCase() ?? 'PENDING';
-      final statusesQueIndicamPartida = [
-        'IN_PROGRESS',
-        'COMPLETED',
-        'CANCELLED',
-        'FINISHED',
-      ];
-
-      if (statusesQueIndicamPartida.contains(rideStatus)) {
-        debugPrint(
-          'DriverHomePage: Viagem já partiu ou foi finalizada (status: $rideStatus), ocultando botão Gerenciar Viagem',
-        );
-
-        // Retornar um widget informativo em vez de um espaço vazio
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
-              const SizedBox(width: 6),
-              Text(
-                _getStatusMessage(rideStatus),
-                style: TextStyle(
-                  color: Colors.orange[700],
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-
-      return CustomButton(
-        text: 'Gerenciar Viagem',
-        variant: ButtonVariant.primary,
-        icon: Icons.directions_car,
-        onPressed: () {
-          final extractedRideId = RideService.extractRideId(_activeRide);
-          if (!RideService.isValidRideId(extractedRideId)) {
-            debugPrint(
-              'DriverHomePage: ERRO - RideId inválido para gerenciar viagem',
-            );
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Erro: ID da viagem inválido'),
-                backgroundColor: Colors.red,
-              ),
-            );
-            return;
+    return CustomButton(
+      text: 'Criar Carona',
+      variant: ButtonVariant.primary,
+      icon: Icons.add,
+      onPressed: () async {
+        // Verificar se há corrida ativa apenas quando o botão for pressionado
+        setState(() => _isLoadingRide = true);
+        
+        try {
+          final currentUser = _authService.currentUser;
+          if (currentUser?.userId != null) {
+            final activeRide = await RideService.getActiveRideForDriver(currentUser!.userId!);
+            
+            if (activeRide != null) {
+              // Se há corrida ativa, redirecionar para gerenciamento
+              setState(() {
+                _activeRide = activeRide;
+                _isLoadingRide = false;
+              });
+              _redirectToActiveRide(activeRide);
+              return;
+            }
           }
+          
+          // Se não há corrida ativa, ir para tela de criação
+          setState(() => _isLoadingRide = false);
+          Navigator.pushNamed(context, '/createRide');
+        } catch (e) {
+          setState(() => _isLoadingRide = false);
+          if (kDebugMode) {
+            debugPrint('Erro ao verificar corrida ativa: $e');
+          }
+          // Em caso de erro, permitir ir para tela de criação
+          Navigator.pushNamed(context, '/createRide');
+        }
+      },
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+      height: 40,
+    );
+  }
 
-          final rideData = {
-            'driverId': _activeRide!['driverId'],
-            'rideId': extractedRideId,
-            'id': extractedRideId,
-            'startLocation': _activeRide!['startLocation'],
-            'endLocation': _activeRide!['endLocation'],
-            'departureTime': _activeRide!['departureTime'],
-            'date': 'Hoje',
-            'totalSeats': _activeRide!['totalSeats'],
-            'distance': _activeRide!['distance'].toString(),
-            'vehicleBrand': _activeRide!['vehicle']?['brand'],
-            'vehicleModel': _activeRide!['vehicle']?['model'],
-            'acceptedPassengers': _acceptedPassengers,
-            'status': _activeRide!['status'] ?? 'PENDING',
-          };
-          Navigator.pushNamed(
-            context,
-            '/ride_start',
-            arguments: rideData,
-          ).then((_) => _checkForActiveRide());
-        },
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-        height: 40,
-      );
-    } else {
-      return CustomButton(
-        text: 'Criar viagem',
-        variant: ButtonVariant.primary,
-        icon: Icons.add,
-        onPressed: () {
-          Navigator.pushNamed(
-            context,
-            '/createRide',
-          ).then((_) => _checkForActiveRide());
-        },
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-        height: 40,
-      );
+  String _getStatusMessage(String status) {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return 'Corrida em andamento';
+      case 'COMPLETED':
+        return 'Corrida concluída';
+      case 'CANCELLED':
+        return 'Corrida cancelada';
+      case 'FINISHED':
+        return 'Corrida finalizada';
+      default:
+        return 'Status desconhecido';
     }
   }
 
@@ -748,66 +590,125 @@ class _DriverHomePageState extends State<DriverHomePage>
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Motorista'),
-            const SizedBox(width: 8),
-            // Indicador de atualização automática
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.sync,
-                    size: 12,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '30s',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        title: const Text('Motorista'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Atualizar agora',
-            onPressed: () {
-              debugPrint('🔄 DriverHomePage: Atualização manual solicitada');
-              setState(() {
-                _isLoadingRide = true;
-              });
-              _checkForActiveRide();
-            },
-          ),
-        ],
       ),
-      body:
-          <Widget>[
-            _buildDriverHomePage(),
-            const RideHistoryPage(),
-            const ChatListScreen(),
-            const SettingsPage(),
-          ][_currentPageIndex],
+      body: <Widget>[
+        _buildDriverHomePage(),
+        const RideHistoryPage(),
+        const ChatListScreen(),
+        const SettingsPage(),
+      ][_currentPageIndex],
       bottomNavigationBar: CustomMenuBar(
         currentPageIndex: _currentPageIndex,
         onPageSelected: updatePageIndex,
       ),
+    );
+  }
+
+  void _showRideCreatedDialog(Map<String, dynamic> rideData) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              SizedBox(width: 8),
+              Text('Carona Criada!'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ID da Carona
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.tag, color: Colors.blue, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'ID da Carona: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${rideData['id'] ?? rideData['rideId'] ?? 'N/A'}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Informações da Carona
+                _buildRideInfoRow(Icons.location_on, 'Origem', rideData['startLocation'] ?? 'N/A'),
+                const SizedBox(height: 8),
+                _buildRideInfoRow(Icons.location_on, 'Destino', rideData['endLocation'] ?? 'N/A'),
+                const SizedBox(height: 8),
+                _buildRideInfoRow(Icons.access_time, 'Horário', rideData['departureTime'] ?? 'N/A'),
+                const SizedBox(height: 8),
+                _buildRideInfoRow(Icons.calendar_today, 'Data', rideData['date'] ?? 'N/A'),
+                const SizedBox(height: 8),
+                _buildRideInfoRow(Icons.people, 'Vagas', '${rideData['totalSeats'] ?? 'N/A'}'),
+                const SizedBox(height: 8),
+                _buildRideInfoRow(Icons.route, 'Distância', '${rideData['distance'] ?? 'N/A'} km'),
+                if (rideData['vehicleBrand'] != null && rideData['vehicleModel'] != null) ...[
+                  const SizedBox(height: 8),
+                  _buildRideInfoRow(Icons.directions_car, 'Veículo', '${rideData['vehicleBrand']} ${rideData['vehicleModel']}'),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Fechar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navegar para a tela de gerenciamento da carona
+                Navigator.pushNamed(context, '/ride_start', arguments: rideData);
+              },
+              child: const Text('Gerenciar Carona'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildRideInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(color: Colors.grey[700]),
+          ),
+        ),
+      ],
     );
   }
 
@@ -828,36 +729,15 @@ class _DriverHomePageState extends State<DriverHomePage>
       'rideId': rideId,
       'startLocation': startLocation,
       'endLocation': endLocation,
-      // outros campos necessários
     });
 
-    debugPrint(
-      'Enviando solicitação: $body para ${AppConfig.baseUrl}/api/ride-requests/',
-    );
     final url = Uri.parse('${AppConfig.baseUrl}/api/ride-requests/');
     final response = await http.post(url, headers: headers, body: body);
-    debugPrint('Status: ${response.statusCode}');
-    debugPrint('Body: ${response.body}');
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       // sucesso
     } else {
       // erro
-    }
-  }
-
-  String _getStatusMessage(String status) {
-    switch (status) {
-      case 'IN_PROGRESS':
-        return 'Corrida em andamento';
-      case 'COMPLETED':
-        return 'Corrida concluída';
-      case 'CANCELLED':
-        return 'Corrida cancelada';
-      case 'FINISHED':
-        return 'Corrida finalizada';
-      default:
-        return 'Status desconhecido';
     }
   }
 }

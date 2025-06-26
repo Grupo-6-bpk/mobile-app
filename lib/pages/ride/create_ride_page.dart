@@ -162,11 +162,61 @@ class _CreateRidePageState extends State<CreateRidePage> {
       setState(() {
         _originController.text = coordinates ?? 'Localização não encontrada';
       });
+
+      // Calcular distância após obter a localização
+      await _calculateDistance();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erro ao obter localização')),
       );
+    }
+  }
+
+  Future<void> _calculateDistance() async {
+    if (globalInitialLocation == null) return;
+
+    setState(() {
+      _distanceInKm = 'Calculando...';
+    });
+
+    try {
+      // Tentar usar a API do Google Maps primeiro
+      final result = await mapsService.getDistanceAndDuration(
+        globalInitialLocation!.latitude,
+        globalInitialLocation!.longitude,
+        endLatitude,
+        endLongitude,
+      );
+
+      if (result != null && mounted) {
+        setState(() {
+          _calculatedDistance = result['distance_km'];
+          _distanceInKm = '${_calculatedDistance.toStringAsFixed(1)} km';
+        });
+      } else {
+        // Fallback para cálculo Haversine
+        final distance = mapsService.calculateHaversineDistance(
+          globalInitialLocation!.latitude,
+          globalInitialLocation!.longitude,
+          endLatitude,
+          endLongitude,
+        );
+
+        if (mounted) {
+          setState(() {
+            _calculatedDistance = distance;
+            _distanceInKm = '${distance.toStringAsFixed(1)} km (aprox.)';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _distanceInKm = 'Erro no cálculo';
+          _calculatedDistance = 0.0;
+        });
+      }
     }
   }
 
@@ -263,14 +313,32 @@ class _CreateRidePageState extends State<CreateRidePage> {
           children: [
             Expanded(
               flex: 4,
-              child: CustomMap(
-                height: double.infinity,
-                destinationPosition: LatLng(endLatitude, endLongitude),
-                waypoints:
-                    globalInitialLocation != null
-                        ? [globalInitialLocation!]
-                        : [],
-              ),
+              child: globalInitialLocation != null
+                  ? CustomMap(
+                      height: double.infinity,
+                      initialPosition: globalInitialLocation!,
+                      destinationPosition: LatLng(endLatitude, endLongitude),
+                      waypoints: [], // Waypoints não são necessários aqui pois já temos origem e destino
+                    )
+                  : Container(
+                      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text(
+                              'Obtendo localização...',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
             ),
             Expanded(
               flex: 10,
@@ -408,12 +476,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                               ),
                             ),
                             const SizedBox(height: 14),
-                            _buildInfoSection(
-                              colorScheme,
-                              "Distância:",
-                              _distanceInKm,
-                              null,
-                            ),
+                            _buildDistanceSection(colorScheme),
                             const SizedBox(height: 14),
 
                             const SizedBox(height: 18),
@@ -560,45 +623,42 @@ class _CreateRidePageState extends State<CreateRidePage> {
     );
   }
 
-  Widget _buildInfoSection(
-    ColorScheme colorScheme,
-    String title,
-    String value,
-    String? subtitle,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+  Widget _buildDistanceSection(ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Distância:",
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(204),
-              fontSize: 14,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 2),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
             Text(
-              subtitle,
+              _distanceInKm,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withAlpha(204),
                 fontSize: 14,
               ),
             ),
+            SizedBox(
+              height: 32,
+              child: CustomButton(
+                text: "Recalcular",
+                variant: ButtonVariant.secondary,
+                onPressed: globalInitialLocation != null ? _calculateDistance : null,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                height: 32,
+              ),
+            ),
           ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -674,16 +734,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
       return;
     }
 
-    if (_getDepartureDateTime().isBefore(
-      DateTime.now().add(const Duration(minutes: 5)),
-    )) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A partida deve ser em pelo menos 5 minutos.'),
-        ),
-      );
-      return;
-    }
+  
 
     if (_selectedVehicle == null) {
       if (!mounted) return;
@@ -974,9 +1025,12 @@ Interessados podem entrar em contato!
           };
 
           debugPrint(
-            'CreateRidePage: Navegando para /ride_start com dados: $rideData',
+            'CreateRidePage: Navegando para /driverHome com carona criada: $rideData',
           );
-          Navigator.pushNamed(context, '/ride_start', arguments: rideData);
+          Navigator.pushReplacementNamed(context, '/driverHome', arguments: {
+            'rideCreated': true,
+            'rideData': rideData,
+          });
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/components/custom_button.dart';
 import 'package:mobile_app/models/ride.dart';
@@ -32,6 +33,11 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   int? passengerId;
   Timer? _autoRefreshTimer;
   bool _isRefreshing = false;
+  
+  // Cache para evitar requisições desnecessárias
+  DateTime? _lastRefresh;
+  static const Duration _refreshInterval = Duration(minutes: 1); // Aumentado de 30s para 1min
+  static const Duration _cacheDuration = Duration(minutes: 2);
 
   @override
   bool get wantKeepAlive => true;
@@ -57,45 +63,37 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      debugPrint('📱 PassengerHomeScreen: App retomado, retomando timer');
-      _startAutoRefreshTimer(); // Retomar timer
+      _startAutoRefreshTimer();
     } else if (state == AppLifecycleState.paused) {
-      debugPrint('📱 PassengerHomeScreen: App pausado, pausando timer');
-      _autoRefreshTimer?.cancel(); // Pausar timer
+      _autoRefreshTimer?.cancel();
     } else if (state == AppLifecycleState.detached) {
-      debugPrint('📱 PassengerHomeScreen: App fechado, cancelando timer');
-      _autoRefreshTimer?.cancel(); // Cancelar timer
+      _autoRefreshTimer?.cancel();
     }
   }
 
   void _startAutoRefreshTimer() {
-    // Cancelar timer anterior se existir
     _autoRefreshTimer?.cancel();
 
-    // Iniciar novo timer que atualiza a cada 30 segundos
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      debugPrint('🔄 PassengerHomeScreen: Atualização automática iniciada');
+    _autoRefreshTimer = Timer.periodic(_refreshInterval, (timer) {
       if (mounted) {
         _performAutoRefresh();
       } else {
         timer.cancel();
       }
     });
-
-    debugPrint(
-      '⏰ PassengerHomeScreen: Timer de atualização automática iniciado (30s)',
-    );
   }
 
   Future<void> _performAutoRefresh() async {
+    // Verificar se já fez uma requisição recentemente
+    if (_lastRefresh != null && 
+        DateTime.now().difference(_lastRefresh!) < _cacheDuration) {
+      return; // Usar cache se ainda é válido
+    }
+
     if (_isRefreshing) {
-      debugPrint(
-        '⏳ PassengerHomeScreen: Atualização já em andamento, pulando...',
-      );
       return;
     }
 
-    debugPrint('🔄 PassengerHomeScreen: Executando atualização automática...');
     setState(() {
       _isRefreshing = true;
     });
@@ -110,13 +108,12 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
       // Forçar rebuild do FutureBuilder
       setState(() {
         _ridesFuture = RideService.getRides();
+        _lastRefresh = DateTime.now();
       });
-
-      debugPrint(
-        '✅ PassengerHomeScreen: Atualização automática concluída com sucesso',
-      );
     } catch (e) {
-      debugPrint('❌ PassengerHomeScreen: Erro na atualização automática: $e');
+      if (kDebugMode) {
+        print('Erro na atualização automática: $e');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -127,7 +124,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   }
 
   void _manualRefresh() {
-    debugPrint('🔄 PassengerHomeScreen: Atualização manual solicitada');
+    _lastRefresh = null; // Forçar atualização
     _performAutoRefresh();
   }
 
