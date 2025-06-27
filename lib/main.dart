@@ -9,6 +9,8 @@ import 'package:mobile_app/pages/login_page.dart';
 import 'package:mobile_app/pages/login_role_page.dart';
 import 'package:mobile_app/pages/passenger_home/passenger_home.dart';
 import 'package:mobile_app/pages/ride/create_ride_page.dart';
+import 'package:mobile_app/pages/ride/start/ride_start.dart';
+import 'package:mobile_app/pages/ride/started_ride.dart';
 import 'package:mobile_app/pages/sign_up/driver_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/passenger_sign_up_page.dart';
 import 'package:mobile_app/pages/sign_up/sign_up_role_page.dart';
@@ -22,6 +24,9 @@ Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dotenv.load(fileName: ".env");
+  
+
+  
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -58,6 +63,8 @@ class MyApp extends ConsumerWidget {
         "/driverHome": (context) => DriverHomePage(),
         "/passengerSignUp": (context) => PassengerSignUpPage(),
         "/createRide": (context) => CreateRidePage(),
+        "/ride_start": (context) => const RideStartPage(),
+        "/started_ride": (context) => const StartedRidePage(),
         "/chatList": (context) => const ChatListScreen(),
         "/newChat": (context) => const NewChatScreen(),
       },

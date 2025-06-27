@@ -42,7 +42,7 @@ class MapPlaceholder extends StatelessWidget {
           // Pontos de origem e destino
           Positioned(
             left: 30,
-            top: height / 2 - 5,
+            top: (height.isFinite ? height / 2 - 5 : 50),
             child: Container(
               width: 10,
               height: 10,
@@ -54,7 +54,7 @@ class MapPlaceholder extends StatelessWidget {
           ),
           Positioned(
             right: 30,
-            top: height / 2 - 5,
+            top: (height.isFinite ? height / 2 - 5 : 50),
             child: Container(
               width: 10,
               height: 10,
