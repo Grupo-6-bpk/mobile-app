@@ -125,7 +125,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
               title: const Text('Ajuda'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implementar tela de ajuda
               },
             ),
             const Divider(),

@@ -32,7 +32,7 @@ class ChatService {
         final List<dynamic> chatsJson = jsonDecode(response.body);
         return chatsJson.map((json) => Chat.fromJson(json)).toList();
       } else {
-        throw Exception('Erro ao carregar chats: ${response.statusCode}');
+        throw Exception('Erro ao carregar chats: \\${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Erro ao carregar chats: $e');
