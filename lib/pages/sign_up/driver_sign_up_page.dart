@@ -5,6 +5,7 @@ import 'package:mobile_app/components/custom_file_picker.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
 import 'package:mobile_app/models/user.dart';
 import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/utils/input_formatters.dart';
 
 class DriverSignUpPage extends StatefulWidget {
   const DriverSignUpPage({super.key});
@@ -22,15 +23,14 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _cpfController = TextEditingController();
   final TextEditingController _streetController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
-  final TextEditingController _zipcodeController = TextEditingController();  final TextEditingController _driverLicenseController =
-      TextEditingController();
+  final TextEditingController _zipcodeController = TextEditingController();  
+  final TextEditingController _driverLicenseController = TextEditingController();
 
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
@@ -98,14 +98,18 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
   bool _passwordsMatch() {
     return _passwordController.text == _confirmPasswordController.text;
   }
-
   bool _validateFirstStep() {
     return _firstNameController.text.isNotEmpty &&
         _lastNameController.text.isNotEmpty &&
         _emailController.text.isNotEmpty &&
         _passwordController.text.isNotEmpty &&
         _confirmPasswordController.text.isNotEmpty &&
-        _phoneController.text.isNotEmpty;
+        _phoneController.text.isNotEmpty &&
+        _cpfController.text.isNotEmpty &&
+        _streetController.text.isNotEmpty &&
+        _numberController.text.isNotEmpty &&
+        _cityController.text.isNotEmpty &&
+        _zipcodeController.text.isNotEmpty;
   }
 
   bool _validateSecondStep() {
@@ -273,24 +277,26 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
                                     ).requestFocus(_phoneFocusNode);
                                   },
                                 ),
-                                const SizedBox(height: 20),
-                                CustomTextfield(
+                                const SizedBox(height: 20),                                CustomTextfield(
                                   controller: _phoneController,
                                   focusNode: _phoneFocusNode,
                                   label: "Telefone",
                                   obscureText: false,
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [InputFormatters.phoneFormatter],
                                   onSubmitted: (_) {
                                     FocusScope.of(
                                       context,
                                     ).requestFocus(_cpfFocusNode);
                                   },
                                 ),
-                                const SizedBox(height: 20),
-                                CustomTextfield(
+                                const SizedBox(height: 20),                                CustomTextfield(
                                   controller: _cpfController,
                                   focusNode: _cpfFocusNode,
-                                  label: "Cpf",
+                                  label: "CPF",
                                   obscureText: false,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [InputFormatters.cpfFormatter],
                                   onSubmitted: (_) {
                                     FocusScope.of(
                                       context,
@@ -347,13 +353,13 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {  int _currentStep
                                       ),
                                     ),
                                     const SizedBox(width: 15),
-                                    Expanded(
-                                      child: CustomTextfield(
+                                    Expanded(                                      child: CustomTextfield(
                                         controller: _zipcodeController,
                                         focusNode: _zipcodeFocusNode,
-                                        isNumeric: true,
                                         label: "CEP",
                                         obscureText: false,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [InputFormatters.cepFormatter],
                                       ),
                                     ),
                                   ],

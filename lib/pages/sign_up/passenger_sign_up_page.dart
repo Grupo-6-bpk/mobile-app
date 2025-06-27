@@ -5,6 +5,7 @@ import 'package:mobile_app/components/custom_file_picker.dart';
 import 'package:mobile_app/components/custom_textfield.dart';
 import 'package:mobile_app/models/user.dart';
 import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/utils/input_formatters.dart';
 
 class PassengerSignUpPage extends StatefulWidget {
   const PassengerSignUpPage({super.key});
@@ -245,24 +246,26 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
                                     ).requestFocus(_phoneFocusNode);
                                   },
                                 ),
-                                const SizedBox(height: 20),
-                                CustomTextfield(
+                                const SizedBox(height: 20),                                CustomTextfield(
                                   controller: _phoneController,
                                   label: "Telefone",
                                   obscureText: false,
                                   focusNode: _phoneFocusNode,
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [InputFormatters.phoneFormatter],
                                   onSubmitted: (value) {
                                     FocusScope.of(
                                       context,
                                     ).requestFocus(_cpfFocusNode);
                                   },
                                 ),
-                                const SizedBox(height: 20),
-                                CustomTextfield(
+                                const SizedBox(height: 20),                                CustomTextfield(
                                   controller: _cpfController,
                                   label: "CPF",
                                   obscureText: false,
                                   focusNode: _cpfFocusNode,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [InputFormatters.cpfFormatter],
                                   onSubmitted: (value) {
                                     FocusScope.of(
                                       context,
@@ -342,12 +345,13 @@ class _PassengerSignUpPageState extends State<PassengerSignUpPage> {
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    Expanded(
-                                      child: CustomTextfield(
+                                    Expanded(                                      child: CustomTextfield(
                                         controller: _zipCodeController,
                                         label: "CEP",
                                         obscureText: false,
                                         focusNode: _zipCodeFocusNode,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [InputFormatters.cepFormatter],
                                         onSubmitted: (value) {
                                           FocusScope.of(context).unfocus();
                                         },

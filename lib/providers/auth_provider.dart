@@ -5,19 +5,13 @@ import '../services/auth_service.dart';
 import '../services/websocket_service.dart';
 import '../services/chat_service.dart';
 
-enum AuthState {
-  initial,
-  loading,
-  authenticated,
-  unauthenticated,
-  error,
-}
+enum AuthState { initial, loading, authenticated, unauthenticated, error }
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService = AuthService();
   User? _currentUser;
   String? _errorMessage;
-  
+
   WebSocketService? _webSocketService;
   ChatService? _chatService;
 
@@ -26,23 +20,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   User? get currentUser => _currentUser;
+
   String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => state == AuthState.authenticated && _currentUser != null;
-  
+  bool get isAuthenticated =>
+      state == AuthState.authenticated && _currentUser != null;
+
   WebSocketService? get webSocketService => _webSocketService;
   ChatService? get chatService => _chatService;
 
   Future<void> _initializeAuth() async {
     state = AuthState.loading;
-    
+
     try {
       await _authService.loadFromStorage();
-      
+
       if (_authService.isAuthenticated && _authService.currentUser != null) {
         _currentUser = _authService.currentUser;
         _createServices();
         state = AuthState.authenticated;
-        debugPrint('AuthProvider: Usuário autenticado carregado: ${_currentUser?.email}');
+        debugPrint(
+          'AuthProvider: Usuário autenticado carregado: ${_currentUser?.email}',
+        );
       } else {
         _currentUser = null;
         state = AuthState.unauthenticated;
@@ -63,7 +61,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void _disposeServices() {
     debugPrint('AuthProvider: Iniciando dispose dos serviços');
-    
+
     if (_chatService != null) {
       try {
         _chatService!.dispose();
@@ -72,7 +70,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       _chatService = null;
     }
-    
+
     if (_webSocketService != null) {
       try {
         _webSocketService!.dispose();
@@ -81,7 +79,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       _webSocketService = null;
     }
-    
+
     debugPrint('AuthProvider: Dispose dos serviços concluído');
   }
 
@@ -91,16 +89,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final success = await _authService.login(email, password);
-      
+
       if (success) {
         _currentUser = _authService.currentUser;
         _errorMessage = null;
-        
-        debugPrint('AuthProvider: Login bem-sucedido para usuário ${_currentUser?.userId}');
-        debugPrint('AuthProvider: Token atual: ${_authService.token?.substring(0, 20)}...');
-        
+
+        debugPrint(
+          'AuthProvider: Login bem-sucedido para usuário ${_currentUser?.userId}',
+        );
+        debugPrint(
+          'AuthProvider: Token atual: ${_authService.token?.substring(0, 20)}...',
+        );
+
         _createServices();
-        
+
         try {
           await Future.delayed(const Duration(milliseconds: 200));
           debugPrint('AuthProvider: Conectando WebSocket...');
@@ -109,7 +111,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         } catch (wsError) {
           debugPrint('AuthProvider: Erro ao conectar WebSocket: $wsError');
         }
-        
+
         state = AuthState.authenticated;
         return true;
       } else {
@@ -122,7 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (errorMsg.startsWith('Exception: ')) {
         errorMsg = errorMsg.substring(11);
       }
-      
+
       _errorMessage = errorMsg;
       state = AuthState.error;
       return false;
@@ -131,22 +133,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     state = AuthState.loading;
-    
+
     try {
       _currentUser = null;
       _errorMessage = null;
-      
+
       _disposeServices();
-      
+
       await _authService.logout();
-      
-      debugPrint('AuthProvider: Logout concluído, estado completamente resetado');
-      
+
+      debugPrint(
+        'AuthProvider: Logout concluído, estado completamente resetado',
+      );
+
       state = AuthState.unauthenticated;
-      
     } catch (e) {
       debugPrint('AuthProvider: Erro no logout: $e');
-      
+
       _currentUser = null;
       _errorMessage = 'Erro ao fazer logout: $e';
       state = AuthState.unauthenticated;
@@ -156,9 +159,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void clearError() {
     _errorMessage = null;
     if (state == AuthState.error) {
-      state = _authService.isAuthenticated 
-          ? AuthState.authenticated 
-          : AuthState.unauthenticated;
+      state =
+          _authService.isAuthenticated
+              ? AuthState.authenticated
+              : AuthState.unauthenticated;
     }
   }
 
@@ -177,6 +181,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState.initial;
     await _initializeAuth();
   }
+
+  void updateCurrentUser(User user) {
+    _currentUser = user;
+    state = AuthState.authenticated;
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
@@ -190,7 +199,8 @@ final authNotifierProvider = Provider<AuthNotifier>((ref) {
 final isAuthenticatedProvider = Provider<bool>((ref) {
   final authState = ref.watch(authProvider);
   final authNotifier = ref.read(authProvider.notifier);
-  return authState == AuthState.authenticated && authNotifier.currentUser != null;
+  return authState == AuthState.authenticated &&
+      authNotifier.currentUser != null;
 });
 
 final currentUserProvider = Provider<User?>((ref) {
@@ -202,4 +212,4 @@ final authErrorProvider = Provider<String?>((ref) {
   ref.watch(authProvider);
   final authNotifier = ref.read(authProvider.notifier);
   return authNotifier.errorMessage;
-}); 
+});
