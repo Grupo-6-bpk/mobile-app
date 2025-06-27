@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/map_placeholder.dart';
+import 'package:mobile_app/models/ride_history.dart';
+import 'package:intl/intl.dart';
 
 class RideDetailPage extends StatelessWidget {
-  final String date;
-  final String address;
-  final String time;
-  final String? title;
-  final String vehicleInfo;
+  final RideHistory ride;
   
   const RideDetailPage({
     super.key,
-    required this.date,
-    required this.address,
-    required this.time,
-    this.title,
-    required this.vehicleInfo,
+    required this.ride,
   });
 
   @override
@@ -30,7 +24,6 @@ class RideDetailPage extends StatelessWidget {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Cabeçalho com título e botão de fechar
               Padding(
@@ -41,7 +34,7 @@ class RideDetailPage extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          Icons.directions_car,
+                          ride.type == 'driver' ? Icons.directions_car : Icons.person,
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
@@ -49,7 +42,7 @@ class RideDetailPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              title ?? 'Viagem $date',
+                              ride.title ?? 'Viagem ${DateFormat('dd/MM/yyyy').format(ride.departureTime)}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.onSurface,
@@ -57,7 +50,7 @@ class RideDetailPage extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              vehicleInfo,
+                              ride.vehicleInfo,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -81,30 +74,29 @@ class RideDetailPage extends StatelessWidget {
                 child: const MapPlaceholder(height: 150),
               ),
               
-              // Informações do endereço
+              // Informações da viagem
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Saída: $address',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 14,
-                      ),
-                    ),
+                    _buildInfoRow(context, 'Origem', ride.startAddress),
                     const SizedBox(height: 4),
-                    Text(
-                      'Horário de saída: $time',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 14,
-                      ),
-                    ),
+                    _buildInfoRow(context, 'Destino', ride.endAddress),
+                    const SizedBox(height: 4),
+                    _buildInfoRow(context, 'Data/Hora', '${DateFormat('dd/MM/yyyy').format(ride.departureTime)} às ${DateFormat('HH:mm').format(ride.departureTime)}'),
+                    const SizedBox(height: 4),
+                    _buildInfoRow(context, 'Distância', '${ride.distance.toStringAsFixed(1)} km'),
+                    const SizedBox(height: 4),
+                    _buildInfoRow(context, 'Status', ride.statusText),
+                    const SizedBox(height: 8),
+                    _buildInfoRow(context, 'Custo total', 'R\$ ${ride.totalCost.toStringAsFixed(2)}', isHighlighted: true),
+                    _buildInfoRow(context, 'Sua parte', 'R\$ ${ride.userShare.toStringAsFixed(2)}', isHighlighted: true),
+                    if (ride.savings > 0)
+                      _buildInfoRow(context, 'Economia', 'R\$ ${ride.savings.toStringAsFixed(2)}', isHighlighted: true, color: Colors.green),
                     const SizedBox(height: 16),
                     Text(
-                      'Passageiros:',
+                      'Participantes:',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
@@ -115,29 +107,16 @@ class RideDetailPage extends StatelessWidget {
                 ),
               ),
               
-              // Lista de passageiros
+              // Lista de participantes
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Column(
-                  children: [
-                    _buildPassengerItem(
-                      context,
-                      name: 'Roberta Santos',
-                      rating: 5,
+                  children: ride.participants.map((participant) => 
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildParticipantItem(context, participant),
                     ),
-                    const SizedBox(height: 8),
-                    _buildPassengerItem(
-                      context,
-                      name: 'Robertinho',
-                      rating: 5,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPassengerItem(
-                      context,
-                      name: 'Fabiane Santos',
-                      rating: 5,
-                    ),
-                  ],
+                  ).toList(),
                 ),
               ),
             ],
@@ -147,17 +126,38 @@ class RideDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPassengerItem(BuildContext context, {
-    required String name,
-    required int rating,
-  }) {
+  Widget _buildInfoRow(BuildContext context, String label, String value, {bool isHighlighted = false, Color? color}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '$label:',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 14,
+            fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: color ?? Theme.of(context).colorScheme.onSurface,
+            fontSize: 14,
+            fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildParticipantItem(BuildContext context, ParticipantHistory participant) {
     return Row(
       children: [
         CircleAvatar(
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           radius: 16,
           child: Text(
-            name[0],
+            participant.name[0],
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.bold,
@@ -170,22 +170,17 @@ class RideDetailPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                name,
+                participant.name,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 14,
                 ),
               ),
-              Row(
-                children: List.generate(
-                  5,
-                  (index) => Icon(
-                    Icons.star,
-                    size: 14,
-                    color: index < rating
-                        ? Colors.amber
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                  ),
+              Text(
+                '${participant.role} - R\$ ${participant.share.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
                 ),
               ),
             ],
@@ -200,7 +195,7 @@ class RideDetailPage extends StatelessWidget {
             icon: const Icon(Icons.arrow_forward_ios, size: 14),
             color: Theme.of(context).colorScheme.onPrimary,
             onPressed: () {
-              // Navegar para o perfil do passageiro
+              // Navegar para o perfil do participante
             },
           ),
         ),
